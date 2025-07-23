@@ -51,6 +51,7 @@ import org.apache.plc4x.java.spi.messages.utils.PlcResponseItem;
 import org.apache.plc4x.java.spi.messages.utils.PlcTagItem;
 import org.apache.plc4x.java.spi.optimizer.SingleTagOptimizer;
 import org.apache.plc4x.java.spi.values.PlcBOOL;
+import org.apache.plc4x.java.spi.values.PlcList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -208,11 +209,25 @@ public class ModbusOptimizer extends SingleTagOptimizer {
 
                             // Calculate the byte that contains the response for this Coil
                             byte[] responseData = response.getResponseData();
-                            int bitPosition = modbusTag.getAddress() - response.startingAddress;
-                            int bytePosition = bitPosition / 8;
-                            int bitPositionInByte = bitPosition % 8;
-                            boolean isBitSet = (responseData[bytePosition] & (1 << bitPositionInByte)) != 0;
-                            values.put(tagName, new DefaultPlcResponseItem<>(PlcResponseCode.OK, new PlcBOOL(isBitSet)));
+
+                            // Check if we're dealing with an array of Coils or Discrete Inputs
+                            if (modbusTag.getNumberOfElements() > 1) {
+                                PlcList bitValues = new PlcList();
+                                for (int i = 0; i < modbusTag.getNumberOfElements(); i++) {
+                                    int bitPosition = modbusTag.getAddress() - response.startingAddress + i;
+                                    int bytePosition = bitPosition / 8;
+                                    int bitPositionInByte = bitPosition % 8;
+                                    boolean isBitSet = (responseData[bytePosition] & (1 << bitPositionInByte)) != 0;
+                                    bitValues.add(new PlcBOOL(isBitSet));
+                                }
+                                values.put(tagName, new DefaultPlcResponseItem<>(PlcResponseCode.OK, bitValues));
+                            } else {
+                                int bitPosition = modbusTag.getAddress() - response.startingAddress;
+                                int bytePosition = bitPosition / 8;
+                                int bitPositionInByte = bitPosition % 8;
+                                boolean isBitSet = (responseData[bytePosition] & (1 << bitPositionInByte)) != 0;
+                                values.put(tagName, new DefaultPlcResponseItem<>(PlcResponseCode.OK, new PlcBOOL(isBitSet)));
+                            }
                             break;
                         }
                     }
