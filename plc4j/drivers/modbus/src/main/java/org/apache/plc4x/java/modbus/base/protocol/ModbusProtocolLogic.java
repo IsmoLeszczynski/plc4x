@@ -412,4 +412,18 @@ public abstract class ModbusProtocolLogic<T extends ModbusADU> extends Plc4xProt
         return out;
     }
 
+    public static byte[] wordSwap(byte[] in) {
+        if (in.length % 2 != 0) {
+            throw new PlcRuntimeException("Input byte array length must be a multiple of 2 for word swapping.");
+        }
+        byte[] out = new byte[in.length];
+        for (int i = 0; i < in.length; i += 4) {
+            out[i] = in[i + 2];
+            out[i + 1] = in[i + 3];
+            out[i + 2] = in[i];
+            out[i + 3] = in[i + 1];
+        }
+        return out;
+    }
+
 }

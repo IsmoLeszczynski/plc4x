@@ -451,6 +451,32 @@ public class ModbusOptimizer extends SingleTagOptimizer {
                 byte[] reordered = ModbusProtocolLogic.byteSwap(data);
                 return new ReadBufferByteBased(reordered, ByteOrder.LITTLE_ENDIAN);
             }
+            case BIG_ENDIAN_WORD_SWAP: {
+                // [3, 4, 1, 2]
+                // [3, 4, 1, 2, 7, 8, 5, 6]
+                byte[] reordered = ModbusProtocolLogic.wordSwap(data);
+                return new ReadBufferByteBased(reordered, ByteOrder.BIG_ENDIAN);
+            }
+            case LITTLE_ENDIAN_WORD_SWAP: {
+                // [2, 1, 4, 3]
+                // [6, 5, 8, 7, 2, 1, 4, 3]
+                byte[] reordered = ModbusProtocolLogic.wordSwap(data);
+                return new ReadBufferByteBased(reordered, ByteOrder.LITTLE_ENDIAN);
+            }
+            case BIG_ENDIAN_WORD_SWAP_BYTE_SWAP: {
+                // [4, 3, 2, 1]
+                // [4, 3, 2, 1, 8, 7, 6, 5]
+                byte[] reordered = ModbusProtocolLogic.byteSwap(data);
+                reordered = ModbusProtocolLogic.wordSwap(reordered);
+                return new ReadBufferByteBased(reordered, ByteOrder.BIG_ENDIAN);
+            }
+            case LITTLE_ENDIAN_WORD_SWAP_BYTE_SWAP: {
+                // [1, 2, 3, 4]
+                // [5, 6, 7, 8, 1, 2, 3, 4]
+                byte[] reordered = ModbusProtocolLogic.byteSwap(data);
+                reordered = ModbusProtocolLogic.wordSwap(reordered);
+                return new ReadBufferByteBased(reordered, ByteOrder.LITTLE_ENDIAN);
+            }
             default:
                 // 16909060
                 // [1, 2, 3, 4]

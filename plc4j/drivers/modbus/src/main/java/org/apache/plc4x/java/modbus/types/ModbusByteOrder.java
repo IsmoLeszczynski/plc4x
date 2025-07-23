@@ -30,5 +30,17 @@ public enum ModbusByteOrder {
     BIG_ENDIAN_BYTE_SWAP,
     // [3, 4, 1, 2]
     // [7, 8, 5, 6, 3, 4, 1, 2]
-    LITTLE_ENDIAN_BYTE_SWAP
+    LITTLE_ENDIAN_BYTE_SWAP,
+    // [3, 4, 1, 2]
+    // [3, 4, 1, 2, 7, 8, 5, 6]
+    BIG_ENDIAN_WORD_SWAP,
+    // [2, 1, 4, 3]
+    // [6, 5, 8, 7, 2, 1, 4, 3]
+    LITTLE_ENDIAN_WORD_SWAP,
+    // [4, 3, 2, 1]
+    // [4, 3, 2, 1, 8, 7, 6, 5]
+    BIG_ENDIAN_WORD_SWAP_BYTE_SWAP,
+    // [1, 2, 3, 4]
+    // [5, 6, 7, 8, 1, 2, 3, 4]
+    LITTLE_ENDIAN_WORD_SWAP_BYTE_SWAP,
 }
