@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -44,8 +45,10 @@ type CBusHeader interface {
 	// GetDp returns Dp (property field)
 	GetDp() bool
 	// GetRc returns Rc (property field)
+	// Reserved for internal C-Bus management purposes (Referred to as special packet attribute)
 	GetRc() uint8
 	// GetDestinationAddressType returns DestinationAddressType (property field)
+	// Reserved for internal C-Bus management purposes (Referred to as special packet attribute)
 	GetDestinationAddressType() DestinationAddressType
 	// IsCBusHeader is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsCBusHeader()
@@ -100,7 +103,7 @@ func NewCBusHeaderBuilder() CBusHeaderBuilder {
 type _CBusHeaderBuilder struct {
 	*_CBusHeader
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CBusHeaderBuilder) = (*_CBusHeaderBuilder)(nil)
@@ -130,8 +133,8 @@ func (b *_CBusHeaderBuilder) WithDestinationAddressType(destinationAddressType D
 }
 
 func (b *_CBusHeaderBuilder) Build() (CBusHeader, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CBusHeader.deepCopy(), nil
 }
@@ -146,8 +149,8 @@ func (b *_CBusHeaderBuilder) MustBuild() CBusHeader {
 
 func (b *_CBusHeaderBuilder) DeepCopy() any {
 	_copy := b.CreateCBusHeaderBuilder().(*_CBusHeaderBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -239,7 +242,7 @@ func CBusHeaderParseWithBufferProducer() func(ctx context.Context, readBuffer ut
 }
 
 func CBusHeaderParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (CBusHeader, error) {
-	v, err := (&_CBusHeader{}).parse(ctx, readBuffer)
+	v, err := (new(_CBusHeader)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

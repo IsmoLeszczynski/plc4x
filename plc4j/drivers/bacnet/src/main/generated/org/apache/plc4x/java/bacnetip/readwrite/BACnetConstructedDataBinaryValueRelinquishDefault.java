@@ -50,21 +50,13 @@ public class BACnetConstructedDataBinaryValueRelinquishDefault extends BACnetCon
   // Properties.
   protected final BACnetBinaryPVTagged relinquishDefault;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataBinaryValueRelinquishDefault(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetBinaryPVTagged relinquishDefault,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetBinaryPVTagged relinquishDefault) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.relinquishDefault = relinquishDefault;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetBinaryPVTagged getRelinquishDefault() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataBinaryValueRelinquishDefault extends BACnetCon
     // Simple Field (relinquishDefault)
     writeSimpleField("relinquishDefault", relinquishDefault, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetBinaryPVTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -135,40 +127,24 @@ public class BACnetConstructedDataBinaryValueRelinquishDefault extends BACnetCon
 
     readBuffer.closeContext("BACnetConstructedDataBinaryValueRelinquishDefault");
     // Create the instance
-    return new BACnetConstructedDataBinaryValueRelinquishDefaultBuilderImpl(
-        relinquishDefault, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataBinaryValueRelinquishDefaultBuilderImpl(relinquishDefault);
   }
 
   public static class BACnetConstructedDataBinaryValueRelinquishDefaultBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetBinaryPVTagged relinquishDefault;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataBinaryValueRelinquishDefaultBuilderImpl(
-        BACnetBinaryPVTagged relinquishDefault,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetBinaryPVTagged relinquishDefault) {
       this.relinquishDefault = relinquishDefault;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataBinaryValueRelinquishDefault build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataBinaryValueRelinquishDefault
           bACnetConstructedDataBinaryValueRelinquishDefault =
               new BACnetConstructedDataBinaryValueRelinquishDefault(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  relinquishDefault,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, relinquishDefault);
       return bACnetConstructedDataBinaryValueRelinquishDefault;
     }
   }

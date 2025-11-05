@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type NPDUNetworkPriorityTagged interface {
 type _NPDUNetworkPriorityTagged struct {
 	Header BACnetTagHeader
 	Value  NPDUNetworkPriority
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ NPDUNetworkPriorityTagged = (*_NPDUNetworkPriorityTagged)(nil)
 
 // NewNPDUNetworkPriorityTagged factory function for _NPDUNetworkPriorityTagged
-func NewNPDUNetworkPriorityTagged(header BACnetTagHeader, value NPDUNetworkPriority, tagNumber uint8, tagClass TagClass) *_NPDUNetworkPriorityTagged {
+func NewNPDUNetworkPriorityTagged(header BACnetTagHeader, value NPDUNetworkPriority) *_NPDUNetworkPriorityTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for NPDUNetworkPriorityTagged must not be nil")
 	}
-	return &_NPDUNetworkPriorityTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_NPDUNetworkPriorityTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type NPDUNetworkPriorityTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) NPDUNetworkPriorityTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(NPDUNetworkPriority) NPDUNetworkPriorityTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) NPDUNetworkPriorityTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) NPDUNetworkPriorityTaggedBuilder
 	// Build builds the NPDUNetworkPriorityTagged or returns an error if something is wrong
 	Build() (NPDUNetworkPriorityTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewNPDUNetworkPriorityTaggedBuilder() NPDUNetworkPriorityTaggedBuilder {
 type _NPDUNetworkPriorityTaggedBuilder struct {
 	*_NPDUNetworkPriorityTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NPDUNetworkPriorityTaggedBuilder) = (*_NPDUNetworkPriorityTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_NPDUNetworkPriorityTaggedBuilder) WithHeaderBuilder(builderSupplier fu
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_NPDUNetworkPriorityTaggedBuilder) WithValue(value NPDUNetworkPriority)
 	return b
 }
 
-func (b *_NPDUNetworkPriorityTaggedBuilder) WithArgTagNumber(tagNumber uint8) NPDUNetworkPriorityTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_NPDUNetworkPriorityTaggedBuilder) WithArgTagClass(tagClass TagClass) NPDUNetworkPriorityTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_NPDUNetworkPriorityTaggedBuilder) Build() (NPDUNetworkPriorityTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NPDUNetworkPriorityTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_NPDUNetworkPriorityTaggedBuilder) MustBuild() NPDUNetworkPriorityTagge
 
 func (b *_NPDUNetworkPriorityTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateNPDUNetworkPriorityTaggedBuilder().(*_NPDUNetworkPriorityTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func NPDUNetworkPriorityTaggedParseWithBufferProducer(tagNumber uint8, tagClass 
 }
 
 func NPDUNetworkPriorityTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (NPDUNetworkPriorityTagged, error) {
-	v, err := (&_NPDUNetworkPriorityTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_NPDUNetworkPriorityTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_NPDUNetworkPriorityTagged) SerializeWithWriteBuffer(ctx context.Contex
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_NPDUNetworkPriorityTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_NPDUNetworkPriorityTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_NPDUNetworkPriorityTagged) IsNPDUNetworkPriorityTagged() {}
 
 func (m *_NPDUNetworkPriorityTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_NPDUNetworkPriorityTagged) deepCopy() *_NPDUNetworkPriorityTagged {
 	_NPDUNetworkPriorityTaggedCopy := &_NPDUNetworkPriorityTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _NPDUNetworkPriorityTaggedCopy
 }

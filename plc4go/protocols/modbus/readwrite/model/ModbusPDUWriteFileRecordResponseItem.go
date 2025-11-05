@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -100,7 +101,7 @@ func NewModbusPDUWriteFileRecordResponseItemBuilder() ModbusPDUWriteFileRecordRe
 type _ModbusPDUWriteFileRecordResponseItemBuilder struct {
 	*_ModbusPDUWriteFileRecordResponseItem
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ModbusPDUWriteFileRecordResponseItemBuilder) = (*_ModbusPDUWriteFileRecordResponseItemBuilder)(nil)
@@ -130,8 +131,8 @@ func (b *_ModbusPDUWriteFileRecordResponseItemBuilder) WithRecordData(recordData
 }
 
 func (b *_ModbusPDUWriteFileRecordResponseItemBuilder) Build() (ModbusPDUWriteFileRecordResponseItem, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ModbusPDUWriteFileRecordResponseItem.deepCopy(), nil
 }
@@ -146,8 +147,8 @@ func (b *_ModbusPDUWriteFileRecordResponseItemBuilder) MustBuild() ModbusPDUWrit
 
 func (b *_ModbusPDUWriteFileRecordResponseItemBuilder) DeepCopy() any {
 	_copy := b.CreateModbusPDUWriteFileRecordResponseItemBuilder().(*_ModbusPDUWriteFileRecordResponseItemBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -244,7 +245,7 @@ func ModbusPDUWriteFileRecordResponseItemParseWithBufferProducer() func(ctx cont
 }
 
 func ModbusPDUWriteFileRecordResponseItemParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (ModbusPDUWriteFileRecordResponseItem, error) {
-	v, err := (&_ModbusPDUWriteFileRecordResponseItem{}).parse(ctx, readBuffer)
+	v, err := (new(_ModbusPDUWriteFileRecordResponseItem)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

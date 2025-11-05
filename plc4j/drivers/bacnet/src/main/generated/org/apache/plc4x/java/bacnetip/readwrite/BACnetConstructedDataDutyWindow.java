@@ -49,21 +49,13 @@ public class BACnetConstructedDataDutyWindow extends BACnetConstructedData imple
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger dutyWindow;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataDutyWindow(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger dutyWindow,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger dutyWindow) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.dutyWindow = dutyWindow;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getDutyWindow() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataDutyWindow extends BACnetConstructedData imple
     // Simple Field (dutyWindow)
     writeSimpleField("dutyWindow", dutyWindow, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,22 @@ public class BACnetConstructedDataDutyWindow extends BACnetConstructedData imple
 
     readBuffer.closeContext("BACnetConstructedDataDutyWindow");
     // Create the instance
-    return new BACnetConstructedDataDutyWindowBuilderImpl(
-        dutyWindow, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataDutyWindowBuilderImpl(dutyWindow);
   }
 
   public static class BACnetConstructedDataDutyWindowBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger dutyWindow;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataDutyWindowBuilderImpl(
-        BACnetApplicationTagUnsignedInteger dutyWindow,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger dutyWindow) {
       this.dutyWindow = dutyWindow;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataDutyWindow build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataDutyWindow bACnetConstructedDataDutyWindow =
-          new BACnetConstructedDataDutyWindow(
-              openingTag, peekedTagHeader, closingTag, dutyWindow, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataDutyWindow(openingTag, peekedTagHeader, closingTag, dutyWindow);
       return bACnetConstructedDataDutyWindow;
     }
   }

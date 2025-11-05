@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataActionText interface {
 	// GetActionText returns ActionText (property field)
 	GetActionText() []BACnetApplicationTagCharacterString
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataActionText is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataActionText()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataActionText = (*_BACnetConstructedDataActionText)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataActionText)(nil)
 
 // NewBACnetConstructedDataActionText factory function for _BACnetConstructedDataActionText
-func NewBACnetConstructedDataActionText(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, actionText []BACnetApplicationTagCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataActionText {
+func NewBACnetConstructedDataActionText(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, actionText []BACnetApplicationTagCharacterString) *_BACnetConstructedDataActionText {
 	_result := &_BACnetConstructedDataActionText{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		ActionText:                    actionText,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataActionTextBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataActionTextBuilder) = (*_BACnetConstructedDataActionTextBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataActionTextBuilder) WithOptionalNumberOfDataElemen
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataActionTextBuilder) WithActionText(actionText ...B
 }
 
 func (b *_BACnetConstructedDataActionTextBuilder) Build() (BACnetConstructedDataActionText, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataActionText.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataActionTextBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataActionTextBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataActionTextBuilder().(*_BACnetConstructedDataActionTextBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

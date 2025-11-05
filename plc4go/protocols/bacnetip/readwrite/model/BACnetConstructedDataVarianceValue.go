@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataVarianceValue = (*_BACnetConstructedDataVarianceValue
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataVarianceValue)(nil)
 
 // NewBACnetConstructedDataVarianceValue factory function for _BACnetConstructedDataVarianceValue
-func NewBACnetConstructedDataVarianceValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, varianceValue BACnetApplicationTagReal, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataVarianceValue {
+func NewBACnetConstructedDataVarianceValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, varianceValue BACnetApplicationTagReal) *_BACnetConstructedDataVarianceValue {
 	if varianceValue == nil {
 		panic("varianceValue of type BACnetApplicationTagReal for BACnetConstructedDataVarianceValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataVarianceValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		VarianceValue:                 varianceValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataVarianceValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataVarianceValueBuilder) = (*_BACnetConstructedDataVarianceValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataVarianceValueBuilder) WithVarianceValueBuilder(bu
 	var err error
 	b.VarianceValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataVarianceValueBuilder) Build() (BACnetConstructedDataVarianceValue, error) {
 	if b.VarianceValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'varianceValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'varianceValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataVarianceValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataVarianceValueBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataVarianceValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataVarianceValueBuilder().(*_BACnetConstructedDataVarianceValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

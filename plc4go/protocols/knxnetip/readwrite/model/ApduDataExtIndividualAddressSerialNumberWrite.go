@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtIndividualAddressSerialNumberWrite = (*_ApduDataExtIndividualAd
 var _ ApduDataExtRequirements = (*_ApduDataExtIndividualAddressSerialNumberWrite)(nil)
 
 // NewApduDataExtIndividualAddressSerialNumberWrite factory function for _ApduDataExtIndividualAddressSerialNumberWrite
-func NewApduDataExtIndividualAddressSerialNumberWrite(length uint8) *_ApduDataExtIndividualAddressSerialNumberWrite {
+func NewApduDataExtIndividualAddressSerialNumberWrite() *_ApduDataExtIndividualAddressSerialNumberWrite {
 	_result := &_ApduDataExtIndividualAddressSerialNumberWrite{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtIndividualAddressSerialNumberWriteBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtIndividualAddressSerialNumberWriteBuilder) = (*_ApduDataExtIndividualAddressSerialNumberWriteBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtIndividualAddressSerialNumberWriteBuilder) WithMandatoryFie
 }
 
 func (b *_ApduDataExtIndividualAddressSerialNumberWriteBuilder) Build() (ApduDataExtIndividualAddressSerialNumberWrite, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtIndividualAddressSerialNumberWrite.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtIndividualAddressSerialNumberWriteBuilder) buildForApduData
 
 func (b *_ApduDataExtIndividualAddressSerialNumberWriteBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtIndividualAddressSerialNumberWriteBuilder().(*_ApduDataExtIndividualAddressSerialNumberWriteBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

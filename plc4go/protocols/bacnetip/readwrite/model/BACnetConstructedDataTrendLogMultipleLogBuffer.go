@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataTrendLogMultipleLogBuffer = (*_BACnetConstructedDataT
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataTrendLogMultipleLogBuffer)(nil)
 
 // NewBACnetConstructedDataTrendLogMultipleLogBuffer factory function for _BACnetConstructedDataTrendLogMultipleLogBuffer
-func NewBACnetConstructedDataTrendLogMultipleLogBuffer(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, floorText []BACnetLogMultipleRecord, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataTrendLogMultipleLogBuffer {
+func NewBACnetConstructedDataTrendLogMultipleLogBuffer(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, floorText []BACnetLogMultipleRecord) *_BACnetConstructedDataTrendLogMultipleLogBuffer {
 	_result := &_BACnetConstructedDataTrendLogMultipleLogBuffer{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FloorText:                     floorText,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataTrendLogMultipleLogBufferBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataTrendLogMultipleLogBufferBuilder) = (*_BACnetConstructedDataTrendLogMultipleLogBufferBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataTrendLogMultipleLogBufferBuilder) WithFloorText(f
 }
 
 func (b *_BACnetConstructedDataTrendLogMultipleLogBufferBuilder) Build() (BACnetConstructedDataTrendLogMultipleLogBuffer, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataTrendLogMultipleLogBuffer.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataTrendLogMultipleLogBufferBuilder) buildForBACnetC
 
 func (b *_BACnetConstructedDataTrendLogMultipleLogBufferBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataTrendLogMultipleLogBufferBuilder().(*_BACnetConstructedDataTrendLogMultipleLogBufferBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

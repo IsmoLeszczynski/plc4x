@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type SALDataHvacActuator interface {
 	utils.Copyable
 	SALData
 	// GetHvacActuatorData returns HvacActuatorData (property field)
+	// Note: the documentation states that the data for hvac actuator uses LightingData
 	GetHvacActuatorData() LightingData
 	// IsSALDataHvacActuator is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsSALDataHvacActuator()
@@ -102,7 +104,7 @@ type _SALDataHvacActuatorBuilder struct {
 
 	parentBuilder *_SALDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (SALDataHvacActuatorBuilder) = (*_SALDataHvacActuatorBuilder)(nil)
@@ -126,23 +128,17 @@ func (b *_SALDataHvacActuatorBuilder) WithHvacActuatorDataBuilder(builderSupplie
 	var err error
 	b.HvacActuatorData, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "LightingDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "LightingDataBuilder failed"))
 	}
 	return b
 }
 
 func (b *_SALDataHvacActuatorBuilder) Build() (SALDataHvacActuator, error) {
 	if b.HvacActuatorData == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'hvacActuatorData' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'hvacActuatorData' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._SALDataHvacActuator.deepCopy(), nil
 }
@@ -168,8 +164,8 @@ func (b *_SALDataHvacActuatorBuilder) buildForSALData() (SALData, error) {
 
 func (b *_SALDataHvacActuatorBuilder) DeepCopy() any {
 	_copy := b.CreateSALDataHvacActuatorBuilder().(*_SALDataHvacActuatorBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

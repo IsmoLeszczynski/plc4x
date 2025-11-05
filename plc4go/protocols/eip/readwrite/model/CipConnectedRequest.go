@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,9 +62,9 @@ var _ CipConnectedRequest = (*_CipConnectedRequest)(nil)
 var _ CipServiceRequirements = (*_CipConnectedRequest)(nil)
 
 // NewCipConnectedRequest factory function for _CipConnectedRequest
-func NewCipConnectedRequest(pathSegments []byte, serviceLen uint16) *_CipConnectedRequest {
+func NewCipConnectedRequest(pathSegments []byte) *_CipConnectedRequest {
 	_result := &_CipConnectedRequest{
-		CipServiceContract: NewCipService(serviceLen),
+		CipServiceContract: NewCipService(),
 		PathSegments:       pathSegments,
 	}
 	_result.CipServiceContract.(*_CipService)._SubType = _result
@@ -100,7 +101,7 @@ type _CipConnectedRequestBuilder struct {
 
 	parentBuilder *_CipServiceBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CipConnectedRequestBuilder) = (*_CipConnectedRequestBuilder)(nil)
@@ -120,8 +121,8 @@ func (b *_CipConnectedRequestBuilder) WithPathSegments(pathSegments ...byte) Cip
 }
 
 func (b *_CipConnectedRequestBuilder) Build() (CipConnectedRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CipConnectedRequest.deepCopy(), nil
 }
@@ -147,8 +148,8 @@ func (b *_CipConnectedRequestBuilder) buildForCipService() (CipService, error) {
 
 func (b *_CipConnectedRequestBuilder) DeepCopy() any {
 	_copy := b.CreateCipConnectedRequestBuilder().(*_CipConnectedRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -62,15 +63,12 @@ type _SubscribeCOVPropertyMultipleErrorFirstFailedSubscription struct {
 	MonitoredPropertyReference BACnetPropertyReferenceEnclosed
 	ErrorType                  ErrorEnclosed
 	ClosingTag                 BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ SubscribeCOVPropertyMultipleErrorFirstFailedSubscription = (*_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription)(nil)
 
 // NewSubscribeCOVPropertyMultipleErrorFirstFailedSubscription factory function for _SubscribeCOVPropertyMultipleErrorFirstFailedSubscription
-func NewSubscribeCOVPropertyMultipleErrorFirstFailedSubscription(openingTag BACnetOpeningTag, monitoredObjectIdentifier BACnetContextTagObjectIdentifier, monitoredPropertyReference BACnetPropertyReferenceEnclosed, errorType ErrorEnclosed, closingTag BACnetClosingTag, tagNumber uint8) *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription {
+func NewSubscribeCOVPropertyMultipleErrorFirstFailedSubscription(openingTag BACnetOpeningTag, monitoredObjectIdentifier BACnetContextTagObjectIdentifier, monitoredPropertyReference BACnetPropertyReferenceEnclosed, errorType ErrorEnclosed, closingTag BACnetClosingTag) *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for SubscribeCOVPropertyMultipleErrorFirstFailedSubscription must not be nil")
 	}
@@ -86,7 +84,7 @@ func NewSubscribeCOVPropertyMultipleErrorFirstFailedSubscription(openingTag BACn
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for SubscribeCOVPropertyMultipleErrorFirstFailedSubscription must not be nil")
 	}
-	return &_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription{OpeningTag: openingTag, MonitoredObjectIdentifier: monitoredObjectIdentifier, MonitoredPropertyReference: monitoredPropertyReference, ErrorType: errorType, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription{OpeningTag: openingTag, MonitoredObjectIdentifier: monitoredObjectIdentifier, MonitoredPropertyReference: monitoredPropertyReference, ErrorType: errorType, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -119,8 +117,6 @@ type SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder interface {
 	WithClosingTag(BACnetClosingTag) SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder
 	// Build builds the SubscribeCOVPropertyMultipleErrorFirstFailedSubscription or returns an error if something is wrong
 	Build() (SubscribeCOVPropertyMultipleErrorFirstFailedSubscription, error)
 	// MustBuild does the same as Build but panics on error
@@ -135,7 +131,7 @@ func NewSubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder() Subscr
 type _SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder struct {
 	*_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) = (*_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder)(nil)
@@ -154,10 +150,7 @@ func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) WithO
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -172,10 +165,7 @@ func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) WithM
 	var err error
 	b.MonitoredObjectIdentifier, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetContextTagObjectIdentifierBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetContextTagObjectIdentifierBuilder failed"))
 	}
 	return b
 }
@@ -190,10 +180,7 @@ func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) WithM
 	var err error
 	b.MonitoredPropertyReference, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetPropertyReferenceEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetPropertyReferenceEnclosedBuilder failed"))
 	}
 	return b
 }
@@ -208,10 +195,7 @@ func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) WithE
 	var err error
 	b.ErrorType, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "ErrorEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "ErrorEnclosedBuilder failed"))
 	}
 	return b
 }
@@ -226,52 +210,29 @@ func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) WithC
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) WithArgTagNumber(tagNumber uint8) SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) Build() (SubscribeCOVPropertyMultipleErrorFirstFailedSubscription, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.MonitoredObjectIdentifier == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'monitoredObjectIdentifier' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'monitoredObjectIdentifier' not set"))
 	}
 	if b.MonitoredPropertyReference == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'monitoredPropertyReference' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'monitoredPropertyReference' not set"))
 	}
 	if b.ErrorType == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'errorType' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'errorType' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._SubscribeCOVPropertyMultipleErrorFirstFailedSubscription.deepCopy(), nil
 }
@@ -286,8 +247,8 @@ func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) MustB
 
 func (b *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder) DeepCopy() any {
 	_copy := b.CreateSubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder().(*_SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -386,7 +347,7 @@ func SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionParseWithBufferProd
 }
 
 func SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (SubscribeCOVPropertyMultipleErrorFirstFailedSubscription, error) {
-	v, err := (&_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -482,16 +443,6 @@ func (m *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription) SerializeWit
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription) IsSubscribeCOVPropertyMultipleErrorFirstFailedSubscription() {
 }
 
@@ -509,7 +460,6 @@ func (m *_SubscribeCOVPropertyMultipleErrorFirstFailedSubscription) deepCopy() *
 		utils.DeepCopy[BACnetPropertyReferenceEnclosed](m.MonitoredPropertyReference),
 		utils.DeepCopy[ErrorEnclosed](m.ErrorType),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _SubscribeCOVPropertyMultipleErrorFirstFailedSubscriptionCopy
 }

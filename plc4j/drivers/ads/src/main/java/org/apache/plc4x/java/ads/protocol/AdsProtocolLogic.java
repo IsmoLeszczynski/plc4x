@@ -21,6 +21,7 @@ package org.apache.plc4x.java.ads.protocol;
 import org.apache.plc4x.java.ads.configuration.AdsConfiguration;
 import org.apache.plc4x.java.ads.discovery.readwrite.AmsNetId;
 import org.apache.plc4x.java.ads.discovery.readwrite.*;
+import org.apache.plc4x.java.ads.discovery.readwrite.Constants;
 import org.apache.plc4x.java.ads.model.AdsSubscriptionHandle;
 import org.apache.plc4x.java.ads.readwrite.*;
 import org.apache.plc4x.java.ads.tag.AdsTag;
@@ -281,7 +282,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                     new AdsDiscoveryBlockHostName(new AmsString(localAddress.getHostAddress()))));
 
             // Send the request to the PLC using a UDP socket.
-            try (DatagramSocket adsDiscoverySocket = new DatagramSocket(AdsDiscoveryConstants.ADSDISCOVERYUDPDEFAULTPORT)) {
+            try (DatagramSocket adsDiscoverySocket = new DatagramSocket(Constants.ADSDISCOVERYUDPDEFAULTPORT)) {
                 // Serialize the message.
                 WriteBufferByteBased writeBuffer = new WriteBufferByteBased(
                     addOrUpdateRouteRequest.getLengthInBytes(), ByteOrder.LITTLE_ENDIAN);
@@ -294,7 +295,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                 // Create the UDP packet to the broadcast address.
                 DatagramPacket discoveryRequestPacket = new DatagramPacket(
                     writeBuffer.getBytes(), writeBuffer.getBytes().length,
-                    remoteAddress, AdsDiscoveryConstants.ADSDISCOVERYUDPDEFAULTPORT);
+                    remoteAddress, Constants.ADSDISCOVERYUDPDEFAULTPORT);
                 adsDiscoverySocket.send(discoveryRequestPacket);
 
                 // The actual length would be 32, but better be prepared for a more verbose response
@@ -379,7 +380,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                             for (int i = 0; i < adsTableSizes.getDataTypeCount(); i++) {
                                 try {
                                     AdsDataTypeTableEntry adsDataTypeTableEntry = AdsDataTypeTableEntry.staticParse(rb);
-                                    dataTypeTable.put(adsDataTypeTableEntry.getDataTypeName(), adsDataTypeTableEntry);
+                                    dataTypeTable.put(adsDataTypeTableEntry.getMainName(), adsDataTypeTableEntry);
                                 } catch (ParseException e) {
                                     throw new RuntimeException(e);
                                 }
@@ -491,7 +492,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
 
     @Override
     public CompletableFuture<PlcBrowseResponse> browse(PlcBrowseRequest browseRequest) {
-        return browseWithInterceptor(browseRequest, item -> true);
+        return browseWithInterceptor(browseRequest, (query, item) -> true);
     }
 
     public CompletableFuture<PlcBrowseResponse> browseWithInterceptor(PlcBrowseRequest browseRequest, PlcBrowseRequestInterceptor interceptor) {
@@ -499,6 +500,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
         Map<String, PlcResponseCode> responseCodes = new HashMap<>();
         Map<String, List<PlcBrowseItem>> values = new HashMap<>();
         for (String queryName : browseRequest.getQueryNames()) {
+            PlcQuery query = browseRequest.getQuery(queryName);
             List<PlcBrowseItem> resultsForQuery = new ArrayList<>();
             for (AdsSymbolTableEntry symbol : symbolTable.values()) {
                 // Get the datatype of this entry.
@@ -538,7 +540,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                     true, !symbol.getFlagReadOnly(), true, false, itemArrayInfo, childMap, options);
 
                 // Check if this item should be added to the result
-                if (interceptor.intercept(item)) {
+                if (interceptor.intercept(query, item)) {
                     // Add the type itself.
                     resultsForQuery.add(item);
                 }
@@ -554,9 +556,9 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
     protected List<PlcBrowseItem> getBrowseItems(String basePath, long baseGroupId, long baseOffset, boolean parentWritable, AdsDataTypeTableEntry dataType) {
         // If this is an array type, then we need to lookup it's elemental type and use that instead
         if(dataType.getArrayDimensions() > 0) {
-            Optional<AdsDataTypeTableEntry> dataTypeTableEntry = getDataTypeTableEntry(dataType.getSimpleTypeName());
+            Optional<AdsDataTypeTableEntry> dataTypeTableEntry = getDataTypeTableEntry(dataType.getMainName());
             if(dataTypeTableEntry.isEmpty()) {
-                LOGGER.warn("couldn't find datatype: {}", dataType.getSimpleTypeName());
+                LOGGER.warn("couldn't find datatype: {}", dataType.getMainName());
                 return Collections.emptyList();
             }
             dataType = dataTypeTableEntry.get();
@@ -567,14 +569,14 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
         }
 
         List<PlcBrowseItem> values = new ArrayList<>(dataType.getNumChildren());
-        for (AdsDataTypeTableChildEntry child : dataType.getChildren()) {
-            Optional<AdsDataTypeTableEntry> dataTypeTableEntry = getDataTypeTableEntry(child.getDataTypeName());
+        for (AdsDataTypeTableEntry child : dataType.getChildren()) {
+            Optional<AdsDataTypeTableEntry> dataTypeTableEntry = getDataTypeTableEntry(child.getSecondaryName());
             if(dataTypeTableEntry.isEmpty()) {
-                LOGGER.warn("couldn't find datatype: {} for child {}", dataType.getSimpleTypeName(), child.getPropertyName());
+                LOGGER.warn("couldn't find datatype: {} for child {}", dataType.getSecondaryName(), child.getMainName());
                 continue;
             }
             AdsDataTypeTableEntry childDataType = dataTypeTableEntry.get();
-            String itemAddress = basePath + "." + child.getPropertyName();
+            String itemAddress = basePath + "." + child.getMainName();
 
             // Convert the plc value type from the ADS specific one to the PLC4X global one.
             org.apache.plc4x.java.api.types.PlcValueType plc4xPlcValueType =
@@ -604,7 +606,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
             }
             // Add the type itself.
             values.add(new DefaultPlcBrowseItem(new SymbolicAdsTag(
-                basePath + "." + child.getPropertyName(), plc4xPlcValueType, arrayInfo), child.getPropertyName(),
+                basePath + "." + child.getMainName(), plc4xPlcValueType, arrayInfo), child.getMainName(),
                 true, parentWritable, true, false, itemArrayInfo, childMap, options));
         }
         return values;
@@ -923,7 +925,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                 Map<String, PlcValue> properties = new HashMap<>();
                 int startPos = readBuffer.getPos();
                 int curPos = 0;
-                for (AdsDataTypeTableChildEntry child : adsDataTypeTableEntry.getChildren()) {
+                for (AdsDataTypeTableEntry child : adsDataTypeTableEntry.getChildren()) {
                     // In some cases the starting position of the data is not where we are expecting it.
                     // So we need to skip some bytes.
                     if (child.getOffset() > curPos) {
@@ -933,16 +935,16 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                         }
                     }
 
-                    String propertyName = child.getPropertyName();
-                    Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(child.getDataTypeName());
+                    String propertyName = child.getMainName();
+                    Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(child.getSecondaryName());
                     if(dataTypeTableEntryOptional.isEmpty()) {
-                        throw new ParseException(String.format("couldn't find datatype: %s", child.getDataTypeName()));
+                        throw new ParseException(String.format("couldn't find datatype: %s", child.getSecondaryName()));
                     }
                     AdsDataTypeTableEntry propertyDataTypeTableEntry = dataTypeTableEntryOptional.get();
                     PlcValueType propertyPlcValueType = getPlcValueTypeForAdsDataType(propertyDataTypeTableEntry);
                     int strLen = 0;
                     if ((propertyPlcValueType == PlcValueType.STRING) || (propertyPlcValueType == PlcValueType.WSTRING)) {
-                        String dataTypeName = propertyDataTypeTableEntry.getDataTypeName();
+                        String dataTypeName = propertyDataTypeTableEntry.getMainName();
                         // Extract the string length from the data type name.
                         strLen = Integer.parseInt(dataTypeName.substring(dataTypeName.indexOf("(") + 1, dataTypeName.indexOf(")")));
                     }
@@ -962,7 +964,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
     private PlcValue parseArrayLevel(AdsDataTypeTableEntry adsDataTypeTableEntry, List<AdsDataTypeArrayInfo> arrayLayers, ReadBuffer readBuffer) throws ParseException {
         // If this is the last layer of the Array, parse the values themselves.
         if (arrayLayers.isEmpty()) {
-            String dataTypeName = adsDataTypeTableEntry.getDataTypeName();
+            String dataTypeName = adsDataTypeTableEntry.getMainName();
             dataTypeName = dataTypeName.substring(dataTypeName.lastIndexOf(" OF ") + 4);
             int stringLength = 0;
             if (dataTypeName.startsWith("STRING(")) {
@@ -1227,9 +1229,9 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                 throw new SerializationException(String.format(
                     "Expected a PlcList of size %d, but got one of size %d", curArrayLevel.getNumElements(), list.size()));
             }
-            Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(dataType.getSimpleTypeName());
+            Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(dataType.getSecondaryName());
             if(dataTypeTableEntryOptional.isEmpty()) {
-                throw new SerializationException("Could not find data type: " + dataType.getSimpleTypeName());
+                throw new SerializationException("Could not find data type: " + dataType.getSecondaryName());
             }
             AdsDataTypeTableEntry childDataType = dataTypeTableEntryOptional.get();
             for (PlcValue plcValue : list) {
@@ -1245,14 +1247,14 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
             PlcStruct plcStruct = (PlcStruct) contextValue;
             int startPos = writeBuffer.getPos();
             int curPos = 0;
-            for (AdsDataTypeTableChildEntry child : dataType.getChildren()) {
-                Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(child.getDataTypeName());
+            for (AdsDataTypeTableEntry child : dataType.getChildren()) {
+                Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(child.getSecondaryName());
                 if(dataTypeTableEntryOptional.isEmpty()) {
-                    throw new SerializationException("Could not find data type: " + child.getDataTypeName());
+                    throw new SerializationException("Could not find data type: " + child.getSecondaryName());
                 }
                 AdsDataTypeTableEntry childDataType = dataTypeTableEntryOptional.get();
-                if (!plcStruct.hasKey(child.getPropertyName())) {
-                    throw new SerializationException("PlcStruct is missing a child with the name " + child.getPropertyName());
+                if (!plcStruct.hasKey(child.getMainName())) {
+                    throw new SerializationException("PlcStruct is missing a child with the name " + child.getMainName());
                 }
                 // In some cases the starting position of the data is not where we are expecting it.
                 // So we need to add some fill-bytes.
@@ -1263,7 +1265,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
                     }
                 }
 
-                PlcValue childValue = plcStruct.getValue(child.getPropertyName());
+                PlcValue childValue = plcStruct.getValue(child.getMainName());
                 serializeInternal(childValue, childDataType, childDataType.getArrayInfo(), writeBuffer);
 
                 curPos = writeBuffer.getPos() - startPos;
@@ -1274,11 +1276,11 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
         else {
             PlcValueType plcValueType = getPlcValueTypeForAdsDataType(dataType);
             if (plcValueType == null) {
-                throw new SerializationException("Unsupported simple type: " + dataType.getDataTypeName());
+                throw new SerializationException("Unsupported simple type: " + dataType.getMainName());
             }
             int stringLength = 0;
             if ((plcValueType == PlcValueType.STRING) || (plcValueType == PlcValueType.WSTRING)) {
-                String stringTypeName = dataType.getDataTypeName();
+                String stringTypeName = dataType.getMainName();
                 stringLength = Integer.parseInt(
                     stringTypeName.substring(stringTypeName.indexOf("(") + 1, stringTypeName.indexOf(")")));
             }
@@ -1838,7 +1840,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
             }
             AdsDataTypeTableEntry dataTypeTableEntry = dataTypeTableEntryOptional.get();
             return new DirectAdsTag(adsSymbolTableEntry.getGroup(), adsSymbolTableEntry.getOffset(),
-                dataTypeTableEntry.getDataTypeName(), dataTypeTableEntry.getArrayDimensions());
+                dataTypeTableEntry.getMainName(), dataTypeTableEntry.getArrayDimensions());
         }
         // Otherwise we'll have to crawl through the dataType definitions.
         else {
@@ -1864,21 +1866,21 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
             // TODO: Implement the Array support
             if (adsDataTypeTableEntry.getDataType() == AdsDataType.CHAR.getValue()) {
                 int stringLength = (int) adsDataTypeTableEntry.getSize() - 1;
-                return new DirectAdsStringTag(currentGroup, currentOffset, adsDataTypeTableEntry.getDataTypeName(), stringLength, 1);
+                return new DirectAdsStringTag(currentGroup, currentOffset, adsDataTypeTableEntry.getMainName(), stringLength, 1);
             } else if (adsDataTypeTableEntry.getDataType() == AdsDataType.WCHAR.getValue()) {
                 int stringLength = (int) (adsDataTypeTableEntry.getSize() - 2) / 2;
-                return new DirectAdsStringTag(currentGroup, currentOffset, adsDataTypeTableEntry.getDataTypeName(), stringLength, 1);
+                return new DirectAdsStringTag(currentGroup, currentOffset, adsDataTypeTableEntry.getMainName(), stringLength, 1);
             } else {
-                return new DirectAdsTag(currentGroup, currentOffset, adsDataTypeTableEntry.getDataTypeName(), 1);
+                return new DirectAdsTag(currentGroup, currentOffset, adsDataTypeTableEntry.getMainName(), 1);
             }
         }
 
         // Go through all children looking for a matching one.
-        for (AdsDataTypeTableChildEntry child : adsDataTypeTableEntry.getChildren()) {
-            if (child.getPropertyName().equals(remainingAddressParts.get(0))) {
-                Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(child.getDataTypeName());
+        for (AdsDataTypeTableEntry child : adsDataTypeTableEntry.getChildren()) {
+            if (child.getMainName().equals(remainingAddressParts.get(0))) {
+                Optional<AdsDataTypeTableEntry> dataTypeTableEntryOptional = getDataTypeTableEntry(child.getSecondaryName());
                 if(dataTypeTableEntryOptional.isEmpty()) {
-                    throw new PlcRuntimeException("Could not resolve data type " + child.getDataTypeName());
+                    throw new PlcRuntimeException("Could not resolve data type " + child.getSecondaryName());
                 }
                 AdsDataTypeTableEntry childAdsDataTypeTableEntry = dataTypeTableEntryOptional.get();
                 return resolveDirectAdsTagForSymbolicNameFromDataType(
@@ -1888,12 +1890,12 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
         }
 
         throw new PlcRuntimeException(String.format("Couldn't find child with name '%s' for type '%s'",
-            remainingAddressParts.get(0), adsDataTypeTableEntry.getDataTypeName()));
+            remainingAddressParts.get(0), adsDataTypeTableEntry.getMainName()));
     }
 
     protected PlcValueType getPlcValueTypeForAdsDataTypeForBrowse(AdsDataTypeTableEntry dataTypeTableEntry) {
-        String dataTypeName = (!dataTypeTableEntry.getSimpleTypeName().isEmpty() && !dataTypeTableEntry.getDataTypeName().equals("BOOL")) ?
-            dataTypeTableEntry.getSimpleTypeName() : dataTypeTableEntry.getDataTypeName();
+        String dataTypeName = (!dataTypeTableEntry.getSecondaryName().isEmpty() && !dataTypeTableEntry.getMainName().equals("BOOL")) ?
+            dataTypeTableEntry.getSecondaryName() : dataTypeTableEntry.getMainName();
         if (dataTypeName.startsWith("STRING(")) {
             dataTypeName = "STRING";
         } else if (dataTypeName.startsWith("WSTRING(")) {
@@ -1908,7 +1910,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
     }
 
     protected PlcValueType getPlcValueTypeForAdsDataType(AdsDataTypeTableEntry dataTypeTableEntry) {
-        String dataTypeName = dataTypeTableEntry.getDataTypeName();
+        String dataTypeName = dataTypeTableEntry.getMainName();
         if (dataTypeName.startsWith("STRING(")) {
             dataTypeName = "STRING";
         } else if (dataTypeName.startsWith("WSTRING(")) {
@@ -1926,7 +1928,7 @@ public class AdsProtocolLogic extends Plc4xProtocolBase<AmsTCPPacket> implements
             // So we'll check if their "simpleTypeName" matches instead.
             if (dataTypeTableEntry.getChildren().isEmpty()) {
                 try {
-                    dataTypeName = dataTypeTableEntry.getSimpleTypeName();
+                    dataTypeName = dataTypeTableEntry.getSecondaryName();
                     if (dataTypeName.startsWith("STRING(")) {
                         dataTypeName = "STRING";
                     } else if (dataTypeName.startsWith("WSTRING(")) {

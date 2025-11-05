@@ -43,27 +43,16 @@ public class BACnetConstructedDataElement implements Message {
   protected final BACnetContextTag contextTag;
   protected final BACnetConstructedData constructedData;
 
-  // Arguments.
-  protected final BACnetObjectType objectTypeArgument;
-  protected final BACnetPropertyIdentifier propertyIdentifierArgument;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataElement(
       BACnetTagHeader peekedTagHeader,
       BACnetApplicationTag applicationTag,
       BACnetContextTag contextTag,
-      BACnetConstructedData constructedData,
-      BACnetObjectType objectTypeArgument,
-      BACnetPropertyIdentifier propertyIdentifierArgument,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+      BACnetConstructedData constructedData) {
     super();
     this.peekedTagHeader = peekedTagHeader;
     this.applicationTag = applicationTag;
     this.contextTag = contextTag;
     this.constructedData = constructedData;
-    this.objectTypeArgument = objectTypeArgument;
-    this.propertyIdentifierArgument = propertyIdentifierArgument;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetTagHeader getPeekedTagHeader() {
@@ -104,32 +93,30 @@ public class BACnetConstructedDataElement implements Message {
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataElement");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     short peekedTagNumber = getPeekedTagNumber();
     writeBuffer.writeVirtual("peekedTagNumber", peekedTagNumber);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isApplicationTag = getIsApplicationTag();
     writeBuffer.writeVirtual("isApplicationTag", isApplicationTag);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isConstructedData = getIsConstructedData();
     writeBuffer.writeVirtual("isConstructedData", isConstructedData);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isContextTag = getIsContextTag();
     writeBuffer.writeVirtual("isContextTag", isContextTag);
 
     // Optional Field (applicationTag) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "applicationTag", applicationTag, writeComplex(writeBuffer), getIsApplicationTag());
+    writeOptionalField("applicationTag", applicationTag, writeComplex(writeBuffer));
 
     // Optional Field (contextTag) (Can be skipped, if the value is null)
-    writeOptionalField("contextTag", contextTag, writeComplex(writeBuffer), getIsContextTag());
+    writeOptionalField("contextTag", contextTag, writeComplex(writeBuffer));
 
     // Optional Field (constructedData) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "constructedData", constructedData, writeComplex(writeBuffer), getIsConstructedData());
+    writeOptionalField("constructedData", constructedData, writeComplex(writeBuffer));
 
     writeBuffer.popContext("BACnetConstructedDataElement");
   }
@@ -249,13 +236,7 @@ public class BACnetConstructedDataElement implements Message {
     BACnetConstructedDataElement _bACnetConstructedDataElement;
     _bACnetConstructedDataElement =
         new BACnetConstructedDataElement(
-            peekedTagHeader,
-            applicationTag,
-            contextTag,
-            constructedData,
-            objectTypeArgument,
-            propertyIdentifierArgument,
-            arrayIndexArgument);
+            peekedTagHeader, applicationTag, contextTag, constructedData);
     return _bACnetConstructedDataElement;
   }
 

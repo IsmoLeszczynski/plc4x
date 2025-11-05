@@ -42,13 +42,9 @@ public abstract class CBusCommand implements Message {
   // Properties.
   protected final CBusHeader header;
 
-  // Arguments.
-  protected final CBusOptions cBusOptions;
-
-  public CBusCommand(CBusHeader header, CBusOptions cBusOptions) {
+  public CBusCommand(CBusHeader header) {
     super();
     this.header = header;
-    this.cBusOptions = cBusOptions;
   }
 
   public CBusHeader getHeader() {
@@ -59,6 +55,10 @@ public abstract class CBusCommand implements Message {
     return (boolean) (getHeader().getDp());
   }
 
+  /**
+   * TODO: header.destinationAddressType could be used directly but for this we need source type
+   * resolving to work (WIP)
+   */
   public DestinationAddressType getDestinationAddressType() {
     return (DestinationAddressType) (getHeader().getDestinationAddressType());
   }
@@ -74,11 +74,11 @@ public abstract class CBusCommand implements Message {
     // Simple Field (header)
     writeSimpleField("header", header, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isDeviceManagement = getIsDeviceManagement();
     writeBuffer.writeVirtual("isDeviceManagement", isDeviceManagement);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     DestinationAddressType destinationAddressType = getDestinationAddressType();
     writeBuffer.writeVirtual("destinationAddressType", destinationAddressType);
 
@@ -158,12 +158,12 @@ public abstract class CBusCommand implements Message {
 
     readBuffer.closeContext("CBusCommand");
     // Create the instance
-    CBusCommand _cBusCommand = builder.build(header, cBusOptions);
+    CBusCommand _cBusCommand = builder.build(header);
     return _cBusCommand;
   }
 
   public interface CBusCommandBuilder {
-    CBusCommand build(CBusHeader header, CBusOptions cBusOptions);
+    CBusCommand build(CBusHeader header);
   }
 
   @Override

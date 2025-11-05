@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataEgressTime = (*_BACnetConstructedDataEgressTime)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEgressTime)(nil)
 
 // NewBACnetConstructedDataEgressTime factory function for _BACnetConstructedDataEgressTime
-func NewBACnetConstructedDataEgressTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, egressTime BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEgressTime {
+func NewBACnetConstructedDataEgressTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, egressTime BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataEgressTime {
 	if egressTime == nil {
 		panic("egressTime of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataEgressTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataEgressTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		EgressTime:                    egressTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataEgressTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEgressTimeBuilder) = (*_BACnetConstructedDataEgressTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataEgressTimeBuilder) WithEgressTimeBuilder(builderS
 	var err error
 	b.EgressTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataEgressTimeBuilder) Build() (BACnetConstructedDataEgressTime, error) {
 	if b.EgressTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'egressTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'egressTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEgressTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataEgressTimeBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataEgressTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEgressTimeBuilder().(*_BACnetConstructedDataEgressTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

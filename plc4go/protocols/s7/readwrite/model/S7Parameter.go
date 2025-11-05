@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -130,7 +131,7 @@ type _S7ParameterBuilder struct {
 
 	childBuilder _S7ParameterChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (S7ParameterBuilder) = (*_S7ParameterBuilder)(nil)
@@ -140,8 +141,8 @@ func (b *_S7ParameterBuilder) WithMandatoryFields() S7ParameterBuilder {
 }
 
 func (b *_S7ParameterBuilder) PartialBuild() (S7ParameterContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._S7Parameter.deepCopy(), nil
 }
@@ -248,8 +249,8 @@ func (b *_S7ParameterBuilder) DeepCopy() any {
 	_copy := b.CreateS7ParameterBuilder().(*_S7ParameterBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_S7ParameterChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -314,7 +315,7 @@ func S7ParameterParseWithBufferProducer[T S7Parameter](messageType uint8) func(c
 }
 
 func S7ParameterParseWithBuffer[T S7Parameter](ctx context.Context, readBuffer utils.ReadBuffer, messageType uint8) (T, error) {
-	v, err := (&_S7Parameter{}).parse(ctx, readBuffer, messageType)
+	v, err := (new(_S7Parameter)).parse(ctx, readBuffer, messageType)
 	if err != nil {
 		var zero T
 		return zero, err

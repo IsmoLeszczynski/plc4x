@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,7 +59,7 @@ var _ BACnetConfirmedServiceRequestGetEventInformation = (*_BACnetConfirmedServi
 var _ BACnetConfirmedServiceRequestRequirements = (*_BACnetConfirmedServiceRequestGetEventInformation)(nil)
 
 // NewBACnetConfirmedServiceRequestGetEventInformation factory function for _BACnetConfirmedServiceRequestGetEventInformation
-func NewBACnetConfirmedServiceRequestGetEventInformation(lastReceivedObjectIdentifier BACnetContextTagObjectIdentifier, serviceRequestLength uint32) *_BACnetConfirmedServiceRequestGetEventInformation {
+func NewBACnetConfirmedServiceRequestGetEventInformation(serviceRequestLength uint32, lastReceivedObjectIdentifier BACnetContextTagObjectIdentifier) *_BACnetConfirmedServiceRequestGetEventInformation {
 	_result := &_BACnetConfirmedServiceRequestGetEventInformation{
 		BACnetConfirmedServiceRequestContract: NewBACnetConfirmedServiceRequest(serviceRequestLength),
 		LastReceivedObjectIdentifier:          lastReceivedObjectIdentifier,
@@ -99,7 +100,7 @@ type _BACnetConfirmedServiceRequestGetEventInformationBuilder struct {
 
 	parentBuilder *_BACnetConfirmedServiceRequestBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConfirmedServiceRequestGetEventInformationBuilder) = (*_BACnetConfirmedServiceRequestGetEventInformationBuilder)(nil)
@@ -123,17 +124,14 @@ func (b *_BACnetConfirmedServiceRequestGetEventInformationBuilder) WithOptionalL
 	var err error
 	b.LastReceivedObjectIdentifier, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetContextTagObjectIdentifierBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetContextTagObjectIdentifierBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConfirmedServiceRequestGetEventInformationBuilder) Build() (BACnetConfirmedServiceRequestGetEventInformation, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConfirmedServiceRequestGetEventInformation.deepCopy(), nil
 }
@@ -159,8 +157,8 @@ func (b *_BACnetConfirmedServiceRequestGetEventInformationBuilder) buildForBACne
 
 func (b *_BACnetConfirmedServiceRequestGetEventInformationBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConfirmedServiceRequestGetEventInformationBuilder().(*_BACnetConfirmedServiceRequestGetEventInformationBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

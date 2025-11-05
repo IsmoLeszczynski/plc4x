@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataPriorityArray = (*_BACnetConstructedDataPriorityArray
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataPriorityArray)(nil)
 
 // NewBACnetConstructedDataPriorityArray factory function for _BACnetConstructedDataPriorityArray
-func NewBACnetConstructedDataPriorityArray(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, priorityArray BACnetPriorityArray, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataPriorityArray {
+func NewBACnetConstructedDataPriorityArray(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, priorityArray BACnetPriorityArray) *_BACnetConstructedDataPriorityArray {
 	if priorityArray == nil {
 		panic("priorityArray of type BACnetPriorityArray for BACnetConstructedDataPriorityArray must not be nil")
 	}
 	_result := &_BACnetConstructedDataPriorityArray{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		PriorityArray:                 priorityArray,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataPriorityArrayBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataPriorityArrayBuilder) = (*_BACnetConstructedDataPriorityArrayBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataPriorityArrayBuilder) WithPriorityArrayBuilder(bu
 	var err error
 	b.PriorityArray, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetPriorityArrayBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetPriorityArrayBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataPriorityArrayBuilder) Build() (BACnetConstructedDataPriorityArray, error) {
 	if b.PriorityArray == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'priorityArray' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'priorityArray' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataPriorityArray.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataPriorityArrayBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataPriorityArrayBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataPriorityArrayBuilder().(*_BACnetConstructedDataPriorityArrayBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

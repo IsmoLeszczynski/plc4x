@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataAccessCredentialAll = (*_BACnetConstructedDataAccessC
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessCredentialAll)(nil)
 
 // NewBACnetConstructedDataAccessCredentialAll factory function for _BACnetConstructedDataAccessCredentialAll
-func NewBACnetConstructedDataAccessCredentialAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessCredentialAll {
+func NewBACnetConstructedDataAccessCredentialAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataAccessCredentialAll {
 	_result := &_BACnetConstructedDataAccessCredentialAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataAccessCredentialAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessCredentialAllBuilder) = (*_BACnetConstructedDataAccessCredentialAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataAccessCredentialAllBuilder) WithMandatoryFields()
 }
 
 func (b *_BACnetConstructedDataAccessCredentialAllBuilder) Build() (BACnetConstructedDataAccessCredentialAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessCredentialAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataAccessCredentialAllBuilder) buildForBACnetConstru
 
 func (b *_BACnetConstructedDataAccessCredentialAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessCredentialAllBuilder().(*_BACnetConstructedDataAccessCredentialAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

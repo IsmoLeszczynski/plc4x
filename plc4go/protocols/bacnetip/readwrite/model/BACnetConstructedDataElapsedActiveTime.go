@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataElapsedActiveTime = (*_BACnetConstructedDataElapsedAc
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataElapsedActiveTime)(nil)
 
 // NewBACnetConstructedDataElapsedActiveTime factory function for _BACnetConstructedDataElapsedActiveTime
-func NewBACnetConstructedDataElapsedActiveTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, elapsedActiveTime BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataElapsedActiveTime {
+func NewBACnetConstructedDataElapsedActiveTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, elapsedActiveTime BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataElapsedActiveTime {
 	if elapsedActiveTime == nil {
 		panic("elapsedActiveTime of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataElapsedActiveTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataElapsedActiveTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ElapsedActiveTime:             elapsedActiveTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataElapsedActiveTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataElapsedActiveTimeBuilder) = (*_BACnetConstructedDataElapsedActiveTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataElapsedActiveTimeBuilder) WithElapsedActiveTimeBu
 	var err error
 	b.ElapsedActiveTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataElapsedActiveTimeBuilder) Build() (BACnetConstructedDataElapsedActiveTime, error) {
 	if b.ElapsedActiveTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'elapsedActiveTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'elapsedActiveTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataElapsedActiveTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataElapsedActiveTimeBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataElapsedActiveTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataElapsedActiveTimeBuilder().(*_BACnetConstructedDataElapsedActiveTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

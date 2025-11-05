@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,10 +54,6 @@ type CALReplyContract interface {
 	GetCalType() byte
 	// GetCalData returns CalData (property field)
 	GetCalData() CALData
-	// GetCBusOptions() returns a parser argument
-	GetCBusOptions() CBusOptions
-	// GetRequestContext() returns a parser argument
-	GetRequestContext() RequestContext
 	// IsCALReply is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsCALReply()
 	// CreateBuilder creates a CALReplyBuilder
@@ -79,20 +76,16 @@ type _CALReply struct {
 	}
 	CalType byte
 	CalData CALData
-
-	// Arguments.
-	CBusOptions    CBusOptions
-	RequestContext RequestContext
 }
 
 var _ CALReplyContract = (*_CALReply)(nil)
 
 // NewCALReply factory function for _CALReply
-func NewCALReply(calType byte, calData CALData, cBusOptions CBusOptions, requestContext RequestContext) *_CALReply {
+func NewCALReply(calType byte, calData CALData) *_CALReply {
 	if calData == nil {
 		panic("calData of type CALData for CALReply must not be nil")
 	}
-	return &_CALReply{CalType: calType, CalData: calData, CBusOptions: cBusOptions, RequestContext: requestContext}
+	return &_CALReply{CalType: calType, CalData: calData}
 }
 
 ///////////////////////////////////////////////////////////
@@ -111,10 +104,6 @@ type CALReplyBuilder interface {
 	WithCalData(CALData) CALReplyBuilder
 	// WithCalDataBuilder adds CalData (property field) which is build by the builder
 	WithCalDataBuilder(func(CALDataBuilder) CALDataBuilder) CALReplyBuilder
-	// WithArgCBusOptions sets a parser argument
-	WithArgCBusOptions(CBusOptions) CALReplyBuilder
-	// WithArgRequestContext sets a parser argument
-	WithArgRequestContext(RequestContext) CALReplyBuilder
 	// AsCALReplyLong converts this build to a subType of CALReply. It is always possible to return to current builder using Done()
 	AsCALReplyLong() CALReplyLongBuilder
 	// AsCALReplyShort converts this build to a subType of CALReply. It is always possible to return to current builder using Done()
@@ -145,7 +134,7 @@ type _CALReplyBuilder struct {
 
 	childBuilder _CALReplyChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CALReplyBuilder) = (*_CALReplyBuilder)(nil)
@@ -169,32 +158,17 @@ func (b *_CALReplyBuilder) WithCalDataBuilder(builderSupplier func(CALDataBuilde
 	var err error
 	b.CalData, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "CALDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "CALDataBuilder failed"))
 	}
-	return b
-}
-
-func (b *_CALReplyBuilder) WithArgCBusOptions(cBusOptions CBusOptions) CALReplyBuilder {
-	b.CBusOptions = cBusOptions
-	return b
-}
-func (b *_CALReplyBuilder) WithArgRequestContext(requestContext RequestContext) CALReplyBuilder {
-	b.RequestContext = requestContext
 	return b
 }
 
 func (b *_CALReplyBuilder) PartialBuild() (CALReplyContract, error) {
 	if b.CalData == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'calData' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'calData' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CALReply.deepCopy(), nil
 }
@@ -251,8 +225,8 @@ func (b *_CALReplyBuilder) DeepCopy() any {
 	_copy := b.CreateCALReplyBuilder().(*_CALReplyBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_CALReplyChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -336,7 +310,7 @@ func CALReplyParseWithBufferProducer[T CALReply](cBusOptions CBusOptions, reques
 }
 
 func CALReplyParseWithBuffer[T CALReply](ctx context.Context, readBuffer utils.ReadBuffer, cBusOptions CBusOptions, requestContext RequestContext) (T, error) {
-	v, err := (&_CALReply{CBusOptions: cBusOptions, RequestContext: requestContext}).parse(ctx, readBuffer, cBusOptions, requestContext)
+	v, err := (new(_CALReply)).parse(ctx, readBuffer, cBusOptions, requestContext)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -419,19 +393,6 @@ func (pm *_CALReply) serializeParent(ctx context.Context, writeBuffer utils.Writ
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_CALReply) GetCBusOptions() CBusOptions {
-	return m.CBusOptions
-}
-func (m *_CALReply) GetRequestContext() RequestContext {
-	return m.RequestContext
-}
-
-//
-////
-
 func (m *_CALReply) IsCALReply() {}
 
 func (m *_CALReply) DeepCopy() any {
@@ -446,8 +407,6 @@ func (m *_CALReply) deepCopy() *_CALReply {
 		nil, // will be set by child
 		m.CalType,
 		utils.DeepCopy[CALData](m.CalData),
-		m.CBusOptions,
-		m.RequestContext,
 	}
 	return _CALReplyCopy
 }

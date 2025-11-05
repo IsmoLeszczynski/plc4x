@@ -44,22 +44,21 @@ public class ParameterValueInterfaceOptions2 extends ParameterValue implements M
 
   // Properties.
   protected final InterfaceOptions2 value;
+
+  /** TODO: find out what additional bytes mean here... */
   protected final byte[] data;
 
-  // Arguments.
-  protected final Short numBytes;
-
-  public ParameterValueInterfaceOptions2(InterfaceOptions2 value, byte[] data, Short numBytes) {
-    super(numBytes);
+  public ParameterValueInterfaceOptions2(InterfaceOptions2 value, byte[] data) {
+    super();
     this.value = value;
     this.data = data;
-    this.numBytes = numBytes;
   }
 
   public InterfaceOptions2 getValue() {
     return value;
   }
 
+  /** TODO: find out what additional bytes mean here... */
   public byte[] getData() {
     return data;
   }
@@ -120,26 +119,22 @@ public class ParameterValueInterfaceOptions2 extends ParameterValue implements M
 
     readBuffer.closeContext("ParameterValueInterfaceOptions2");
     // Create the instance
-    return new ParameterValueInterfaceOptions2BuilderImpl(value, data, numBytes);
+    return new ParameterValueInterfaceOptions2BuilderImpl(value, data);
   }
 
   public static class ParameterValueInterfaceOptions2BuilderImpl
       implements ParameterValue.ParameterValueBuilder {
     private final InterfaceOptions2 value;
     private final byte[] data;
-    private final Short numBytes;
 
-    public ParameterValueInterfaceOptions2BuilderImpl(
-        InterfaceOptions2 value, byte[] data, Short numBytes) {
+    public ParameterValueInterfaceOptions2BuilderImpl(InterfaceOptions2 value, byte[] data) {
       this.value = value;
       this.data = data;
-      this.numBytes = numBytes;
     }
 
-    public ParameterValueInterfaceOptions2 build(Short numBytes) {
-
+    public ParameterValueInterfaceOptions2 build() {
       ParameterValueInterfaceOptions2 parameterValueInterfaceOptions2 =
-          new ParameterValueInterfaceOptions2(value, data, numBytes);
+          new ParameterValueInterfaceOptions2(value, data);
       return parameterValueInterfaceOptions2;
     }
   }

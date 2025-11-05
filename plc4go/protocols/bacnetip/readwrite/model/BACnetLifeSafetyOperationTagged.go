@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetLifeSafetyOperationTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetLifeSafetyOperation
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetLifeSafetyOperationTagged = (*_BACnetLifeSafetyOperationTagged)(nil)
 
 // NewBACnetLifeSafetyOperationTagged factory function for _BACnetLifeSafetyOperationTagged
-func NewBACnetLifeSafetyOperationTagged(header BACnetTagHeader, value BACnetLifeSafetyOperation, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetLifeSafetyOperationTagged {
+func NewBACnetLifeSafetyOperationTagged(header BACnetTagHeader, value BACnetLifeSafetyOperation, proprietaryValue uint32) *_BACnetLifeSafetyOperationTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetLifeSafetyOperationTagged must not be nil")
 	}
-	return &_BACnetLifeSafetyOperationTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetLifeSafetyOperationTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetLifeSafetyOperationTaggedBuilder interface {
 	WithValue(BACnetLifeSafetyOperation) BACnetLifeSafetyOperationTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetLifeSafetyOperationTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetLifeSafetyOperationTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetLifeSafetyOperationTaggedBuilder
 	// Build builds the BACnetLifeSafetyOperationTagged or returns an error if something is wrong
 	Build() (BACnetLifeSafetyOperationTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetLifeSafetyOperationTaggedBuilder() BACnetLifeSafetyOperationTagged
 type _BACnetLifeSafetyOperationTaggedBuilder struct {
 	*_BACnetLifeSafetyOperationTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetLifeSafetyOperationTaggedBuilder) = (*_BACnetLifeSafetyOperationTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetLifeSafetyOperationTaggedBuilder) WithHeaderBuilder(builderSuppl
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetLifeSafetyOperationTaggedBuilder) WithProprietaryValue(proprieta
 	return b
 }
 
-func (b *_BACnetLifeSafetyOperationTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetLifeSafetyOperationTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetLifeSafetyOperationTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetLifeSafetyOperationTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetLifeSafetyOperationTaggedBuilder) Build() (BACnetLifeSafetyOperationTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetLifeSafetyOperationTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetLifeSafetyOperationTaggedBuilder) MustBuild() BACnetLifeSafetyOp
 
 func (b *_BACnetLifeSafetyOperationTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetLifeSafetyOperationTaggedBuilder().(*_BACnetLifeSafetyOperationTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetLifeSafetyOperationTaggedParseWithBufferProducer(tagNumber uint8, tag
 }
 
 func BACnetLifeSafetyOperationTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetLifeSafetyOperationTagged, error) {
-	v, err := (&_BACnetLifeSafetyOperationTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetLifeSafetyOperationTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetLifeSafetyOperationTagged) SerializeWithWriteBuffer(ctx context.
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetLifeSafetyOperationTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetLifeSafetyOperationTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetLifeSafetyOperationTagged) IsBACnetLifeSafetyOperationTagged() {}
 
 func (m *_BACnetLifeSafetyOperationTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_BACnetLifeSafetyOperationTagged) deepCopy() *_BACnetLifeSafetyOperatio
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetLifeSafetyOperationTaggedCopy
 }

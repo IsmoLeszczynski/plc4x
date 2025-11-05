@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataLandingDoorStatus interface {
 	// GetLandingDoorStatus returns LandingDoorStatus (property field)
 	GetLandingDoorStatus() []BACnetLandingDoorStatus
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataLandingDoorStatus is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataLandingDoorStatus()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataLandingDoorStatus = (*_BACnetConstructedDataLandingDo
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLandingDoorStatus)(nil)
 
 // NewBACnetConstructedDataLandingDoorStatus factory function for _BACnetConstructedDataLandingDoorStatus
-func NewBACnetConstructedDataLandingDoorStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, landingDoorStatus []BACnetLandingDoorStatus, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLandingDoorStatus {
+func NewBACnetConstructedDataLandingDoorStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, landingDoorStatus []BACnetLandingDoorStatus) *_BACnetConstructedDataLandingDoorStatus {
 	_result := &_BACnetConstructedDataLandingDoorStatus{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		LandingDoorStatus:             landingDoorStatus,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataLandingDoorStatusBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLandingDoorStatusBuilder) = (*_BACnetConstructedDataLandingDoorStatusBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataLandingDoorStatusBuilder) WithOptionalNumberOfDat
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataLandingDoorStatusBuilder) WithLandingDoorStatus(l
 }
 
 func (b *_BACnetConstructedDataLandingDoorStatusBuilder) Build() (BACnetConstructedDataLandingDoorStatus, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLandingDoorStatus.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataLandingDoorStatusBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataLandingDoorStatusBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLandingDoorStatusBuilder().(*_BACnetConstructedDataLandingDoorStatusBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

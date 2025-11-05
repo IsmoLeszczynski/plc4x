@@ -42,21 +42,9 @@ public abstract class BACnetPropertyAccessResultAccessResult implements Message 
   // Properties.
   protected final BACnetTagHeader peekedTagHeader;
 
-  // Arguments.
-  protected final BACnetObjectType objectTypeArgument;
-  protected final BACnetPropertyIdentifier propertyIdentifierArgument;
-  protected final BACnetTagPayloadUnsignedInteger propertyArrayIndexArgument;
-
-  public BACnetPropertyAccessResultAccessResult(
-      BACnetTagHeader peekedTagHeader,
-      BACnetObjectType objectTypeArgument,
-      BACnetPropertyIdentifier propertyIdentifierArgument,
-      BACnetTagPayloadUnsignedInteger propertyArrayIndexArgument) {
+  public BACnetPropertyAccessResultAccessResult(BACnetTagHeader peekedTagHeader) {
     super();
     this.peekedTagHeader = peekedTagHeader;
-    this.objectTypeArgument = objectTypeArgument;
-    this.propertyIdentifierArgument = propertyIdentifierArgument;
-    this.propertyArrayIndexArgument = propertyArrayIndexArgument;
   }
 
   public BACnetTagHeader getPeekedTagHeader() {
@@ -75,7 +63,7 @@ public abstract class BACnetPropertyAccessResultAccessResult implements Message 
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetPropertyAccessResultAccessResult");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     short peekedTagNumber = getPeekedTagNumber();
     writeBuffer.writeVirtual("peekedTagNumber", peekedTagNumber);
 
@@ -151,20 +139,12 @@ public abstract class BACnetPropertyAccessResultAccessResult implements Message 
     readBuffer.closeContext("BACnetPropertyAccessResultAccessResult");
     // Create the instance
     BACnetPropertyAccessResultAccessResult _bACnetPropertyAccessResultAccessResult =
-        builder.build(
-            peekedTagHeader,
-            objectTypeArgument,
-            propertyIdentifierArgument,
-            propertyArrayIndexArgument);
+        builder.build(peekedTagHeader);
     return _bACnetPropertyAccessResultAccessResult;
   }
 
   public interface BACnetPropertyAccessResultAccessResultBuilder {
-    BACnetPropertyAccessResultAccessResult build(
-        BACnetTagHeader peekedTagHeader,
-        BACnetObjectType objectTypeArgument,
-        BACnetPropertyIdentifier propertyIdentifierArgument,
-        BACnetTagPayloadUnsignedInteger propertyArrayIndexArgument);
+    BACnetPropertyAccessResultAccessResult build(BACnetTagHeader peekedTagHeader);
   }
 
   @Override

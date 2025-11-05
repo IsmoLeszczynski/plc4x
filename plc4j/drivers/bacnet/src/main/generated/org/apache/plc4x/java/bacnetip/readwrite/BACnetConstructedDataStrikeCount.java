@@ -49,21 +49,13 @@ public class BACnetConstructedDataStrikeCount extends BACnetConstructedData impl
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger strikeCount;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataStrikeCount(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger strikeCount,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger strikeCount) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.strikeCount = strikeCount;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getStrikeCount() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataStrikeCount extends BACnetConstructedData impl
     // Simple Field (strikeCount)
     writeSimpleField("strikeCount", strikeCount, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,23 @@ public class BACnetConstructedDataStrikeCount extends BACnetConstructedData impl
 
     readBuffer.closeContext("BACnetConstructedDataStrikeCount");
     // Create the instance
-    return new BACnetConstructedDataStrikeCountBuilderImpl(
-        strikeCount, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataStrikeCountBuilderImpl(strikeCount);
   }
 
   public static class BACnetConstructedDataStrikeCountBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger strikeCount;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataStrikeCountBuilderImpl(
-        BACnetApplicationTagUnsignedInteger strikeCount,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger strikeCount) {
       this.strikeCount = strikeCount;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataStrikeCount build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataStrikeCount bACnetConstructedDataStrikeCount =
           new BACnetConstructedDataStrikeCount(
-              openingTag, peekedTagHeader, closingTag, strikeCount, tagNumber, arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, strikeCount);
       return bACnetConstructedDataStrikeCount;
     }
   }

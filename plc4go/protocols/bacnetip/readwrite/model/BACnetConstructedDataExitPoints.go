@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataExitPoints = (*_BACnetConstructedDataExitPoints)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataExitPoints)(nil)
 
 // NewBACnetConstructedDataExitPoints factory function for _BACnetConstructedDataExitPoints
-func NewBACnetConstructedDataExitPoints(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, exitPoints []BACnetDeviceObjectReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataExitPoints {
+func NewBACnetConstructedDataExitPoints(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, exitPoints []BACnetDeviceObjectReference) *_BACnetConstructedDataExitPoints {
 	_result := &_BACnetConstructedDataExitPoints{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ExitPoints:                    exitPoints,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataExitPointsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataExitPointsBuilder) = (*_BACnetConstructedDataExitPointsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataExitPointsBuilder) WithExitPoints(exitPoints ...B
 }
 
 func (b *_BACnetConstructedDataExitPointsBuilder) Build() (BACnetConstructedDataExitPoints, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataExitPoints.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataExitPointsBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataExitPointsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataExitPointsBuilder().(*_BACnetConstructedDataExitPointsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

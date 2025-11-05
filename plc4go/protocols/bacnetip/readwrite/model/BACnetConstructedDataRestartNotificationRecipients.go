@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataRestartNotificationRecipients = (*_BACnetConstructedD
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataRestartNotificationRecipients)(nil)
 
 // NewBACnetConstructedDataRestartNotificationRecipients factory function for _BACnetConstructedDataRestartNotificationRecipients
-func NewBACnetConstructedDataRestartNotificationRecipients(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, restartNotificationRecipients []BACnetRecipient, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataRestartNotificationRecipients {
+func NewBACnetConstructedDataRestartNotificationRecipients(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, restartNotificationRecipients []BACnetRecipient) *_BACnetConstructedDataRestartNotificationRecipients {
 	_result := &_BACnetConstructedDataRestartNotificationRecipients{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		RestartNotificationRecipients: restartNotificationRecipients,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataRestartNotificationRecipientsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataRestartNotificationRecipientsBuilder) = (*_BACnetConstructedDataRestartNotificationRecipientsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataRestartNotificationRecipientsBuilder) WithRestart
 }
 
 func (b *_BACnetConstructedDataRestartNotificationRecipientsBuilder) Build() (BACnetConstructedDataRestartNotificationRecipients, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataRestartNotificationRecipients.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataRestartNotificationRecipientsBuilder) buildForBAC
 
 func (b *_BACnetConstructedDataRestartNotificationRecipientsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataRestartNotificationRecipientsBuilder().(*_BACnetConstructedDataRestartNotificationRecipientsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

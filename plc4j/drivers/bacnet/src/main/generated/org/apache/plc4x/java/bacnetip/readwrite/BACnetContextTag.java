@@ -43,13 +43,9 @@ public abstract class BACnetContextTag implements Message {
   // Properties.
   protected final BACnetTagHeader header;
 
-  // Arguments.
-  protected final Short tagNumberArgument;
-
-  public BACnetContextTag(BACnetTagHeader header, Short tagNumberArgument) {
+  public BACnetContextTag(BACnetTagHeader header) {
     super();
     this.header = header;
-    this.tagNumberArgument = tagNumberArgument;
   }
 
   public BACnetTagHeader getHeader() {
@@ -75,11 +71,11 @@ public abstract class BACnetContextTag implements Message {
     // Simple Field (header)
     writeSimpleField("header", header, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     byte tagNumber = getTagNumber();
     writeBuffer.writeVirtual("tagNumber", tagNumber);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     long actualLength = getActualLength();
     writeBuffer.writeVirtual("actualLength", actualLength);
 
@@ -207,12 +203,12 @@ public abstract class BACnetContextTag implements Message {
 
     readBuffer.closeContext("BACnetContextTag");
     // Create the instance
-    BACnetContextTag _bACnetContextTag = builder.build(header, tagNumberArgument);
+    BACnetContextTag _bACnetContextTag = builder.build(header);
     return _bACnetContextTag;
   }
 
   public interface BACnetContextTagBuilder {
-    BACnetContextTag build(BACnetTagHeader header, Short tagNumberArgument);
+    BACnetContextTag build(BACnetTagHeader header);
   }
 
   @Override

@@ -49,21 +49,13 @@ public class BACnetConstructedDataBelongsTo extends BACnetConstructedData implem
   // Properties.
   protected final BACnetDeviceObjectReference belongsTo;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataBelongsTo(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetDeviceObjectReference belongsTo,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetDeviceObjectReference belongsTo) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.belongsTo = belongsTo;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetDeviceObjectReference getBelongsTo() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataBelongsTo extends BACnetConstructedData implem
     // Simple Field (belongsTo)
     writeSimpleField("belongsTo", belongsTo, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetDeviceObjectReference actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -130,33 +122,21 @@ public class BACnetConstructedDataBelongsTo extends BACnetConstructedData implem
 
     readBuffer.closeContext("BACnetConstructedDataBelongsTo");
     // Create the instance
-    return new BACnetConstructedDataBelongsToBuilderImpl(belongsTo, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataBelongsToBuilderImpl(belongsTo);
   }
 
   public static class BACnetConstructedDataBelongsToBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetDeviceObjectReference belongsTo;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataBelongsToBuilderImpl(
-        BACnetDeviceObjectReference belongsTo,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataBelongsToBuilderImpl(BACnetDeviceObjectReference belongsTo) {
       this.belongsTo = belongsTo;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataBelongsTo build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataBelongsTo bACnetConstructedDataBelongsTo =
-          new BACnetConstructedDataBelongsTo(
-              openingTag, peekedTagHeader, closingTag, belongsTo, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataBelongsTo(openingTag, peekedTagHeader, closingTag, belongsTo);
       return bACnetConstructedDataBelongsTo;
     }
   }

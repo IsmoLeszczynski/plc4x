@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ MFuncPropStateReadReq = (*_MFuncPropStateReadReq)(nil)
 var _ CEMIRequirements = (*_MFuncPropStateReadReq)(nil)
 
 // NewMFuncPropStateReadReq factory function for _MFuncPropStateReadReq
-func NewMFuncPropStateReadReq(size uint16) *_MFuncPropStateReadReq {
+func NewMFuncPropStateReadReq() *_MFuncPropStateReadReq {
 	_result := &_MFuncPropStateReadReq{
-		CEMIContract: NewCEMI(size),
+		CEMIContract: NewCEMI(),
 	}
 	_result.CEMIContract.(*_CEMI)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _MFuncPropStateReadReqBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (MFuncPropStateReadReqBuilder) = (*_MFuncPropStateReadReqBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_MFuncPropStateReadReqBuilder) WithMandatoryFields() MFuncPropStateRead
 }
 
 func (b *_MFuncPropStateReadReqBuilder) Build() (MFuncPropStateReadReq, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._MFuncPropStateReadReq.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_MFuncPropStateReadReqBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_MFuncPropStateReadReqBuilder) DeepCopy() any {
 	_copy := b.CreateMFuncPropStateReadReqBuilder().(*_MFuncPropStateReadReqBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataActualShedLevel = (*_BACnetConstructedDataActualShedL
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataActualShedLevel)(nil)
 
 // NewBACnetConstructedDataActualShedLevel factory function for _BACnetConstructedDataActualShedLevel
-func NewBACnetConstructedDataActualShedLevel(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, actualShedLevel BACnetShedLevel, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataActualShedLevel {
+func NewBACnetConstructedDataActualShedLevel(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, actualShedLevel BACnetShedLevel) *_BACnetConstructedDataActualShedLevel {
 	if actualShedLevel == nil {
 		panic("actualShedLevel of type BACnetShedLevel for BACnetConstructedDataActualShedLevel must not be nil")
 	}
 	_result := &_BACnetConstructedDataActualShedLevel{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ActualShedLevel:               actualShedLevel,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataActualShedLevelBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataActualShedLevelBuilder) = (*_BACnetConstructedDataActualShedLevelBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataActualShedLevelBuilder) WithActualShedLevelBuilde
 	var err error
 	b.ActualShedLevel, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetShedLevelBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetShedLevelBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataActualShedLevelBuilder) Build() (BACnetConstructedDataActualShedLevel, error) {
 	if b.ActualShedLevel == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'actualShedLevel' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'actualShedLevel' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataActualShedLevel.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataActualShedLevelBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataActualShedLevelBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataActualShedLevelBuilder().(*_BACnetConstructedDataActualShedLevelBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -52,8 +53,6 @@ type ExtensionObjectWithMaskContract interface {
 	ExtensionObjectContract
 	// GetEncodingMask returns EncodingMask (property field)
 	GetEncodingMask() ExtensionObjectEncodingMask
-	// GetExtensionId() returns a parser argument
-	GetExtensionId() int32
 	// GetIncludeEncodingMask returns IncludeEncodingMask (discriminator field)
 	GetIncludeEncodingMask() bool
 	// IsExtensionObjectWithMask is a marker method to prevent unintentional type checks (interfaces of same signature)
@@ -77,15 +76,12 @@ type _ExtensionObjectWithMask struct {
 		ExtensionObjectWithMaskRequirements
 	}
 	EncodingMask ExtensionObjectEncodingMask
-
-	// Arguments.
-	ExtensionId int32
 }
 
 var _ ExtensionObjectWithMaskContract = (*_ExtensionObjectWithMask)(nil)
 
 // NewExtensionObjectWithMask factory function for _ExtensionObjectWithMask
-func NewExtensionObjectWithMask(typeId ExpandedNodeId, encodingMask ExtensionObjectEncodingMask, extensionId int32) *_ExtensionObjectWithMask {
+func NewExtensionObjectWithMask(typeId ExpandedNodeId, encodingMask ExtensionObjectEncodingMask) *_ExtensionObjectWithMask {
 	if encodingMask == nil {
 		panic("encodingMask of type ExtensionObjectEncodingMask for ExtensionObjectWithMask must not be nil")
 	}
@@ -111,8 +107,6 @@ type ExtensionObjectWithMaskBuilder interface {
 	WithEncodingMask(ExtensionObjectEncodingMask) ExtensionObjectWithMaskBuilder
 	// WithEncodingMaskBuilder adds EncodingMask (property field) which is build by the builder
 	WithEncodingMaskBuilder(func(ExtensionObjectEncodingMaskBuilder) ExtensionObjectEncodingMaskBuilder) ExtensionObjectWithMaskBuilder
-	// WithArgExtensionId sets a parser argument
-	WithArgExtensionId(int32) ExtensionObjectWithMaskBuilder
 	// AsBinaryExtensionObjectWithMask converts this build to a subType of ExtensionObjectWithMask. It is always possible to return to current builder using Done()
 	AsBinaryExtensionObjectWithMask() BinaryExtensionObjectWithMaskBuilder
 	// AsNullExtensionObjectWithMask converts this build to a subType of ExtensionObjectWithMask. It is always possible to return to current builder using Done()
@@ -147,7 +141,7 @@ type _ExtensionObjectWithMaskBuilder struct {
 
 	childBuilder _ExtensionObjectWithMaskChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ExtensionObjectWithMaskBuilder) = (*_ExtensionObjectWithMaskBuilder)(nil)
@@ -171,28 +165,17 @@ func (b *_ExtensionObjectWithMaskBuilder) WithEncodingMaskBuilder(builderSupplie
 	var err error
 	b.EncodingMask, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "ExtensionObjectEncodingMaskBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "ExtensionObjectEncodingMaskBuilder failed"))
 	}
-	return b
-}
-
-func (b *_ExtensionObjectWithMaskBuilder) WithArgExtensionId(extensionId int32) ExtensionObjectWithMaskBuilder {
-	b.ExtensionId = extensionId
 	return b
 }
 
 func (b *_ExtensionObjectWithMaskBuilder) PartialBuild() (ExtensionObjectWithMaskContract, error) {
 	if b.EncodingMask == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'encodingMask' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'encodingMask' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ExtensionObjectWithMask.deepCopy(), nil
 }
@@ -260,8 +243,8 @@ func (b *_ExtensionObjectWithMaskBuilder) DeepCopy() any {
 	_copy := b.CreateExtensionObjectWithMaskBuilder().(*_ExtensionObjectWithMaskBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_ExtensionObjectWithMaskChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -407,16 +390,6 @@ func (pm *_ExtensionObjectWithMask) serializeParent(ctx context.Context, writeBu
 	return pm.ExtensionObjectContract.(*_ExtensionObject).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_ExtensionObjectWithMask) GetExtensionId() int32 {
-	return m.ExtensionId
-}
-
-//
-////
-
 func (m *_ExtensionObjectWithMask) IsExtensionObjectWithMask() {}
 
 func (m *_ExtensionObjectWithMask) DeepCopy() any {
@@ -431,7 +404,6 @@ func (m *_ExtensionObjectWithMask) deepCopy() *_ExtensionObjectWithMask {
 		m.ExtensionObjectContract.(*_ExtensionObject).deepCopy(),
 		nil, // will be set by child
 		utils.DeepCopy[ExtensionObjectEncodingMask](m.EncodingMask),
-		m.ExtensionId,
 	}
 	_ExtensionObjectWithMaskCopy.ExtensionObjectContract.(*_ExtensionObject)._SubType = m
 	return _ExtensionObjectWithMaskCopy

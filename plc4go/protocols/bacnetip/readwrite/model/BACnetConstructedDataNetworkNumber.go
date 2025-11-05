@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNetworkNumber = (*_BACnetConstructedDataNetworkNumber
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNetworkNumber)(nil)
 
 // NewBACnetConstructedDataNetworkNumber factory function for _BACnetConstructedDataNetworkNumber
-func NewBACnetConstructedDataNetworkNumber(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, networkNumber BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNetworkNumber {
+func NewBACnetConstructedDataNetworkNumber(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, networkNumber BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataNetworkNumber {
 	if networkNumber == nil {
 		panic("networkNumber of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataNetworkNumber must not be nil")
 	}
 	_result := &_BACnetConstructedDataNetworkNumber{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NetworkNumber:                 networkNumber,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNetworkNumberBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNetworkNumberBuilder) = (*_BACnetConstructedDataNetworkNumberBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNetworkNumberBuilder) WithNetworkNumberBuilder(bu
 	var err error
 	b.NetworkNumber, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNetworkNumberBuilder) Build() (BACnetConstructedDataNetworkNumber, error) {
 	if b.NetworkNumber == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'networkNumber' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'networkNumber' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNetworkNumber.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNetworkNumberBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataNetworkNumberBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNetworkNumberBuilder().(*_BACnetConstructedDataNetworkNumberBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

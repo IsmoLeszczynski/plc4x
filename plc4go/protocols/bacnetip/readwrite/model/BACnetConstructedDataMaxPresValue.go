@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataMaxPresValue = (*_BACnetConstructedDataMaxPresValue)(
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMaxPresValue)(nil)
 
 // NewBACnetConstructedDataMaxPresValue factory function for _BACnetConstructedDataMaxPresValue
-func NewBACnetConstructedDataMaxPresValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maxPresValue BACnetApplicationTagReal, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMaxPresValue {
+func NewBACnetConstructedDataMaxPresValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maxPresValue BACnetApplicationTagReal) *_BACnetConstructedDataMaxPresValue {
 	if maxPresValue == nil {
 		panic("maxPresValue of type BACnetApplicationTagReal for BACnetConstructedDataMaxPresValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataMaxPresValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		MaxPresValue:                  maxPresValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataMaxPresValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMaxPresValueBuilder) = (*_BACnetConstructedDataMaxPresValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataMaxPresValueBuilder) WithMaxPresValueBuilder(buil
 	var err error
 	b.MaxPresValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataMaxPresValueBuilder) Build() (BACnetConstructedDataMaxPresValue, error) {
 	if b.MaxPresValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'maxPresValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'maxPresValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMaxPresValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataMaxPresValueBuilder) buildForBACnetConstructedDat
 
 func (b *_BACnetConstructedDataMaxPresValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMaxPresValueBuilder().(*_BACnetConstructedDataMaxPresValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

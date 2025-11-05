@@ -49,21 +49,13 @@ public class BACnetConstructedDataObjectName extends BACnetConstructedData imple
   // Properties.
   protected final BACnetApplicationTagCharacterString objectName;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataObjectName(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagCharacterString objectName,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagCharacterString objectName) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.objectName = objectName;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagCharacterString getObjectName() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataObjectName extends BACnetConstructedData imple
     // Simple Field (objectName)
     writeSimpleField("objectName", objectName, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagCharacterString actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,22 @@ public class BACnetConstructedDataObjectName extends BACnetConstructedData imple
 
     readBuffer.closeContext("BACnetConstructedDataObjectName");
     // Create the instance
-    return new BACnetConstructedDataObjectNameBuilderImpl(
-        objectName, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataObjectNameBuilderImpl(objectName);
   }
 
   public static class BACnetConstructedDataObjectNameBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagCharacterString objectName;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataObjectNameBuilderImpl(
-        BACnetApplicationTagCharacterString objectName,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagCharacterString objectName) {
       this.objectName = objectName;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataObjectName build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataObjectName bACnetConstructedDataObjectName =
-          new BACnetConstructedDataObjectName(
-              openingTag, peekedTagHeader, closingTag, objectName, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataObjectName(openingTag, peekedTagHeader, closingTag, objectName);
       return bACnetConstructedDataObjectName;
     }
   }

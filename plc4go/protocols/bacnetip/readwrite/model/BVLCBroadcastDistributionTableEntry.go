@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -95,7 +96,7 @@ func NewBVLCBroadcastDistributionTableEntryBuilder() BVLCBroadcastDistributionTa
 type _BVLCBroadcastDistributionTableEntryBuilder struct {
 	*_BVLCBroadcastDistributionTableEntry
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BVLCBroadcastDistributionTableEntryBuilder) = (*_BVLCBroadcastDistributionTableEntryBuilder)(nil)
@@ -120,8 +121,8 @@ func (b *_BVLCBroadcastDistributionTableEntryBuilder) WithBroadcastDistributionM
 }
 
 func (b *_BVLCBroadcastDistributionTableEntryBuilder) Build() (BVLCBroadcastDistributionTableEntry, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BVLCBroadcastDistributionTableEntry.deepCopy(), nil
 }
@@ -136,8 +137,8 @@ func (b *_BVLCBroadcastDistributionTableEntryBuilder) MustBuild() BVLCBroadcastD
 
 func (b *_BVLCBroadcastDistributionTableEntryBuilder) DeepCopy() any {
 	_copy := b.CreateBVLCBroadcastDistributionTableEntryBuilder().(*_BVLCBroadcastDistributionTableEntryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -226,7 +227,7 @@ func BVLCBroadcastDistributionTableEntryParseWithBufferProducer() func(ctx conte
 }
 
 func BVLCBroadcastDistributionTableEntryParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (BVLCBroadcastDistributionTableEntry, error) {
-	v, err := (&_BVLCBroadcastDistributionTableEntry{}).parse(ctx, readBuffer)
+	v, err := (new(_BVLCBroadcastDistributionTableEntry)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

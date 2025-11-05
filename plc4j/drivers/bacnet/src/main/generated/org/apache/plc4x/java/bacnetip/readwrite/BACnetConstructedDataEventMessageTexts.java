@@ -52,23 +52,15 @@ public class BACnetConstructedDataEventMessageTexts extends BACnetConstructedDat
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetOptionalCharacterString> eventMessageTexts;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataEventMessageTexts(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetOptionalCharacterString> eventMessageTexts,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetOptionalCharacterString> eventMessageTexts) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.eventMessageTexts = eventMessageTexts;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataEventMessageTexts extends BACnetConstructedDat
     return eventMessageTexts;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -107,29 +100,25 @@ public class BACnetConstructedDataEventMessageTexts extends BACnetConstructedDat
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataEventMessageTexts");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (eventMessageTexts)
     writeComplexTypeArrayField("eventMessageTexts", eventMessageTexts, writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetOptionalCharacterString toOffnormalText = getToOffnormalText();
     writeBuffer.writeVirtual("toOffnormalText", toOffnormalText);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetOptionalCharacterString toFaultText = getToFaultText();
     writeBuffer.writeVirtual("toFaultText", toFaultText);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetOptionalCharacterString toNormalText = getToNormalText();
     writeBuffer.writeVirtual("toNormalText", toNormalText);
 
@@ -223,42 +212,26 @@ public class BACnetConstructedDataEventMessageTexts extends BACnetConstructedDat
     readBuffer.closeContext("BACnetConstructedDataEventMessageTexts");
     // Create the instance
     return new BACnetConstructedDataEventMessageTextsBuilderImpl(
-        numberOfDataElements, eventMessageTexts, tagNumber, arrayIndexArgument);
+        numberOfDataElements, eventMessageTexts);
   }
 
   public static class BACnetConstructedDataEventMessageTextsBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetOptionalCharacterString> eventMessageTexts;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataEventMessageTextsBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetOptionalCharacterString> eventMessageTexts,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetOptionalCharacterString> eventMessageTexts) {
       this.numberOfDataElements = numberOfDataElements;
       this.eventMessageTexts = eventMessageTexts;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataEventMessageTexts build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataEventMessageTexts bACnetConstructedDataEventMessageTexts =
           new BACnetConstructedDataEventMessageTexts(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              eventMessageTexts,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, eventMessageTexts);
       return bACnetConstructedDataEventMessageTexts;
     }
   }

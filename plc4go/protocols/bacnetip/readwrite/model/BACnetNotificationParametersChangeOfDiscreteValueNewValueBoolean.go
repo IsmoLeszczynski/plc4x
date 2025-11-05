@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean = (*_BACn
 var _ BACnetNotificationParametersChangeOfDiscreteValueNewValueRequirements = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean)(nil)
 
 // NewBACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean factory function for _BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean
-func NewBACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, booleanValue BACnetApplicationTagBoolean, tagNumber uint8) *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean {
+func NewBACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, booleanValue BACnetApplicationTagBoolean) *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean {
 	if booleanValue == nil {
 		panic("booleanValue of type BACnetApplicationTagBoolean for BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean must not be nil")
 	}
 	_result := &_BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean{
-		BACnetNotificationParametersChangeOfDiscreteValueNewValueContract: NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag, peekedTagHeader, closingTag, tagNumber),
+		BACnetNotificationParametersChangeOfDiscreteValueNewValueContract: NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag, peekedTagHeader, closingTag),
 		BooleanValue: booleanValue,
 	}
 	_result.BACnetNotificationParametersChangeOfDiscreteValueNewValueContract.(*_BACnetNotificationParametersChangeOfDiscreteValueNewValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder st
 
 	parentBuilder *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder) = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilde
 	var err error
 	b.BooleanValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder) Build() (BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean, error) {
 	if b.BooleanValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'booleanValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'booleanValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilde
 
 func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder().(*_BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

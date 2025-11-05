@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.plc4x</groupId>
     <artifactId>plc4x-parent</artifactId>
-    <version>0.13.0-SNAPSHOT</version>
+    <version>0.14.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>plc4j</artifactId>
@@ -34,7 +34,7 @@
   <description>Implementation of the protocol adapters for usage as Java library.</description>
 
   <properties>
-    <project.build.outputTimestamp>2024-02-16T14:53:02Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2025-08-02T13:55:11Z</project.build.outputTimestamp>
   </properties>
 
   <modules>
@@ -198,7 +198,7 @@
       </plugin>
 
       <!--
-        As our libraries should be consumable on Java 11, downgrade the compiler settings.
+        As our libraries should be consumable on Java 21, downgrade the compiler settings.
       -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -336,6 +336,11 @@
     </dependency>
 
     <!-- JUnit 5 Support -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

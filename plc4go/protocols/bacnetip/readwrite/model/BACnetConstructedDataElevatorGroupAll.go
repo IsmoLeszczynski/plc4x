@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataElevatorGroupAll = (*_BACnetConstructedDataElevatorGr
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataElevatorGroupAll)(nil)
 
 // NewBACnetConstructedDataElevatorGroupAll factory function for _BACnetConstructedDataElevatorGroupAll
-func NewBACnetConstructedDataElevatorGroupAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataElevatorGroupAll {
+func NewBACnetConstructedDataElevatorGroupAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataElevatorGroupAll {
 	_result := &_BACnetConstructedDataElevatorGroupAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataElevatorGroupAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataElevatorGroupAllBuilder) = (*_BACnetConstructedDataElevatorGroupAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataElevatorGroupAllBuilder) WithMandatoryFields() BA
 }
 
 func (b *_BACnetConstructedDataElevatorGroupAllBuilder) Build() (BACnetConstructedDataElevatorGroupAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataElevatorGroupAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataElevatorGroupAllBuilder) buildForBACnetConstructe
 
 func (b *_BACnetConstructedDataElevatorGroupAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataElevatorGroupAllBuilder().(*_BACnetConstructedDataElevatorGroupAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

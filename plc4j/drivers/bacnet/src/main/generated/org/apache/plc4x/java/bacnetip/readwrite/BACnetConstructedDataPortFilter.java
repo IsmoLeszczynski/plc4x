@@ -51,23 +51,15 @@ public class BACnetConstructedDataPortFilter extends BACnetConstructedData imple
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetPortPermission> portFilter;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataPortFilter(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetPortPermission> portFilter,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetPortPermission> portFilter) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.portFilter = portFilter;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -78,6 +70,7 @@ public class BACnetConstructedDataPortFilter extends BACnetConstructedData imple
     return portFilter;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -91,16 +84,12 @@ public class BACnetConstructedDataPortFilter extends BACnetConstructedData imple
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataPortFilter");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (portFilter)
     writeComplexTypeArrayField("portFilter", portFilter, writeBuffer);
@@ -169,43 +158,26 @@ public class BACnetConstructedDataPortFilter extends BACnetConstructedData imple
 
     readBuffer.closeContext("BACnetConstructedDataPortFilter");
     // Create the instance
-    return new BACnetConstructedDataPortFilterBuilderImpl(
-        numberOfDataElements, portFilter, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataPortFilterBuilderImpl(numberOfDataElements, portFilter);
   }
 
   public static class BACnetConstructedDataPortFilterBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetPortPermission> portFilter;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataPortFilterBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetPortPermission> portFilter,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetPortPermission> portFilter) {
       this.numberOfDataElements = numberOfDataElements;
       this.portFilter = portFilter;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataPortFilter build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataPortFilter bACnetConstructedDataPortFilter =
           new BACnetConstructedDataPortFilter(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              portFilter,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, portFilter);
       return bACnetConstructedDataPortFilter;
     }
   }

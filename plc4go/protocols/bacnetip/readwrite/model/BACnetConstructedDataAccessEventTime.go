@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAccessEventTime = (*_BACnetConstructedDataAccessEvent
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessEventTime)(nil)
 
 // NewBACnetConstructedDataAccessEventTime factory function for _BACnetConstructedDataAccessEventTime
-func NewBACnetConstructedDataAccessEventTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, accessEventTime BACnetTimeStamp, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessEventTime {
+func NewBACnetConstructedDataAccessEventTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, accessEventTime BACnetTimeStamp) *_BACnetConstructedDataAccessEventTime {
 	if accessEventTime == nil {
 		panic("accessEventTime of type BACnetTimeStamp for BACnetConstructedDataAccessEventTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataAccessEventTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AccessEventTime:               accessEventTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAccessEventTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessEventTimeBuilder) = (*_BACnetConstructedDataAccessEventTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAccessEventTimeBuilder) WithAccessEventTimeBuilde
 	var err error
 	b.AccessEventTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTimeStampBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTimeStampBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAccessEventTimeBuilder) Build() (BACnetConstructedDataAccessEventTime, error) {
 	if b.AccessEventTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'accessEventTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'accessEventTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessEventTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAccessEventTimeBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataAccessEventTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessEventTimeBuilder().(*_BACnetConstructedDataAccessEventTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

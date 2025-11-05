@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type CALDataStatus interface {
 	utils.Copyable
 	CALData
 	// GetApplication returns Application (property field)
+	// Reply
 	GetApplication() ApplicationIdContainer
 	// GetBlockStart returns BlockStart (property field)
 	GetBlockStart() uint8
@@ -64,9 +66,9 @@ var _ CALDataStatus = (*_CALDataStatus)(nil)
 var _ CALDataRequirements = (*_CALDataStatus)(nil)
 
 // NewCALDataStatus factory function for _CALDataStatus
-func NewCALDataStatus(commandTypeContainer CALCommandTypeContainer, additionalData CALData, application ApplicationIdContainer, blockStart uint8, statusBytes []StatusByte, requestContext RequestContext) *_CALDataStatus {
+func NewCALDataStatus(requestContext RequestContext, commandTypeContainer CALCommandTypeContainer, additionalData CALData, application ApplicationIdContainer, blockStart uint8, statusBytes []StatusByte) *_CALDataStatus {
 	_result := &_CALDataStatus{
-		CALDataContract: NewCALData(commandTypeContainer, additionalData, requestContext),
+		CALDataContract: NewCALData(requestContext, commandTypeContainer, additionalData),
 		Application:     application,
 		BlockStart:      blockStart,
 		StatusBytes:     statusBytes,
@@ -109,7 +111,7 @@ type _CALDataStatusBuilder struct {
 
 	parentBuilder *_CALDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CALDataStatusBuilder) = (*_CALDataStatusBuilder)(nil)
@@ -139,8 +141,8 @@ func (b *_CALDataStatusBuilder) WithStatusBytes(statusBytes ...StatusByte) CALDa
 }
 
 func (b *_CALDataStatusBuilder) Build() (CALDataStatus, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CALDataStatus.deepCopy(), nil
 }
@@ -166,8 +168,8 @@ func (b *_CALDataStatusBuilder) buildForCALData() (CALData, error) {
 
 func (b *_CALDataStatusBuilder) DeepCopy() any {
 	_copy := b.CreateCALDataStatusBuilder().(*_CALDataStatusBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

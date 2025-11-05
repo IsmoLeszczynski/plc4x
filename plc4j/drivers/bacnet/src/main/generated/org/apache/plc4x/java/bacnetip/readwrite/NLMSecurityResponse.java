@@ -46,23 +46,20 @@ public class NLMSecurityResponse extends NLM implements Message {
   protected final SecurityResponseCode responseCode;
   protected final long originalMessageId;
   protected final long originalTimestamp;
-  protected final byte[] variableParameters;
 
-  // Arguments.
-  protected final Integer apduLength;
+  /** TODO: type out variable parameters */
+  protected final byte[] variableParameters;
 
   public NLMSecurityResponse(
       SecurityResponseCode responseCode,
       long originalMessageId,
       long originalTimestamp,
-      byte[] variableParameters,
-      Integer apduLength) {
-    super(apduLength);
+      byte[] variableParameters) {
+    super();
     this.responseCode = responseCode;
     this.originalMessageId = originalMessageId;
     this.originalTimestamp = originalTimestamp;
     this.variableParameters = variableParameters;
-    this.apduLength = apduLength;
   }
 
   public SecurityResponseCode getResponseCode() {
@@ -77,6 +74,7 @@ public class NLMSecurityResponse extends NLM implements Message {
     return originalTimestamp;
   }
 
+  /** TODO: type out variable parameters */
   public byte[] getVariableParameters() {
     return variableParameters;
   }
@@ -160,7 +158,7 @@ public class NLMSecurityResponse extends NLM implements Message {
     readBuffer.closeContext("NLMSecurityResponse");
     // Create the instance
     return new NLMSecurityResponseBuilderImpl(
-        responseCode, originalMessageId, originalTimestamp, variableParameters, apduLength);
+        responseCode, originalMessageId, originalTimestamp, variableParameters);
   }
 
   public static class NLMSecurityResponseBuilderImpl implements NLM.NLMBuilder {
@@ -168,26 +166,22 @@ public class NLMSecurityResponse extends NLM implements Message {
     private final long originalMessageId;
     private final long originalTimestamp;
     private final byte[] variableParameters;
-    private final Integer apduLength;
 
     public NLMSecurityResponseBuilderImpl(
         SecurityResponseCode responseCode,
         long originalMessageId,
         long originalTimestamp,
-        byte[] variableParameters,
-        Integer apduLength) {
+        byte[] variableParameters) {
       this.responseCode = responseCode;
       this.originalMessageId = originalMessageId;
       this.originalTimestamp = originalTimestamp;
       this.variableParameters = variableParameters;
-      this.apduLength = apduLength;
     }
 
-    public NLMSecurityResponse build(Integer apduLength) {
-
+    public NLMSecurityResponse build() {
       NLMSecurityResponse nLMSecurityResponse =
           new NLMSecurityResponse(
-              responseCode, originalMessageId, originalTimestamp, variableParameters, apduLength);
+              responseCode, originalMessageId, originalTimestamp, variableParameters);
       return nLMSecurityResponse;
     }
   }

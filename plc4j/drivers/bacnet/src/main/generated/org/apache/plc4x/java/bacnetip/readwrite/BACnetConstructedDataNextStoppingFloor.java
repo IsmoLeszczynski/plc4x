@@ -50,21 +50,13 @@ public class BACnetConstructedDataNextStoppingFloor extends BACnetConstructedDat
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger nextStoppingFloor;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataNextStoppingFloor(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger nextStoppingFloor,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger nextStoppingFloor) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.nextStoppingFloor = nextStoppingFloor;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNextStoppingFloor() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataNextStoppingFloor extends BACnetConstructedDat
     // Simple Field (nextStoppingFloor)
     writeSimpleField("nextStoppingFloor", nextStoppingFloor, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataNextStoppingFloor extends BACnetConstructedDat
 
     readBuffer.closeContext("BACnetConstructedDataNextStoppingFloor");
     // Create the instance
-    return new BACnetConstructedDataNextStoppingFloorBuilderImpl(
-        nextStoppingFloor, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataNextStoppingFloorBuilderImpl(nextStoppingFloor);
   }
 
   public static class BACnetConstructedDataNextStoppingFloorBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger nextStoppingFloor;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataNextStoppingFloorBuilderImpl(
-        BACnetApplicationTagUnsignedInteger nextStoppingFloor,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger nextStoppingFloor) {
       this.nextStoppingFloor = nextStoppingFloor;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataNextStoppingFloor build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataNextStoppingFloor bACnetConstructedDataNextStoppingFloor =
           new BACnetConstructedDataNextStoppingFloor(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              nextStoppingFloor,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, nextStoppingFloor);
       return bACnetConstructedDataNextStoppingFloor;
     }
   }

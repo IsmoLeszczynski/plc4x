@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,7 @@ type InterfaceOptions1PowerUpSettings interface {
 	utils.Serializable
 	utils.Copyable
 	// GetInterfaceOptions1 returns InterfaceOptions1 (property field)
+	// Note 5
 	GetInterfaceOptions1() InterfaceOptions1
 	// IsInterfaceOptions1PowerUpSettings is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsInterfaceOptions1PowerUpSettings()
@@ -90,7 +92,7 @@ func NewInterfaceOptions1PowerUpSettingsBuilder() InterfaceOptions1PowerUpSettin
 type _InterfaceOptions1PowerUpSettingsBuilder struct {
 	*_InterfaceOptions1PowerUpSettings
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (InterfaceOptions1PowerUpSettingsBuilder) = (*_InterfaceOptions1PowerUpSettingsBuilder)(nil)
@@ -109,23 +111,17 @@ func (b *_InterfaceOptions1PowerUpSettingsBuilder) WithInterfaceOptions1Builder(
 	var err error
 	b.InterfaceOptions1, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "InterfaceOptions1Builder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "InterfaceOptions1Builder failed"))
 	}
 	return b
 }
 
 func (b *_InterfaceOptions1PowerUpSettingsBuilder) Build() (InterfaceOptions1PowerUpSettings, error) {
 	if b.InterfaceOptions1 == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'interfaceOptions1' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'interfaceOptions1' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._InterfaceOptions1PowerUpSettings.deepCopy(), nil
 }
@@ -140,8 +136,8 @@ func (b *_InterfaceOptions1PowerUpSettingsBuilder) MustBuild() InterfaceOptions1
 
 func (b *_InterfaceOptions1PowerUpSettingsBuilder) DeepCopy() any {
 	_copy := b.CreateInterfaceOptions1PowerUpSettingsBuilder().(*_InterfaceOptions1PowerUpSettingsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -212,7 +208,7 @@ func InterfaceOptions1PowerUpSettingsParseWithBufferProducer() func(ctx context.
 }
 
 func InterfaceOptions1PowerUpSettingsParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (InterfaceOptions1PowerUpSettings, error) {
-	v, err := (&_InterfaceOptions1PowerUpSettings{}).parse(ctx, readBuffer)
+	v, err := (new(_InterfaceOptions1PowerUpSettings)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

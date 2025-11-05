@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -73,23 +74,19 @@ type BACnetObjectTypesSupportedTagged interface {
 type _BACnetObjectTypesSupportedTagged struct {
 	Header  BACnetTagHeader
 	Payload BACnetTagPayloadBitString
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetObjectTypesSupportedTagged = (*_BACnetObjectTypesSupportedTagged)(nil)
 
 // NewBACnetObjectTypesSupportedTagged factory function for _BACnetObjectTypesSupportedTagged
-func NewBACnetObjectTypesSupportedTagged(header BACnetTagHeader, payload BACnetTagPayloadBitString, tagNumber uint8, tagClass TagClass) *_BACnetObjectTypesSupportedTagged {
+func NewBACnetObjectTypesSupportedTagged(header BACnetTagHeader, payload BACnetTagPayloadBitString) *_BACnetObjectTypesSupportedTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetObjectTypesSupportedTagged must not be nil")
 	}
 	if payload == nil {
 		panic("payload of type BACnetTagPayloadBitString for BACnetObjectTypesSupportedTagged must not be nil")
 	}
-	return &_BACnetObjectTypesSupportedTagged{Header: header, Payload: payload, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetObjectTypesSupportedTagged{Header: header, Payload: payload}
 }
 
 ///////////////////////////////////////////////////////////
@@ -110,10 +107,6 @@ type BACnetObjectTypesSupportedTaggedBuilder interface {
 	WithPayload(BACnetTagPayloadBitString) BACnetObjectTypesSupportedTaggedBuilder
 	// WithPayloadBuilder adds Payload (property field) which is build by the builder
 	WithPayloadBuilder(func(BACnetTagPayloadBitStringBuilder) BACnetTagPayloadBitStringBuilder) BACnetObjectTypesSupportedTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetObjectTypesSupportedTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetObjectTypesSupportedTaggedBuilder
 	// Build builds the BACnetObjectTypesSupportedTagged or returns an error if something is wrong
 	Build() (BACnetObjectTypesSupportedTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -128,7 +121,7 @@ func NewBACnetObjectTypesSupportedTaggedBuilder() BACnetObjectTypesSupportedTagg
 type _BACnetObjectTypesSupportedTaggedBuilder struct {
 	*_BACnetObjectTypesSupportedTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetObjectTypesSupportedTaggedBuilder) = (*_BACnetObjectTypesSupportedTaggedBuilder)(nil)
@@ -147,10 +140,7 @@ func (b *_BACnetObjectTypesSupportedTaggedBuilder) WithHeaderBuilder(builderSupp
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -165,38 +155,20 @@ func (b *_BACnetObjectTypesSupportedTaggedBuilder) WithPayloadBuilder(builderSup
 	var err error
 	b.Payload, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagPayloadBitStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagPayloadBitStringBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetObjectTypesSupportedTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetObjectTypesSupportedTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetObjectTypesSupportedTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetObjectTypesSupportedTaggedBuilder {
-	b.TagClass = tagClass
 	return b
 }
 
 func (b *_BACnetObjectTypesSupportedTaggedBuilder) Build() (BACnetObjectTypesSupportedTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
 	if b.Payload == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'payload' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'payload' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetObjectTypesSupportedTagged.deepCopy(), nil
 }
@@ -211,8 +183,8 @@ func (b *_BACnetObjectTypesSupportedTaggedBuilder) MustBuild() BACnetObjectTypes
 
 func (b *_BACnetObjectTypesSupportedTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetObjectTypesSupportedTaggedBuilder().(*_BACnetObjectTypesSupportedTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -379,7 +351,7 @@ func BACnetObjectTypesSupportedTaggedParseWithBufferProducer(tagNumber uint8, ta
 }
 
 func BACnetObjectTypesSupportedTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetObjectTypesSupportedTagged, error) {
-	v, err := (&_BACnetObjectTypesSupportedTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetObjectTypesSupportedTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -575,19 +547,6 @@ func (m *_BACnetObjectTypesSupportedTagged) SerializeWithWriteBuffer(ctx context
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetObjectTypesSupportedTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetObjectTypesSupportedTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetObjectTypesSupportedTagged) IsBACnetObjectTypesSupportedTagged() {}
 
 func (m *_BACnetObjectTypesSupportedTagged) DeepCopy() any {
@@ -601,8 +560,6 @@ func (m *_BACnetObjectTypesSupportedTagged) deepCopy() *_BACnetObjectTypesSuppor
 	_BACnetObjectTypesSupportedTaggedCopy := &_BACnetObjectTypesSupportedTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		utils.DeepCopy[BACnetTagPayloadBitString](m.Payload),
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetObjectTypesSupportedTaggedCopy
 }

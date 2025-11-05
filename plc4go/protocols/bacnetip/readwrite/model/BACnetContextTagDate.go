@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetContextTagDate = (*_BACnetContextTagDate)(nil)
 var _ BACnetContextTagRequirements = (*_BACnetContextTagDate)(nil)
 
 // NewBACnetContextTagDate factory function for _BACnetContextTagDate
-func NewBACnetContextTagDate(header BACnetTagHeader, payload BACnetTagPayloadDate, tagNumberArgument uint8) *_BACnetContextTagDate {
+func NewBACnetContextTagDate(header BACnetTagHeader, payload BACnetTagPayloadDate) *_BACnetContextTagDate {
 	if payload == nil {
 		panic("payload of type BACnetTagPayloadDate for BACnetContextTagDate must not be nil")
 	}
 	_result := &_BACnetContextTagDate{
-		BACnetContextTagContract: NewBACnetContextTag(header, tagNumberArgument),
+		BACnetContextTagContract: NewBACnetContextTag(header),
 		Payload:                  payload,
 	}
 	_result.BACnetContextTagContract.(*_BACnetContextTag)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetContextTagDateBuilder struct {
 
 	parentBuilder *_BACnetContextTagBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetContextTagDateBuilder) = (*_BACnetContextTagDateBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetContextTagDateBuilder) WithPayloadBuilder(builderSupplier func(B
 	var err error
 	b.Payload, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagPayloadDateBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagPayloadDateBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetContextTagDateBuilder) Build() (BACnetContextTagDate, error) {
 	if b.Payload == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'payload' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'payload' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetContextTagDate.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetContextTagDateBuilder) buildForBACnetContextTag() (BACnetContext
 
 func (b *_BACnetContextTagDateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetContextTagDateBuilder().(*_BACnetContextTagDateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

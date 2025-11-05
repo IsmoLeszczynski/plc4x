@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataAccessZoneAll = (*_BACnetConstructedDataAccessZoneAll
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessZoneAll)(nil)
 
 // NewBACnetConstructedDataAccessZoneAll factory function for _BACnetConstructedDataAccessZoneAll
-func NewBACnetConstructedDataAccessZoneAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessZoneAll {
+func NewBACnetConstructedDataAccessZoneAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataAccessZoneAll {
 	_result := &_BACnetConstructedDataAccessZoneAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataAccessZoneAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessZoneAllBuilder) = (*_BACnetConstructedDataAccessZoneAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataAccessZoneAllBuilder) WithMandatoryFields() BACne
 }
 
 func (b *_BACnetConstructedDataAccessZoneAllBuilder) Build() (BACnetConstructedDataAccessZoneAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessZoneAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataAccessZoneAllBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataAccessZoneAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessZoneAllBuilder().(*_BACnetConstructedDataAccessZoneAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

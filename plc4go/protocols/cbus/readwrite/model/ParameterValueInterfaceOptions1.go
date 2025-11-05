@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -43,6 +44,7 @@ type ParameterValueInterfaceOptions1 interface {
 	// GetValue returns Value (property field)
 	GetValue() InterfaceOptions1
 	// GetData returns Data (property field)
+	// TODO: find out what additional bytes mean here...
 	GetData() []byte
 	// IsParameterValueInterfaceOptions1 is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsParameterValueInterfaceOptions1()
@@ -61,12 +63,12 @@ var _ ParameterValueInterfaceOptions1 = (*_ParameterValueInterfaceOptions1)(nil)
 var _ ParameterValueRequirements = (*_ParameterValueInterfaceOptions1)(nil)
 
 // NewParameterValueInterfaceOptions1 factory function for _ParameterValueInterfaceOptions1
-func NewParameterValueInterfaceOptions1(value InterfaceOptions1, data []byte, numBytes uint8) *_ParameterValueInterfaceOptions1 {
+func NewParameterValueInterfaceOptions1(value InterfaceOptions1, data []byte) *_ParameterValueInterfaceOptions1 {
 	if value == nil {
 		panic("value of type InterfaceOptions1 for ParameterValueInterfaceOptions1 must not be nil")
 	}
 	_result := &_ParameterValueInterfaceOptions1{
-		ParameterValueContract: NewParameterValue(numBytes),
+		ParameterValueContract: NewParameterValue(),
 		Value:                  value,
 		Data:                   data,
 	}
@@ -108,7 +110,7 @@ type _ParameterValueInterfaceOptions1Builder struct {
 
 	parentBuilder *_ParameterValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ParameterValueInterfaceOptions1Builder) = (*_ParameterValueInterfaceOptions1Builder)(nil)
@@ -132,10 +134,7 @@ func (b *_ParameterValueInterfaceOptions1Builder) WithValueBuilder(builderSuppli
 	var err error
 	b.Value, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "InterfaceOptions1Builder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "InterfaceOptions1Builder failed"))
 	}
 	return b
 }
@@ -147,13 +146,10 @@ func (b *_ParameterValueInterfaceOptions1Builder) WithData(data ...byte) Paramet
 
 func (b *_ParameterValueInterfaceOptions1Builder) Build() (ParameterValueInterfaceOptions1, error) {
 	if b.Value == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'value' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'value' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ParameterValueInterfaceOptions1.deepCopy(), nil
 }
@@ -179,8 +175,8 @@ func (b *_ParameterValueInterfaceOptions1Builder) buildForParameterValue() (Para
 
 func (b *_ParameterValueInterfaceOptions1Builder) DeepCopy() any {
 	_copy := b.CreateParameterValueInterfaceOptions1Builder().(*_ParameterValueInterfaceOptions1Builder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

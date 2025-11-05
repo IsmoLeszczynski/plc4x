@@ -50,21 +50,13 @@ public class BACnetConstructedDataPacketReorderTime extends BACnetConstructedDat
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger packetReorderTime;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataPacketReorderTime(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger packetReorderTime,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger packetReorderTime) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.packetReorderTime = packetReorderTime;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getPacketReorderTime() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataPacketReorderTime extends BACnetConstructedDat
     // Simple Field (packetReorderTime)
     writeSimpleField("packetReorderTime", packetReorderTime, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataPacketReorderTime extends BACnetConstructedDat
 
     readBuffer.closeContext("BACnetConstructedDataPacketReorderTime");
     // Create the instance
-    return new BACnetConstructedDataPacketReorderTimeBuilderImpl(
-        packetReorderTime, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataPacketReorderTimeBuilderImpl(packetReorderTime);
   }
 
   public static class BACnetConstructedDataPacketReorderTimeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger packetReorderTime;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataPacketReorderTimeBuilderImpl(
-        BACnetApplicationTagUnsignedInteger packetReorderTime,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger packetReorderTime) {
       this.packetReorderTime = packetReorderTime;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataPacketReorderTime build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataPacketReorderTime bACnetConstructedDataPacketReorderTime =
           new BACnetConstructedDataPacketReorderTime(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              packetReorderTime,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, packetReorderTime);
       return bACnetConstructedDataPacketReorderTime;
     }
   }

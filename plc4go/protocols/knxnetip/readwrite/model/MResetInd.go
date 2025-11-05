@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ MResetInd = (*_MResetInd)(nil)
 var _ CEMIRequirements = (*_MResetInd)(nil)
 
 // NewMResetInd factory function for _MResetInd
-func NewMResetInd(size uint16) *_MResetInd {
+func NewMResetInd() *_MResetInd {
 	_result := &_MResetInd{
-		CEMIContract: NewCEMI(size),
+		CEMIContract: NewCEMI(),
 	}
 	_result.CEMIContract.(*_CEMI)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _MResetIndBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (MResetIndBuilder) = (*_MResetIndBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_MResetIndBuilder) WithMandatoryFields() MResetIndBuilder {
 }
 
 func (b *_MResetIndBuilder) Build() (MResetInd, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._MResetInd.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_MResetIndBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_MResetIndBuilder) DeepCopy() any {
 	_copy := b.CreateMResetIndBuilder().(*_MResetIndBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

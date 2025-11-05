@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,22 +57,19 @@ type _BACnetSpecialEventListOfTimeValues struct {
 	OpeningTag       BACnetOpeningTag
 	ListOfTimeValues []BACnetTimeValue
 	ClosingTag       BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetSpecialEventListOfTimeValues = (*_BACnetSpecialEventListOfTimeValues)(nil)
 
 // NewBACnetSpecialEventListOfTimeValues factory function for _BACnetSpecialEventListOfTimeValues
-func NewBACnetSpecialEventListOfTimeValues(openingTag BACnetOpeningTag, listOfTimeValues []BACnetTimeValue, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetSpecialEventListOfTimeValues {
+func NewBACnetSpecialEventListOfTimeValues(openingTag BACnetOpeningTag, listOfTimeValues []BACnetTimeValue, closingTag BACnetClosingTag) *_BACnetSpecialEventListOfTimeValues {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetSpecialEventListOfTimeValues must not be nil")
 	}
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetSpecialEventListOfTimeValues must not be nil")
 	}
-	return &_BACnetSpecialEventListOfTimeValues{OpeningTag: openingTag, ListOfTimeValues: listOfTimeValues, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetSpecialEventListOfTimeValues{OpeningTag: openingTag, ListOfTimeValues: listOfTimeValues, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -94,8 +92,6 @@ type BACnetSpecialEventListOfTimeValuesBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetSpecialEventListOfTimeValuesBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetSpecialEventListOfTimeValuesBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetSpecialEventListOfTimeValuesBuilder
 	// Build builds the BACnetSpecialEventListOfTimeValues or returns an error if something is wrong
 	Build() (BACnetSpecialEventListOfTimeValues, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +106,7 @@ func NewBACnetSpecialEventListOfTimeValuesBuilder() BACnetSpecialEventListOfTime
 type _BACnetSpecialEventListOfTimeValuesBuilder struct {
 	*_BACnetSpecialEventListOfTimeValues
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetSpecialEventListOfTimeValuesBuilder) = (*_BACnetSpecialEventListOfTimeValuesBuilder)(nil)
@@ -129,10 +125,7 @@ func (b *_BACnetSpecialEventListOfTimeValuesBuilder) WithOpeningTagBuilder(build
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,34 +145,20 @@ func (b *_BACnetSpecialEventListOfTimeValuesBuilder) WithClosingTagBuilder(build
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetSpecialEventListOfTimeValuesBuilder) WithArgTagNumber(tagNumber uint8) BACnetSpecialEventListOfTimeValuesBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetSpecialEventListOfTimeValuesBuilder) Build() (BACnetSpecialEventListOfTimeValues, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetSpecialEventListOfTimeValues.deepCopy(), nil
 }
@@ -194,8 +173,8 @@ func (b *_BACnetSpecialEventListOfTimeValuesBuilder) MustBuild() BACnetSpecialEv
 
 func (b *_BACnetSpecialEventListOfTimeValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetSpecialEventListOfTimeValuesBuilder().(*_BACnetSpecialEventListOfTimeValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -284,7 +263,7 @@ func BACnetSpecialEventListOfTimeValuesParseWithBufferProducer(tagNumber uint8) 
 }
 
 func BACnetSpecialEventListOfTimeValuesParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetSpecialEventListOfTimeValues, error) {
-	v, err := (&_BACnetSpecialEventListOfTimeValues{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetSpecialEventListOfTimeValues)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +339,6 @@ func (m *_BACnetSpecialEventListOfTimeValues) SerializeWithWriteBuffer(ctx conte
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetSpecialEventListOfTimeValues) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetSpecialEventListOfTimeValues) IsBACnetSpecialEventListOfTimeValues() {}
 
 func (m *_BACnetSpecialEventListOfTimeValues) DeepCopy() any {
@@ -384,7 +353,6 @@ func (m *_BACnetSpecialEventListOfTimeValues) deepCopy() *_BACnetSpecialEventLis
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopySlice[BACnetTimeValue, BACnetTimeValue](m.ListOfTimeValues),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetSpecialEventListOfTimeValuesCopy
 }

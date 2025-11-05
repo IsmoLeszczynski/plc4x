@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ COTPParameterCallingTsap = (*_COTPParameterCallingTsap)(nil)
 var _ COTPParameterRequirements = (*_COTPParameterCallingTsap)(nil)
 
 // NewCOTPParameterCallingTsap factory function for _COTPParameterCallingTsap
-func NewCOTPParameterCallingTsap(tsapId uint16, rest uint8) *_COTPParameterCallingTsap {
+func NewCOTPParameterCallingTsap(tsapId uint16) *_COTPParameterCallingTsap {
 	_result := &_COTPParameterCallingTsap{
-		COTPParameterContract: NewCOTPParameter(rest),
+		COTPParameterContract: NewCOTPParameter(),
 		TsapId:                tsapId,
 	}
 	_result.COTPParameterContract.(*_COTPParameter)._SubType = _result
@@ -97,7 +98,7 @@ type _COTPParameterCallingTsapBuilder struct {
 
 	parentBuilder *_COTPParameterBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (COTPParameterCallingTsapBuilder) = (*_COTPParameterCallingTsapBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_COTPParameterCallingTsapBuilder) WithTsapId(tsapId uint16) COTPParamet
 }
 
 func (b *_COTPParameterCallingTsapBuilder) Build() (COTPParameterCallingTsap, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._COTPParameterCallingTsap.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_COTPParameterCallingTsapBuilder) buildForCOTPParameter() (COTPParamete
 
 func (b *_COTPParameterCallingTsapBuilder) DeepCopy() any {
 	_copy := b.CreateCOTPParameterCallingTsapBuilder().(*_COTPParameterCallingTsapBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

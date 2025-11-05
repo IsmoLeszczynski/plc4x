@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetPolarityTagged interface {
 type _BACnetPolarityTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetPolarity
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetPolarityTagged = (*_BACnetPolarityTagged)(nil)
 
 // NewBACnetPolarityTagged factory function for _BACnetPolarityTagged
-func NewBACnetPolarityTagged(header BACnetTagHeader, value BACnetPolarity, tagNumber uint8, tagClass TagClass) *_BACnetPolarityTagged {
+func NewBACnetPolarityTagged(header BACnetTagHeader, value BACnetPolarity) *_BACnetPolarityTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetPolarityTagged must not be nil")
 	}
-	return &_BACnetPolarityTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetPolarityTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetPolarityTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetPolarityTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetPolarity) BACnetPolarityTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetPolarityTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetPolarityTaggedBuilder
 	// Build builds the BACnetPolarityTagged or returns an error if something is wrong
 	Build() (BACnetPolarityTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetPolarityTaggedBuilder() BACnetPolarityTaggedBuilder {
 type _BACnetPolarityTaggedBuilder struct {
 	*_BACnetPolarityTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetPolarityTaggedBuilder) = (*_BACnetPolarityTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetPolarityTaggedBuilder) WithHeaderBuilder(builderSupplier func(BA
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetPolarityTaggedBuilder) WithValue(value BACnetPolarity) BACnetPol
 	return b
 }
 
-func (b *_BACnetPolarityTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetPolarityTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetPolarityTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetPolarityTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetPolarityTaggedBuilder) Build() (BACnetPolarityTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetPolarityTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetPolarityTaggedBuilder) MustBuild() BACnetPolarityTagged {
 
 func (b *_BACnetPolarityTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetPolarityTaggedBuilder().(*_BACnetPolarityTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetPolarityTaggedParseWithBufferProducer(tagNumber uint8, tagClass TagCl
 }
 
 func BACnetPolarityTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetPolarityTagged, error) {
-	v, err := (&_BACnetPolarityTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetPolarityTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetPolarityTagged) SerializeWithWriteBuffer(ctx context.Context, wr
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetPolarityTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetPolarityTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetPolarityTagged) IsBACnetPolarityTagged() {}
 
 func (m *_BACnetPolarityTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetPolarityTagged) deepCopy() *_BACnetPolarityTagged {
 	_BACnetPolarityTaggedCopy := &_BACnetPolarityTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetPolarityTaggedCopy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataTraceFlag = (*_BACnetConstructedDataTraceFlag)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataTraceFlag)(nil)
 
 // NewBACnetConstructedDataTraceFlag factory function for _BACnetConstructedDataTraceFlag
-func NewBACnetConstructedDataTraceFlag(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, traceFlag BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataTraceFlag {
+func NewBACnetConstructedDataTraceFlag(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, traceFlag BACnetApplicationTagBoolean) *_BACnetConstructedDataTraceFlag {
 	if traceFlag == nil {
 		panic("traceFlag of type BACnetApplicationTagBoolean for BACnetConstructedDataTraceFlag must not be nil")
 	}
 	_result := &_BACnetConstructedDataTraceFlag{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		TraceFlag:                     traceFlag,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataTraceFlagBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataTraceFlagBuilder) = (*_BACnetConstructedDataTraceFlagBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataTraceFlagBuilder) WithTraceFlagBuilder(builderSup
 	var err error
 	b.TraceFlag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataTraceFlagBuilder) Build() (BACnetConstructedDataTraceFlag, error) {
 	if b.TraceFlag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'traceFlag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'traceFlag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataTraceFlag.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataTraceFlagBuilder) buildForBACnetConstructedData()
 
 func (b *_BACnetConstructedDataTraceFlagBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataTraceFlagBuilder().(*_BACnetConstructedDataTraceFlagBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

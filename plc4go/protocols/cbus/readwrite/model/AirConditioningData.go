@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -159,7 +160,7 @@ type _AirConditioningDataBuilder struct {
 
 	childBuilder _AirConditioningDataChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AirConditioningDataBuilder) = (*_AirConditioningDataBuilder)(nil)
@@ -174,8 +175,8 @@ func (b *_AirConditioningDataBuilder) WithCommandTypeContainer(commandTypeContai
 }
 
 func (b *_AirConditioningDataBuilder) PartialBuild() (AirConditioningDataContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AirConditioningData.deepCopy(), nil
 }
@@ -402,8 +403,8 @@ func (b *_AirConditioningDataBuilder) DeepCopy() any {
 	_copy := b.CreateAirConditioningDataBuilder().(*_AirConditioningDataBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_AirConditioningDataChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -501,7 +502,7 @@ func AirConditioningDataParseWithBufferProducer[T AirConditioningData]() func(ct
 }
 
 func AirConditioningDataParseWithBuffer[T AirConditioningData](ctx context.Context, readBuffer utils.ReadBuffer) (T, error) {
-	v, err := (&_AirConditioningData{}).parse(ctx, readBuffer)
+	v, err := (new(_AirConditioningData)).parse(ctx, readBuffer)
 	if err != nil {
 		var zero T
 		return zero, err

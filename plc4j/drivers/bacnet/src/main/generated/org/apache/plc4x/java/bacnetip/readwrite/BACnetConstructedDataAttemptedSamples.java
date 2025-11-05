@@ -50,21 +50,13 @@ public class BACnetConstructedDataAttemptedSamples extends BACnetConstructedData
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger attemptedSamples;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataAttemptedSamples(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger attemptedSamples,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger attemptedSamples) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.attemptedSamples = attemptedSamples;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getAttemptedSamples() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataAttemptedSamples extends BACnetConstructedData
     // Simple Field (attemptedSamples)
     writeSimpleField("attemptedSamples", attemptedSamples, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataAttemptedSamples extends BACnetConstructedData
 
     readBuffer.closeContext("BACnetConstructedDataAttemptedSamples");
     // Create the instance
-    return new BACnetConstructedDataAttemptedSamplesBuilderImpl(
-        attemptedSamples, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataAttemptedSamplesBuilderImpl(attemptedSamples);
   }
 
   public static class BACnetConstructedDataAttemptedSamplesBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger attemptedSamples;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataAttemptedSamplesBuilderImpl(
-        BACnetApplicationTagUnsignedInteger attemptedSamples,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger attemptedSamples) {
       this.attemptedSamples = attemptedSamples;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataAttemptedSamples build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataAttemptedSamples bACnetConstructedDataAttemptedSamples =
           new BACnetConstructedDataAttemptedSamples(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              attemptedSamples,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, attemptedSamples);
       return bACnetConstructedDataAttemptedSamples;
     }
   }

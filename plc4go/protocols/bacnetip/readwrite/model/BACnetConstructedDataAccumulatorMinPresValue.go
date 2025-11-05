@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAccumulatorMinPresValue = (*_BACnetConstructedDataAcc
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccumulatorMinPresValue)(nil)
 
 // NewBACnetConstructedDataAccumulatorMinPresValue factory function for _BACnetConstructedDataAccumulatorMinPresValue
-func NewBACnetConstructedDataAccumulatorMinPresValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, minPresValue BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccumulatorMinPresValue {
+func NewBACnetConstructedDataAccumulatorMinPresValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, minPresValue BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataAccumulatorMinPresValue {
 	if minPresValue == nil {
 		panic("minPresValue of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataAccumulatorMinPresValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataAccumulatorMinPresValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		MinPresValue:                  minPresValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAccumulatorMinPresValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccumulatorMinPresValueBuilder) = (*_BACnetConstructedDataAccumulatorMinPresValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAccumulatorMinPresValueBuilder) WithMinPresValueB
 	var err error
 	b.MinPresValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAccumulatorMinPresValueBuilder) Build() (BACnetConstructedDataAccumulatorMinPresValue, error) {
 	if b.MinPresValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'minPresValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'minPresValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccumulatorMinPresValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAccumulatorMinPresValueBuilder) buildForBACnetCon
 
 func (b *_BACnetConstructedDataAccumulatorMinPresValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccumulatorMinPresValueBuilder().(*_BACnetConstructedDataAccumulatorMinPresValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

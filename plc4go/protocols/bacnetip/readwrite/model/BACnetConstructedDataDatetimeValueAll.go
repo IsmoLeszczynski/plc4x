@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataDatetimeValueAll = (*_BACnetConstructedDataDatetimeVa
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataDatetimeValueAll)(nil)
 
 // NewBACnetConstructedDataDatetimeValueAll factory function for _BACnetConstructedDataDatetimeValueAll
-func NewBACnetConstructedDataDatetimeValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataDatetimeValueAll {
+func NewBACnetConstructedDataDatetimeValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataDatetimeValueAll {
 	_result := &_BACnetConstructedDataDatetimeValueAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataDatetimeValueAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataDatetimeValueAllBuilder) = (*_BACnetConstructedDataDatetimeValueAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataDatetimeValueAllBuilder) WithMandatoryFields() BA
 }
 
 func (b *_BACnetConstructedDataDatetimeValueAllBuilder) Build() (BACnetConstructedDataDatetimeValueAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataDatetimeValueAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataDatetimeValueAllBuilder) buildForBACnetConstructe
 
 func (b *_BACnetConstructedDataDatetimeValueAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataDatetimeValueAllBuilder().(*_BACnetConstructedDataDatetimeValueAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

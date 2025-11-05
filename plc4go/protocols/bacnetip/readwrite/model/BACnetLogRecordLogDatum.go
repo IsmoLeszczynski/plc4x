@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -57,8 +58,6 @@ type BACnetLogRecordLogDatumContract interface {
 	GetClosingTag() BACnetClosingTag
 	// GetPeekedTagNumber returns PeekedTagNumber (virtual field)
 	GetPeekedTagNumber() uint8
-	// GetTagNumber() returns a parser argument
-	GetTagNumber() uint8
 	// IsBACnetLogRecordLogDatum is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetLogRecordLogDatum()
 	// CreateBuilder creates a BACnetLogRecordLogDatumBuilder
@@ -82,15 +81,12 @@ type _BACnetLogRecordLogDatum struct {
 	OpeningTag      BACnetOpeningTag
 	PeekedTagHeader BACnetTagHeader
 	ClosingTag      BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetLogRecordLogDatumContract = (*_BACnetLogRecordLogDatum)(nil)
 
 // NewBACnetLogRecordLogDatum factory function for _BACnetLogRecordLogDatum
-func NewBACnetLogRecordLogDatum(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetLogRecordLogDatum {
+func NewBACnetLogRecordLogDatum(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetLogRecordLogDatum {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetLogRecordLogDatum must not be nil")
 	}
@@ -100,7 +96,7 @@ func NewBACnetLogRecordLogDatum(openingTag BACnetOpeningTag, peekedTagHeader BAC
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetLogRecordLogDatum must not be nil")
 	}
-	return &_BACnetLogRecordLogDatum{OpeningTag: openingTag, PeekedTagHeader: peekedTagHeader, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetLogRecordLogDatum{OpeningTag: openingTag, PeekedTagHeader: peekedTagHeader, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -125,8 +121,6 @@ type BACnetLogRecordLogDatumBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetLogRecordLogDatumBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetLogRecordLogDatumBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetLogRecordLogDatumBuilder
 	// AsBACnetLogRecordLogDatumLogStatus converts this build to a subType of BACnetLogRecordLogDatum. It is always possible to return to current builder using Done()
 	AsBACnetLogRecordLogDatumLogStatus() BACnetLogRecordLogDatumLogStatusBuilder
 	// AsBACnetLogRecordLogDatumBooleanValue converts this build to a subType of BACnetLogRecordLogDatum. It is always possible to return to current builder using Done()
@@ -175,7 +169,7 @@ type _BACnetLogRecordLogDatumBuilder struct {
 
 	childBuilder _BACnetLogRecordLogDatumChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetLogRecordLogDatumBuilder) = (*_BACnetLogRecordLogDatumBuilder)(nil)
@@ -194,10 +188,7 @@ func (b *_BACnetLogRecordLogDatumBuilder) WithOpeningTagBuilder(builderSupplier 
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -212,10 +203,7 @@ func (b *_BACnetLogRecordLogDatumBuilder) WithPeekedTagHeaderBuilder(builderSupp
 	var err error
 	b.PeekedTagHeader, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -230,40 +218,23 @@ func (b *_BACnetLogRecordLogDatumBuilder) WithClosingTagBuilder(builderSupplier 
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetLogRecordLogDatumBuilder) WithArgTagNumber(tagNumber uint8) BACnetLogRecordLogDatumBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetLogRecordLogDatumBuilder) PartialBuild() (BACnetLogRecordLogDatumContract, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.PeekedTagHeader == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'peekedTagHeader' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'peekedTagHeader' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetLogRecordLogDatum.deepCopy(), nil
 }
@@ -410,8 +381,8 @@ func (b *_BACnetLogRecordLogDatumBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetLogRecordLogDatumBuilder().(*_BACnetLogRecordLogDatumBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_BACnetLogRecordLogDatumChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -520,7 +491,7 @@ func BACnetLogRecordLogDatumParseWithBufferProducer[T BACnetLogRecordLogDatum](t
 }
 
 func BACnetLogRecordLogDatumParseWithBuffer[T BACnetLogRecordLogDatum](ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (T, error) {
-	v, err := (&_BACnetLogRecordLogDatum{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetLogRecordLogDatum)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -661,16 +632,6 @@ func (pm *_BACnetLogRecordLogDatum) serializeParent(ctx context.Context, writeBu
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetLogRecordLogDatum) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetLogRecordLogDatum) IsBACnetLogRecordLogDatum() {}
 
 func (m *_BACnetLogRecordLogDatum) DeepCopy() any {
@@ -686,7 +647,6 @@ func (m *_BACnetLogRecordLogDatum) deepCopy() *_BACnetLogRecordLogDatum {
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopy[BACnetTagHeader](m.PeekedTagHeader),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetLogRecordLogDatumCopy
 }

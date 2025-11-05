@@ -50,21 +50,13 @@ public class BACnetConstructedDataUserInformationReference extends BACnetConstru
   // Properties.
   protected final BACnetApplicationTagCharacterString userInformationReference;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataUserInformationReference(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagCharacterString userInformationReference,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagCharacterString userInformationReference) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.userInformationReference = userInformationReference;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagCharacterString getUserInformationReference() {
@@ -86,7 +78,7 @@ public class BACnetConstructedDataUserInformationReference extends BACnetConstru
     writeSimpleField(
         "userInformationReference", userInformationReference, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagCharacterString actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -137,39 +129,23 @@ public class BACnetConstructedDataUserInformationReference extends BACnetConstru
 
     readBuffer.closeContext("BACnetConstructedDataUserInformationReference");
     // Create the instance
-    return new BACnetConstructedDataUserInformationReferenceBuilderImpl(
-        userInformationReference, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataUserInformationReferenceBuilderImpl(userInformationReference);
   }
 
   public static class BACnetConstructedDataUserInformationReferenceBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagCharacterString userInformationReference;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataUserInformationReferenceBuilderImpl(
-        BACnetApplicationTagCharacterString userInformationReference,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagCharacterString userInformationReference) {
       this.userInformationReference = userInformationReference;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataUserInformationReference build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataUserInformationReference bACnetConstructedDataUserInformationReference =
           new BACnetConstructedDataUserInformationReference(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              userInformationReference,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, userInformationReference);
       return bACnetConstructedDataUserInformationReference;
     }
   }

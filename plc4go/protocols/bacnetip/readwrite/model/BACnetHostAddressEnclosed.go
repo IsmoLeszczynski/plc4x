@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,15 +57,12 @@ type _BACnetHostAddressEnclosed struct {
 	OpeningTag  BACnetOpeningTag
 	HostAddress BACnetHostAddress
 	ClosingTag  BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetHostAddressEnclosed = (*_BACnetHostAddressEnclosed)(nil)
 
 // NewBACnetHostAddressEnclosed factory function for _BACnetHostAddressEnclosed
-func NewBACnetHostAddressEnclosed(openingTag BACnetOpeningTag, hostAddress BACnetHostAddress, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetHostAddressEnclosed {
+func NewBACnetHostAddressEnclosed(openingTag BACnetOpeningTag, hostAddress BACnetHostAddress, closingTag BACnetClosingTag) *_BACnetHostAddressEnclosed {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetHostAddressEnclosed must not be nil")
 	}
@@ -74,7 +72,7 @@ func NewBACnetHostAddressEnclosed(openingTag BACnetOpeningTag, hostAddress BACne
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetHostAddressEnclosed must not be nil")
 	}
-	return &_BACnetHostAddressEnclosed{OpeningTag: openingTag, HostAddress: hostAddress, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetHostAddressEnclosed{OpeningTag: openingTag, HostAddress: hostAddress, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -99,8 +97,6 @@ type BACnetHostAddressEnclosedBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetHostAddressEnclosedBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetHostAddressEnclosedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetHostAddressEnclosedBuilder
 	// Build builds the BACnetHostAddressEnclosed or returns an error if something is wrong
 	Build() (BACnetHostAddressEnclosed, error)
 	// MustBuild does the same as Build but panics on error
@@ -115,7 +111,7 @@ func NewBACnetHostAddressEnclosedBuilder() BACnetHostAddressEnclosedBuilder {
 type _BACnetHostAddressEnclosedBuilder struct {
 	*_BACnetHostAddressEnclosed
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetHostAddressEnclosedBuilder) = (*_BACnetHostAddressEnclosedBuilder)(nil)
@@ -134,10 +130,7 @@ func (b *_BACnetHostAddressEnclosedBuilder) WithOpeningTagBuilder(builderSupplie
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,10 +145,7 @@ func (b *_BACnetHostAddressEnclosedBuilder) WithHostAddressBuilder(builderSuppli
 	var err error
 	b.HostAddress, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetHostAddressBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetHostAddressBuilder failed"))
 	}
 	return b
 }
@@ -170,40 +160,23 @@ func (b *_BACnetHostAddressEnclosedBuilder) WithClosingTagBuilder(builderSupplie
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetHostAddressEnclosedBuilder) WithArgTagNumber(tagNumber uint8) BACnetHostAddressEnclosedBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetHostAddressEnclosedBuilder) Build() (BACnetHostAddressEnclosed, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.HostAddress == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'hostAddress' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'hostAddress' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetHostAddressEnclosed.deepCopy(), nil
 }
@@ -218,8 +191,8 @@ func (b *_BACnetHostAddressEnclosedBuilder) MustBuild() BACnetHostAddressEnclose
 
 func (b *_BACnetHostAddressEnclosedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetHostAddressEnclosedBuilder().(*_BACnetHostAddressEnclosedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -304,7 +277,7 @@ func BACnetHostAddressEnclosedParseWithBufferProducer(tagNumber uint8) func(ctx 
 }
 
 func BACnetHostAddressEnclosedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetHostAddressEnclosed, error) {
-	v, err := (&_BACnetHostAddressEnclosed{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetHostAddressEnclosed)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -380,16 +353,6 @@ func (m *_BACnetHostAddressEnclosed) SerializeWithWriteBuffer(ctx context.Contex
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetHostAddressEnclosed) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetHostAddressEnclosed) IsBACnetHostAddressEnclosed() {}
 
 func (m *_BACnetHostAddressEnclosed) DeepCopy() any {
@@ -404,7 +367,6 @@ func (m *_BACnetHostAddressEnclosed) deepCopy() *_BACnetHostAddressEnclosed {
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopy[BACnetHostAddress](m.HostAddress),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetHostAddressEnclosedCopy
 }

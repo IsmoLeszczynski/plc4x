@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ ApduDataExtAuthorizeResponse = (*_ApduDataExtAuthorizeResponse)(nil)
 var _ ApduDataExtRequirements = (*_ApduDataExtAuthorizeResponse)(nil)
 
 // NewApduDataExtAuthorizeResponse factory function for _ApduDataExtAuthorizeResponse
-func NewApduDataExtAuthorizeResponse(level uint8, length uint8) *_ApduDataExtAuthorizeResponse {
+func NewApduDataExtAuthorizeResponse(level uint8) *_ApduDataExtAuthorizeResponse {
 	_result := &_ApduDataExtAuthorizeResponse{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 		Level:               level,
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
@@ -97,7 +98,7 @@ type _ApduDataExtAuthorizeResponseBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtAuthorizeResponseBuilder) = (*_ApduDataExtAuthorizeResponseBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_ApduDataExtAuthorizeResponseBuilder) WithLevel(level uint8) ApduDataEx
 }
 
 func (b *_ApduDataExtAuthorizeResponseBuilder) Build() (ApduDataExtAuthorizeResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtAuthorizeResponse.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_ApduDataExtAuthorizeResponseBuilder) buildForApduDataExt() (ApduDataEx
 
 func (b *_ApduDataExtAuthorizeResponseBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtAuthorizeResponseBuilder().(*_ApduDataExtAuthorizeResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

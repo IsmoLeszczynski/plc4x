@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,22 +57,19 @@ type _BACnetEventParameterAccessEventListOfAccessEvents struct {
 	OpeningTag         BACnetOpeningTag
 	ListOfAccessEvents []BACnetDeviceObjectPropertyReference
 	ClosingTag         BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetEventParameterAccessEventListOfAccessEvents = (*_BACnetEventParameterAccessEventListOfAccessEvents)(nil)
 
 // NewBACnetEventParameterAccessEventListOfAccessEvents factory function for _BACnetEventParameterAccessEventListOfAccessEvents
-func NewBACnetEventParameterAccessEventListOfAccessEvents(openingTag BACnetOpeningTag, listOfAccessEvents []BACnetDeviceObjectPropertyReference, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetEventParameterAccessEventListOfAccessEvents {
+func NewBACnetEventParameterAccessEventListOfAccessEvents(openingTag BACnetOpeningTag, listOfAccessEvents []BACnetDeviceObjectPropertyReference, closingTag BACnetClosingTag) *_BACnetEventParameterAccessEventListOfAccessEvents {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetEventParameterAccessEventListOfAccessEvents must not be nil")
 	}
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetEventParameterAccessEventListOfAccessEvents must not be nil")
 	}
-	return &_BACnetEventParameterAccessEventListOfAccessEvents{OpeningTag: openingTag, ListOfAccessEvents: listOfAccessEvents, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetEventParameterAccessEventListOfAccessEvents{OpeningTag: openingTag, ListOfAccessEvents: listOfAccessEvents, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -94,8 +92,6 @@ type BACnetEventParameterAccessEventListOfAccessEventsBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetEventParameterAccessEventListOfAccessEventsBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetEventParameterAccessEventListOfAccessEventsBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetEventParameterAccessEventListOfAccessEventsBuilder
 	// Build builds the BACnetEventParameterAccessEventListOfAccessEvents or returns an error if something is wrong
 	Build() (BACnetEventParameterAccessEventListOfAccessEvents, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +106,7 @@ func NewBACnetEventParameterAccessEventListOfAccessEventsBuilder() BACnetEventPa
 type _BACnetEventParameterAccessEventListOfAccessEventsBuilder struct {
 	*_BACnetEventParameterAccessEventListOfAccessEvents
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetEventParameterAccessEventListOfAccessEventsBuilder) = (*_BACnetEventParameterAccessEventListOfAccessEventsBuilder)(nil)
@@ -129,10 +125,7 @@ func (b *_BACnetEventParameterAccessEventListOfAccessEventsBuilder) WithOpeningT
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,34 +145,20 @@ func (b *_BACnetEventParameterAccessEventListOfAccessEventsBuilder) WithClosingT
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetEventParameterAccessEventListOfAccessEventsBuilder) WithArgTagNumber(tagNumber uint8) BACnetEventParameterAccessEventListOfAccessEventsBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetEventParameterAccessEventListOfAccessEventsBuilder) Build() (BACnetEventParameterAccessEventListOfAccessEvents, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetEventParameterAccessEventListOfAccessEvents.deepCopy(), nil
 }
@@ -194,8 +173,8 @@ func (b *_BACnetEventParameterAccessEventListOfAccessEventsBuilder) MustBuild() 
 
 func (b *_BACnetEventParameterAccessEventListOfAccessEventsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetEventParameterAccessEventListOfAccessEventsBuilder().(*_BACnetEventParameterAccessEventListOfAccessEventsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -284,7 +263,7 @@ func BACnetEventParameterAccessEventListOfAccessEventsParseWithBufferProducer(ta
 }
 
 func BACnetEventParameterAccessEventListOfAccessEventsParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetEventParameterAccessEventListOfAccessEvents, error) {
-	v, err := (&_BACnetEventParameterAccessEventListOfAccessEvents{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetEventParameterAccessEventListOfAccessEvents)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +339,6 @@ func (m *_BACnetEventParameterAccessEventListOfAccessEvents) SerializeWithWriteB
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetEventParameterAccessEventListOfAccessEvents) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetEventParameterAccessEventListOfAccessEvents) IsBACnetEventParameterAccessEventListOfAccessEvents() {
 }
 
@@ -385,7 +354,6 @@ func (m *_BACnetEventParameterAccessEventListOfAccessEvents) deepCopy() *_BACnet
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopySlice[BACnetDeviceObjectPropertyReference, BACnetDeviceObjectPropertyReference](m.ListOfAccessEvents),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetEventParameterAccessEventListOfAccessEventsCopy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataAssignedAccessRights interface {
 	// GetAssignedAccessRights returns AssignedAccessRights (property field)
 	GetAssignedAccessRights() []BACnetAssignedAccessRights
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataAssignedAccessRights is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataAssignedAccessRights()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataAssignedAccessRights = (*_BACnetConstructedDataAssign
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAssignedAccessRights)(nil)
 
 // NewBACnetConstructedDataAssignedAccessRights factory function for _BACnetConstructedDataAssignedAccessRights
-func NewBACnetConstructedDataAssignedAccessRights(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, assignedAccessRights []BACnetAssignedAccessRights, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAssignedAccessRights {
+func NewBACnetConstructedDataAssignedAccessRights(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, assignedAccessRights []BACnetAssignedAccessRights) *_BACnetConstructedDataAssignedAccessRights {
 	_result := &_BACnetConstructedDataAssignedAccessRights{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		AssignedAccessRights:          assignedAccessRights,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataAssignedAccessRightsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAssignedAccessRightsBuilder) = (*_BACnetConstructedDataAssignedAccessRightsBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataAssignedAccessRightsBuilder) WithOptionalNumberOf
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataAssignedAccessRightsBuilder) WithAssignedAccessRi
 }
 
 func (b *_BACnetConstructedDataAssignedAccessRightsBuilder) Build() (BACnetConstructedDataAssignedAccessRights, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAssignedAccessRights.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataAssignedAccessRightsBuilder) buildForBACnetConstr
 
 func (b *_BACnetConstructedDataAssignedAccessRightsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAssignedAccessRightsBuilder().(*_BACnetConstructedDataAssignedAccessRightsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,7 @@ type RequestContext interface {
 	utils.Serializable
 	utils.Copyable
 	// GetSendIdentifyRequestBefore returns SendIdentifyRequestBefore (property field)
+	// Useful for response parsing: Set this to true if you send a identify request before. This will change the way the response will be parsed
 	GetSendIdentifyRequestBefore() bool
 	// IsRequestContext is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsRequestContext()
@@ -85,7 +87,7 @@ func NewRequestContextBuilder() RequestContextBuilder {
 type _RequestContextBuilder struct {
 	*_RequestContext
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (RequestContextBuilder) = (*_RequestContextBuilder)(nil)
@@ -100,8 +102,8 @@ func (b *_RequestContextBuilder) WithSendIdentifyRequestBefore(sendIdentifyReque
 }
 
 func (b *_RequestContextBuilder) Build() (RequestContext, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._RequestContext.deepCopy(), nil
 }
@@ -116,8 +118,8 @@ func (b *_RequestContextBuilder) MustBuild() RequestContext {
 
 func (b *_RequestContextBuilder) DeepCopy() any {
 	_copy := b.CreateRequestContextBuilder().(*_RequestContextBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -188,7 +190,7 @@ func RequestContextParseWithBufferProducer() func(ctx context.Context, readBuffe
 }
 
 func RequestContextParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (RequestContext, error) {
-	v, err := (&_RequestContext{}).parse(ctx, readBuffer)
+	v, err := (new(_RequestContext)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

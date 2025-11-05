@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,22 +57,19 @@ type _BACnetLandingDoorStatusLandingDoorsList struct {
 	OpeningTag   BACnetOpeningTag
 	LandingDoors []BACnetLandingDoorStatusLandingDoorsListEntry
 	ClosingTag   BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetLandingDoorStatusLandingDoorsList = (*_BACnetLandingDoorStatusLandingDoorsList)(nil)
 
 // NewBACnetLandingDoorStatusLandingDoorsList factory function for _BACnetLandingDoorStatusLandingDoorsList
-func NewBACnetLandingDoorStatusLandingDoorsList(openingTag BACnetOpeningTag, landingDoors []BACnetLandingDoorStatusLandingDoorsListEntry, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetLandingDoorStatusLandingDoorsList {
+func NewBACnetLandingDoorStatusLandingDoorsList(openingTag BACnetOpeningTag, landingDoors []BACnetLandingDoorStatusLandingDoorsListEntry, closingTag BACnetClosingTag) *_BACnetLandingDoorStatusLandingDoorsList {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetLandingDoorStatusLandingDoorsList must not be nil")
 	}
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetLandingDoorStatusLandingDoorsList must not be nil")
 	}
-	return &_BACnetLandingDoorStatusLandingDoorsList{OpeningTag: openingTag, LandingDoors: landingDoors, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetLandingDoorStatusLandingDoorsList{OpeningTag: openingTag, LandingDoors: landingDoors, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -94,8 +92,6 @@ type BACnetLandingDoorStatusLandingDoorsListBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetLandingDoorStatusLandingDoorsListBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetLandingDoorStatusLandingDoorsListBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetLandingDoorStatusLandingDoorsListBuilder
 	// Build builds the BACnetLandingDoorStatusLandingDoorsList or returns an error if something is wrong
 	Build() (BACnetLandingDoorStatusLandingDoorsList, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +106,7 @@ func NewBACnetLandingDoorStatusLandingDoorsListBuilder() BACnetLandingDoorStatus
 type _BACnetLandingDoorStatusLandingDoorsListBuilder struct {
 	*_BACnetLandingDoorStatusLandingDoorsList
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetLandingDoorStatusLandingDoorsListBuilder) = (*_BACnetLandingDoorStatusLandingDoorsListBuilder)(nil)
@@ -129,10 +125,7 @@ func (b *_BACnetLandingDoorStatusLandingDoorsListBuilder) WithOpeningTagBuilder(
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,34 +145,20 @@ func (b *_BACnetLandingDoorStatusLandingDoorsListBuilder) WithClosingTagBuilder(
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetLandingDoorStatusLandingDoorsListBuilder) WithArgTagNumber(tagNumber uint8) BACnetLandingDoorStatusLandingDoorsListBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetLandingDoorStatusLandingDoorsListBuilder) Build() (BACnetLandingDoorStatusLandingDoorsList, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetLandingDoorStatusLandingDoorsList.deepCopy(), nil
 }
@@ -194,8 +173,8 @@ func (b *_BACnetLandingDoorStatusLandingDoorsListBuilder) MustBuild() BACnetLand
 
 func (b *_BACnetLandingDoorStatusLandingDoorsListBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetLandingDoorStatusLandingDoorsListBuilder().(*_BACnetLandingDoorStatusLandingDoorsListBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -284,7 +263,7 @@ func BACnetLandingDoorStatusLandingDoorsListParseWithBufferProducer(tagNumber ui
 }
 
 func BACnetLandingDoorStatusLandingDoorsListParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetLandingDoorStatusLandingDoorsList, error) {
-	v, err := (&_BACnetLandingDoorStatusLandingDoorsList{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetLandingDoorStatusLandingDoorsList)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +339,6 @@ func (m *_BACnetLandingDoorStatusLandingDoorsList) SerializeWithWriteBuffer(ctx 
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetLandingDoorStatusLandingDoorsList) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetLandingDoorStatusLandingDoorsList) IsBACnetLandingDoorStatusLandingDoorsList() {}
 
 func (m *_BACnetLandingDoorStatusLandingDoorsList) DeepCopy() any {
@@ -384,7 +353,6 @@ func (m *_BACnetLandingDoorStatusLandingDoorsList) deepCopy() *_BACnetLandingDoo
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopySlice[BACnetLandingDoorStatusLandingDoorsListEntry, BACnetLandingDoorStatusLandingDoorsListEntry](m.LandingDoors),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetLandingDoorStatusLandingDoorsListCopy
 }

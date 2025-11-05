@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataVendorName = (*_BACnetConstructedDataVendorName)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataVendorName)(nil)
 
 // NewBACnetConstructedDataVendorName factory function for _BACnetConstructedDataVendorName
-func NewBACnetConstructedDataVendorName(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, vendorName BACnetApplicationTagCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataVendorName {
+func NewBACnetConstructedDataVendorName(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, vendorName BACnetApplicationTagCharacterString) *_BACnetConstructedDataVendorName {
 	if vendorName == nil {
 		panic("vendorName of type BACnetApplicationTagCharacterString for BACnetConstructedDataVendorName must not be nil")
 	}
 	_result := &_BACnetConstructedDataVendorName{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		VendorName:                    vendorName,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataVendorNameBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataVendorNameBuilder) = (*_BACnetConstructedDataVendorNameBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataVendorNameBuilder) WithVendorNameBuilder(builderS
 	var err error
 	b.VendorName, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataVendorNameBuilder) Build() (BACnetConstructedDataVendorName, error) {
 	if b.VendorName == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'vendorName' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'vendorName' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataVendorName.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataVendorNameBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataVendorNameBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataVendorNameBuilder().(*_BACnetConstructedDataVendorNameBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

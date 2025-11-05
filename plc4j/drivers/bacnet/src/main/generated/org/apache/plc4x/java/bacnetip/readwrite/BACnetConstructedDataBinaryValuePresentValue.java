@@ -50,21 +50,13 @@ public class BACnetConstructedDataBinaryValuePresentValue extends BACnetConstruc
   // Properties.
   protected final BACnetBinaryPVTagged presentValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataBinaryValuePresentValue(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetBinaryPVTagged presentValue,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetBinaryPVTagged presentValue) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.presentValue = presentValue;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetBinaryPVTagged getPresentValue() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataBinaryValuePresentValue extends BACnetConstruc
     // Simple Field (presentValue)
     writeSimpleField("presentValue", presentValue, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetBinaryPVTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -135,34 +127,23 @@ public class BACnetConstructedDataBinaryValuePresentValue extends BACnetConstruc
 
     readBuffer.closeContext("BACnetConstructedDataBinaryValuePresentValue");
     // Create the instance
-    return new BACnetConstructedDataBinaryValuePresentValueBuilderImpl(
-        presentValue, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataBinaryValuePresentValueBuilderImpl(presentValue);
   }
 
   public static class BACnetConstructedDataBinaryValuePresentValueBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetBinaryPVTagged presentValue;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataBinaryValuePresentValueBuilderImpl(
-        BACnetBinaryPVTagged presentValue,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetBinaryPVTagged presentValue) {
       this.presentValue = presentValue;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataBinaryValuePresentValue build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataBinaryValuePresentValue bACnetConstructedDataBinaryValuePresentValue =
           new BACnetConstructedDataBinaryValuePresentValue(
-              openingTag, peekedTagHeader, closingTag, presentValue, tagNumber, arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, presentValue);
       return bACnetConstructedDataBinaryValuePresentValue;
     }
   }

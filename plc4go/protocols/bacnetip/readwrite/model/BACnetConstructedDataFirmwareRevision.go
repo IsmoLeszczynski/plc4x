@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataFirmwareRevision = (*_BACnetConstructedDataFirmwareRe
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataFirmwareRevision)(nil)
 
 // NewBACnetConstructedDataFirmwareRevision factory function for _BACnetConstructedDataFirmwareRevision
-func NewBACnetConstructedDataFirmwareRevision(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, firmwareRevision BACnetApplicationTagCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataFirmwareRevision {
+func NewBACnetConstructedDataFirmwareRevision(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, firmwareRevision BACnetApplicationTagCharacterString) *_BACnetConstructedDataFirmwareRevision {
 	if firmwareRevision == nil {
 		panic("firmwareRevision of type BACnetApplicationTagCharacterString for BACnetConstructedDataFirmwareRevision must not be nil")
 	}
 	_result := &_BACnetConstructedDataFirmwareRevision{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FirmwareRevision:              firmwareRevision,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataFirmwareRevisionBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataFirmwareRevisionBuilder) = (*_BACnetConstructedDataFirmwareRevisionBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataFirmwareRevisionBuilder) WithFirmwareRevisionBuil
 	var err error
 	b.FirmwareRevision, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataFirmwareRevisionBuilder) Build() (BACnetConstructedDataFirmwareRevision, error) {
 	if b.FirmwareRevision == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'firmwareRevision' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'firmwareRevision' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataFirmwareRevision.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataFirmwareRevisionBuilder) buildForBACnetConstructe
 
 func (b *_BACnetConstructedDataFirmwareRevisionBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataFirmwareRevisionBuilder().(*_BACnetConstructedDataFirmwareRevisionBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

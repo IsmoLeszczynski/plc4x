@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -48,6 +49,7 @@ type CipUnconnectedRequest interface {
 	// GetInstanceSegment returns InstanceSegment (property field)
 	GetInstanceSegment() PathSegment
 	// GetUnconnectedService returns UnconnectedService (property field)
+	//subtract above and routing
 	GetUnconnectedService() CipService
 	// GetBackPlane returns BackPlane (property field)
 	GetBackPlane() int8
@@ -75,7 +77,7 @@ var _ CipUnconnectedRequest = (*_CipUnconnectedRequest)(nil)
 var _ CipServiceRequirements = (*_CipUnconnectedRequest)(nil)
 
 // NewCipUnconnectedRequest factory function for _CipUnconnectedRequest
-func NewCipUnconnectedRequest(classSegment PathSegment, instanceSegment PathSegment, unconnectedService CipService, backPlane int8, slot int8, serviceLen uint16) *_CipUnconnectedRequest {
+func NewCipUnconnectedRequest(classSegment PathSegment, instanceSegment PathSegment, unconnectedService CipService, backPlane int8, slot int8) *_CipUnconnectedRequest {
 	if classSegment == nil {
 		panic("classSegment of type PathSegment for CipUnconnectedRequest must not be nil")
 	}
@@ -86,7 +88,7 @@ func NewCipUnconnectedRequest(classSegment PathSegment, instanceSegment PathSegm
 		panic("unconnectedService of type CipService for CipUnconnectedRequest must not be nil")
 	}
 	_result := &_CipUnconnectedRequest{
-		CipServiceContract: NewCipService(serviceLen),
+		CipServiceContract: NewCipService(),
 		ClassSegment:       classSegment,
 		InstanceSegment:    instanceSegment,
 		UnconnectedService: unconnectedService,
@@ -141,7 +143,7 @@ type _CipUnconnectedRequestBuilder struct {
 
 	parentBuilder *_CipServiceBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CipUnconnectedRequestBuilder) = (*_CipUnconnectedRequestBuilder)(nil)
@@ -165,10 +167,7 @@ func (b *_CipUnconnectedRequestBuilder) WithClassSegmentBuilder(builderSupplier 
 	var err error
 	b.ClassSegment, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "PathSegmentBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "PathSegmentBuilder failed"))
 	}
 	return b
 }
@@ -183,10 +182,7 @@ func (b *_CipUnconnectedRequestBuilder) WithInstanceSegmentBuilder(builderSuppli
 	var err error
 	b.InstanceSegment, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "PathSegmentBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "PathSegmentBuilder failed"))
 	}
 	return b
 }
@@ -201,10 +197,7 @@ func (b *_CipUnconnectedRequestBuilder) WithUnconnectedServiceBuilder(builderSup
 	var err error
 	b.UnconnectedService, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "CipServiceBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "CipServiceBuilder failed"))
 	}
 	return b
 }
@@ -221,25 +214,16 @@ func (b *_CipUnconnectedRequestBuilder) WithSlot(slot int8) CipUnconnectedReques
 
 func (b *_CipUnconnectedRequestBuilder) Build() (CipUnconnectedRequest, error) {
 	if b.ClassSegment == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'classSegment' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'classSegment' not set"))
 	}
 	if b.InstanceSegment == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'instanceSegment' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'instanceSegment' not set"))
 	}
 	if b.UnconnectedService == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'unconnectedService' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'unconnectedService' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CipUnconnectedRequest.deepCopy(), nil
 }
@@ -265,8 +249,8 @@ func (b *_CipUnconnectedRequestBuilder) buildForCipService() (CipService, error)
 
 func (b *_CipUnconnectedRequestBuilder) DeepCopy() any {
 	_copy := b.CreateCipUnconnectedRequestBuilder().(*_CipUnconnectedRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

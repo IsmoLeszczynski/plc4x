@@ -50,21 +50,13 @@ public class BACnetConstructedDataLastNotifyRecord extends BACnetConstructedData
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger lastNotifyRecord;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataLastNotifyRecord(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger lastNotifyRecord,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger lastNotifyRecord) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.lastNotifyRecord = lastNotifyRecord;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getLastNotifyRecord() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataLastNotifyRecord extends BACnetConstructedData
     // Simple Field (lastNotifyRecord)
     writeSimpleField("lastNotifyRecord", lastNotifyRecord, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataLastNotifyRecord extends BACnetConstructedData
 
     readBuffer.closeContext("BACnetConstructedDataLastNotifyRecord");
     // Create the instance
-    return new BACnetConstructedDataLastNotifyRecordBuilderImpl(
-        lastNotifyRecord, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataLastNotifyRecordBuilderImpl(lastNotifyRecord);
   }
 
   public static class BACnetConstructedDataLastNotifyRecordBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger lastNotifyRecord;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataLastNotifyRecordBuilderImpl(
-        BACnetApplicationTagUnsignedInteger lastNotifyRecord,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger lastNotifyRecord) {
       this.lastNotifyRecord = lastNotifyRecord;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataLastNotifyRecord build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataLastNotifyRecord bACnetConstructedDataLastNotifyRecord =
           new BACnetConstructedDataLastNotifyRecord(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              lastNotifyRecord,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, lastNotifyRecord);
       return bACnetConstructedDataLastNotifyRecord;
     }
   }

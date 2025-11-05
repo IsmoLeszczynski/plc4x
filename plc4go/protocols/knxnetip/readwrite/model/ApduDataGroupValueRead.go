@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -57,9 +58,9 @@ var _ ApduDataGroupValueRead = (*_ApduDataGroupValueRead)(nil)
 var _ ApduDataRequirements = (*_ApduDataGroupValueRead)(nil)
 
 // NewApduDataGroupValueRead factory function for _ApduDataGroupValueRead
-func NewApduDataGroupValueRead(dataLength uint8) *_ApduDataGroupValueRead {
+func NewApduDataGroupValueRead() *_ApduDataGroupValueRead {
 	_result := &_ApduDataGroupValueRead{
-		ApduDataContract: NewApduData(dataLength),
+		ApduDataContract: NewApduData(),
 	}
 	_result.ApduDataContract.(*_ApduData)._SubType = _result
 	return _result
@@ -93,7 +94,7 @@ type _ApduDataGroupValueReadBuilder struct {
 
 	parentBuilder *_ApduDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataGroupValueReadBuilder) = (*_ApduDataGroupValueReadBuilder)(nil)
@@ -108,8 +109,8 @@ func (b *_ApduDataGroupValueReadBuilder) WithMandatoryFields() ApduDataGroupValu
 }
 
 func (b *_ApduDataGroupValueReadBuilder) Build() (ApduDataGroupValueRead, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataGroupValueRead.deepCopy(), nil
 }
@@ -135,8 +136,8 @@ func (b *_ApduDataGroupValueReadBuilder) buildForApduData() (ApduData, error) {
 
 func (b *_ApduDataGroupValueReadBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataGroupValueReadBuilder().(*_ApduDataGroupValueReadBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNetworkNumberQuality = (*_BACnetConstructedDataNetwor
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNetworkNumberQuality)(nil)
 
 // NewBACnetConstructedDataNetworkNumberQuality factory function for _BACnetConstructedDataNetworkNumberQuality
-func NewBACnetConstructedDataNetworkNumberQuality(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, networkNumberQuality BACnetNetworkNumberQualityTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNetworkNumberQuality {
+func NewBACnetConstructedDataNetworkNumberQuality(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, networkNumberQuality BACnetNetworkNumberQualityTagged) *_BACnetConstructedDataNetworkNumberQuality {
 	if networkNumberQuality == nil {
 		panic("networkNumberQuality of type BACnetNetworkNumberQualityTagged for BACnetConstructedDataNetworkNumberQuality must not be nil")
 	}
 	_result := &_BACnetConstructedDataNetworkNumberQuality{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NetworkNumberQuality:          networkNumberQuality,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNetworkNumberQualityBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNetworkNumberQualityBuilder) = (*_BACnetConstructedDataNetworkNumberQualityBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNetworkNumberQualityBuilder) WithNetworkNumberQua
 	var err error
 	b.NetworkNumberQuality, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetNetworkNumberQualityTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetNetworkNumberQualityTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNetworkNumberQualityBuilder) Build() (BACnetConstructedDataNetworkNumberQuality, error) {
 	if b.NetworkNumberQuality == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'networkNumberQuality' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'networkNumberQuality' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNetworkNumberQuality.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNetworkNumberQualityBuilder) buildForBACnetConstr
 
 func (b *_BACnetConstructedDataNetworkNumberQualityBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNetworkNumberQualityBuilder().(*_BACnetConstructedDataNetworkNumberQualityBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

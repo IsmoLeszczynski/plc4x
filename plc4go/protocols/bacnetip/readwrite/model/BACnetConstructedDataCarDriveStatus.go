@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataCarDriveStatus = (*_BACnetConstructedDataCarDriveStat
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataCarDriveStatus)(nil)
 
 // NewBACnetConstructedDataCarDriveStatus factory function for _BACnetConstructedDataCarDriveStatus
-func NewBACnetConstructedDataCarDriveStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, carDriveStatus BACnetLiftCarDriveStatusTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataCarDriveStatus {
+func NewBACnetConstructedDataCarDriveStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, carDriveStatus BACnetLiftCarDriveStatusTagged) *_BACnetConstructedDataCarDriveStatus {
 	if carDriveStatus == nil {
 		panic("carDriveStatus of type BACnetLiftCarDriveStatusTagged for BACnetConstructedDataCarDriveStatus must not be nil")
 	}
 	_result := &_BACnetConstructedDataCarDriveStatus{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		CarDriveStatus:                carDriveStatus,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataCarDriveStatusBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataCarDriveStatusBuilder) = (*_BACnetConstructedDataCarDriveStatusBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataCarDriveStatusBuilder) WithCarDriveStatusBuilder(
 	var err error
 	b.CarDriveStatus, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetLiftCarDriveStatusTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetLiftCarDriveStatusTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataCarDriveStatusBuilder) Build() (BACnetConstructedDataCarDriveStatus, error) {
 	if b.CarDriveStatus == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'carDriveStatus' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'carDriveStatus' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataCarDriveStatus.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataCarDriveStatusBuilder) buildForBACnetConstructedD
 
 func (b *_BACnetConstructedDataCarDriveStatusBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataCarDriveStatusBuilder().(*_BACnetConstructedDataCarDriveStatusBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

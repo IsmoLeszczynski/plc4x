@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -43,6 +44,7 @@ type ParameterValueApplicationAddress1 interface {
 	// GetValue returns Value (property field)
 	GetValue() ApplicationAddress1
 	// GetData returns Data (property field)
+	// TODO: find out what additional bytes mean here... would that be application address 2 then?
 	GetData() []byte
 	// IsParameterValueApplicationAddress1 is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsParameterValueApplicationAddress1()
@@ -61,12 +63,12 @@ var _ ParameterValueApplicationAddress1 = (*_ParameterValueApplicationAddress1)(
 var _ ParameterValueRequirements = (*_ParameterValueApplicationAddress1)(nil)
 
 // NewParameterValueApplicationAddress1 factory function for _ParameterValueApplicationAddress1
-func NewParameterValueApplicationAddress1(value ApplicationAddress1, data []byte, numBytes uint8) *_ParameterValueApplicationAddress1 {
+func NewParameterValueApplicationAddress1(value ApplicationAddress1, data []byte) *_ParameterValueApplicationAddress1 {
 	if value == nil {
 		panic("value of type ApplicationAddress1 for ParameterValueApplicationAddress1 must not be nil")
 	}
 	_result := &_ParameterValueApplicationAddress1{
-		ParameterValueContract: NewParameterValue(numBytes),
+		ParameterValueContract: NewParameterValue(),
 		Value:                  value,
 		Data:                   data,
 	}
@@ -108,7 +110,7 @@ type _ParameterValueApplicationAddress1Builder struct {
 
 	parentBuilder *_ParameterValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ParameterValueApplicationAddress1Builder) = (*_ParameterValueApplicationAddress1Builder)(nil)
@@ -132,10 +134,7 @@ func (b *_ParameterValueApplicationAddress1Builder) WithValueBuilder(builderSupp
 	var err error
 	b.Value, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "ApplicationAddress1Builder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "ApplicationAddress1Builder failed"))
 	}
 	return b
 }
@@ -147,13 +146,10 @@ func (b *_ParameterValueApplicationAddress1Builder) WithData(data ...byte) Param
 
 func (b *_ParameterValueApplicationAddress1Builder) Build() (ParameterValueApplicationAddress1, error) {
 	if b.Value == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'value' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'value' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ParameterValueApplicationAddress1.deepCopy(), nil
 }
@@ -179,8 +175,8 @@ func (b *_ParameterValueApplicationAddress1Builder) buildForParameterValue() (Pa
 
 func (b *_ParameterValueApplicationAddress1Builder) DeepCopy() any {
 	_copy := b.CreateParameterValueApplicationAddress1Builder().(*_ParameterValueApplicationAddress1Builder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

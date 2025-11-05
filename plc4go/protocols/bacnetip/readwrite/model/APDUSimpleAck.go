@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -63,9 +64,9 @@ var _ APDUSimpleAck = (*_APDUSimpleAck)(nil)
 var _ APDURequirements = (*_APDUSimpleAck)(nil)
 
 // NewAPDUSimpleAck factory function for _APDUSimpleAck
-func NewAPDUSimpleAck(originalInvokeId uint8, serviceChoice BACnetConfirmedServiceChoice, apduLength uint16) *_APDUSimpleAck {
+func NewAPDUSimpleAck(originalInvokeId uint8, serviceChoice BACnetConfirmedServiceChoice) *_APDUSimpleAck {
 	_result := &_APDUSimpleAck{
-		APDUContract:     NewAPDU(apduLength),
+		APDUContract:     NewAPDU(),
 		OriginalInvokeId: originalInvokeId,
 		ServiceChoice:    serviceChoice,
 	}
@@ -105,7 +106,7 @@ type _APDUSimpleAckBuilder struct {
 
 	parentBuilder *_APDUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (APDUSimpleAckBuilder) = (*_APDUSimpleAckBuilder)(nil)
@@ -130,8 +131,8 @@ func (b *_APDUSimpleAckBuilder) WithServiceChoice(serviceChoice BACnetConfirmedS
 }
 
 func (b *_APDUSimpleAckBuilder) Build() (APDUSimpleAck, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._APDUSimpleAck.deepCopy(), nil
 }
@@ -157,8 +158,8 @@ func (b *_APDUSimpleAckBuilder) buildForAPDU() (APDU, error) {
 
 func (b *_APDUSimpleAckBuilder) DeepCopy() any {
 	_copy := b.CreateAPDUSimpleAckBuilder().(*_APDUSimpleAckBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

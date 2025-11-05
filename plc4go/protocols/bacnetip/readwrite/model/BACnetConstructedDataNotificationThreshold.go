@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNotificationThreshold = (*_BACnetConstructedDataNotif
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNotificationThreshold)(nil)
 
 // NewBACnetConstructedDataNotificationThreshold factory function for _BACnetConstructedDataNotificationThreshold
-func NewBACnetConstructedDataNotificationThreshold(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, notificationThreshold BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNotificationThreshold {
+func NewBACnetConstructedDataNotificationThreshold(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, notificationThreshold BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataNotificationThreshold {
 	if notificationThreshold == nil {
 		panic("notificationThreshold of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataNotificationThreshold must not be nil")
 	}
 	_result := &_BACnetConstructedDataNotificationThreshold{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NotificationThreshold:         notificationThreshold,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNotificationThresholdBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNotificationThresholdBuilder) = (*_BACnetConstructedDataNotificationThresholdBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNotificationThresholdBuilder) WithNotificationThr
 	var err error
 	b.NotificationThreshold, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNotificationThresholdBuilder) Build() (BACnetConstructedDataNotificationThreshold, error) {
 	if b.NotificationThreshold == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'notificationThreshold' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'notificationThreshold' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNotificationThreshold.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNotificationThresholdBuilder) buildForBACnetConst
 
 func (b *_BACnetConstructedDataNotificationThresholdBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNotificationThresholdBuilder().(*_BACnetConstructedDataNotificationThresholdBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

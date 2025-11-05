@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,15 +57,12 @@ type _BACnetAuthenticationFactorEnclosed struct {
 	OpeningTag           BACnetOpeningTag
 	AuthenticationFactor BACnetAuthenticationFactor
 	ClosingTag           BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetAuthenticationFactorEnclosed = (*_BACnetAuthenticationFactorEnclosed)(nil)
 
 // NewBACnetAuthenticationFactorEnclosed factory function for _BACnetAuthenticationFactorEnclosed
-func NewBACnetAuthenticationFactorEnclosed(openingTag BACnetOpeningTag, authenticationFactor BACnetAuthenticationFactor, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetAuthenticationFactorEnclosed {
+func NewBACnetAuthenticationFactorEnclosed(openingTag BACnetOpeningTag, authenticationFactor BACnetAuthenticationFactor, closingTag BACnetClosingTag) *_BACnetAuthenticationFactorEnclosed {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetAuthenticationFactorEnclosed must not be nil")
 	}
@@ -74,7 +72,7 @@ func NewBACnetAuthenticationFactorEnclosed(openingTag BACnetOpeningTag, authenti
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetAuthenticationFactorEnclosed must not be nil")
 	}
-	return &_BACnetAuthenticationFactorEnclosed{OpeningTag: openingTag, AuthenticationFactor: authenticationFactor, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetAuthenticationFactorEnclosed{OpeningTag: openingTag, AuthenticationFactor: authenticationFactor, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -99,8 +97,6 @@ type BACnetAuthenticationFactorEnclosedBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetAuthenticationFactorEnclosedBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetAuthenticationFactorEnclosedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetAuthenticationFactorEnclosedBuilder
 	// Build builds the BACnetAuthenticationFactorEnclosed or returns an error if something is wrong
 	Build() (BACnetAuthenticationFactorEnclosed, error)
 	// MustBuild does the same as Build but panics on error
@@ -115,7 +111,7 @@ func NewBACnetAuthenticationFactorEnclosedBuilder() BACnetAuthenticationFactorEn
 type _BACnetAuthenticationFactorEnclosedBuilder struct {
 	*_BACnetAuthenticationFactorEnclosed
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetAuthenticationFactorEnclosedBuilder) = (*_BACnetAuthenticationFactorEnclosedBuilder)(nil)
@@ -134,10 +130,7 @@ func (b *_BACnetAuthenticationFactorEnclosedBuilder) WithOpeningTagBuilder(build
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,10 +145,7 @@ func (b *_BACnetAuthenticationFactorEnclosedBuilder) WithAuthenticationFactorBui
 	var err error
 	b.AuthenticationFactor, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetAuthenticationFactorBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetAuthenticationFactorBuilder failed"))
 	}
 	return b
 }
@@ -170,40 +160,23 @@ func (b *_BACnetAuthenticationFactorEnclosedBuilder) WithClosingTagBuilder(build
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetAuthenticationFactorEnclosedBuilder) WithArgTagNumber(tagNumber uint8) BACnetAuthenticationFactorEnclosedBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetAuthenticationFactorEnclosedBuilder) Build() (BACnetAuthenticationFactorEnclosed, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.AuthenticationFactor == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'authenticationFactor' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'authenticationFactor' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetAuthenticationFactorEnclosed.deepCopy(), nil
 }
@@ -218,8 +191,8 @@ func (b *_BACnetAuthenticationFactorEnclosedBuilder) MustBuild() BACnetAuthentic
 
 func (b *_BACnetAuthenticationFactorEnclosedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetAuthenticationFactorEnclosedBuilder().(*_BACnetAuthenticationFactorEnclosedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -304,7 +277,7 @@ func BACnetAuthenticationFactorEnclosedParseWithBufferProducer(tagNumber uint8) 
 }
 
 func BACnetAuthenticationFactorEnclosedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetAuthenticationFactorEnclosed, error) {
-	v, err := (&_BACnetAuthenticationFactorEnclosed{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetAuthenticationFactorEnclosed)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -380,16 +353,6 @@ func (m *_BACnetAuthenticationFactorEnclosed) SerializeWithWriteBuffer(ctx conte
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetAuthenticationFactorEnclosed) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetAuthenticationFactorEnclosed) IsBACnetAuthenticationFactorEnclosed() {}
 
 func (m *_BACnetAuthenticationFactorEnclosed) DeepCopy() any {
@@ -404,7 +367,6 @@ func (m *_BACnetAuthenticationFactorEnclosed) deepCopy() *_BACnetAuthenticationF
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopy[BACnetAuthenticationFactor](m.AuthenticationFactor),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetAuthenticationFactorEnclosedCopy
 }

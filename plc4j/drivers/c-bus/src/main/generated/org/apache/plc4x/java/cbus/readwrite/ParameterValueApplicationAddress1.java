@@ -44,22 +44,21 @@ public class ParameterValueApplicationAddress1 extends ParameterValue implements
 
   // Properties.
   protected final ApplicationAddress1 value;
+
+  /** TODO: find out what additional bytes mean here... would that be application address 2 then? */
   protected final byte[] data;
 
-  // Arguments.
-  protected final Short numBytes;
-
-  public ParameterValueApplicationAddress1(ApplicationAddress1 value, byte[] data, Short numBytes) {
-    super(numBytes);
+  public ParameterValueApplicationAddress1(ApplicationAddress1 value, byte[] data) {
+    super();
     this.value = value;
     this.data = data;
-    this.numBytes = numBytes;
   }
 
   public ApplicationAddress1 getValue() {
     return value;
   }
 
+  /** TODO: find out what additional bytes mean here... would that be application address 2 then? */
   public byte[] getData() {
     return data;
   }
@@ -120,26 +119,22 @@ public class ParameterValueApplicationAddress1 extends ParameterValue implements
 
     readBuffer.closeContext("ParameterValueApplicationAddress1");
     // Create the instance
-    return new ParameterValueApplicationAddress1BuilderImpl(value, data, numBytes);
+    return new ParameterValueApplicationAddress1BuilderImpl(value, data);
   }
 
   public static class ParameterValueApplicationAddress1BuilderImpl
       implements ParameterValue.ParameterValueBuilder {
     private final ApplicationAddress1 value;
     private final byte[] data;
-    private final Short numBytes;
 
-    public ParameterValueApplicationAddress1BuilderImpl(
-        ApplicationAddress1 value, byte[] data, Short numBytes) {
+    public ParameterValueApplicationAddress1BuilderImpl(ApplicationAddress1 value, byte[] data) {
       this.value = value;
       this.data = data;
-      this.numBytes = numBytes;
     }
 
-    public ParameterValueApplicationAddress1 build(Short numBytes) {
-
+    public ParameterValueApplicationAddress1 build() {
       ParameterValueApplicationAddress1 parameterValueApplicationAddress1 =
-          new ParameterValueApplicationAddress1(value, data, numBytes);
+          new ParameterValueApplicationAddress1(value, data);
       return parameterValueApplicationAddress1;
     }
   }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtReadRoutingTableRequest = (*_ApduDataExtReadRoutingTableRequest
 var _ ApduDataExtRequirements = (*_ApduDataExtReadRoutingTableRequest)(nil)
 
 // NewApduDataExtReadRoutingTableRequest factory function for _ApduDataExtReadRoutingTableRequest
-func NewApduDataExtReadRoutingTableRequest(length uint8) *_ApduDataExtReadRoutingTableRequest {
+func NewApduDataExtReadRoutingTableRequest() *_ApduDataExtReadRoutingTableRequest {
 	_result := &_ApduDataExtReadRoutingTableRequest{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtReadRoutingTableRequestBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtReadRoutingTableRequestBuilder) = (*_ApduDataExtReadRoutingTableRequestBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtReadRoutingTableRequestBuilder) WithMandatoryFields() ApduD
 }
 
 func (b *_ApduDataExtReadRoutingTableRequestBuilder) Build() (ApduDataExtReadRoutingTableRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtReadRoutingTableRequest.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtReadRoutingTableRequestBuilder) buildForApduDataExt() (Apdu
 
 func (b *_ApduDataExtReadRoutingTableRequestBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtReadRoutingTableRequestBuilder().(*_ApduDataExtReadRoutingTableRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

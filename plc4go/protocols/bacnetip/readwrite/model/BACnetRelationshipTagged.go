@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetRelationshipTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetRelationship
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetRelationshipTagged = (*_BACnetRelationshipTagged)(nil)
 
 // NewBACnetRelationshipTagged factory function for _BACnetRelationshipTagged
-func NewBACnetRelationshipTagged(header BACnetTagHeader, value BACnetRelationship, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetRelationshipTagged {
+func NewBACnetRelationshipTagged(header BACnetTagHeader, value BACnetRelationship, proprietaryValue uint32) *_BACnetRelationshipTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetRelationshipTagged must not be nil")
 	}
-	return &_BACnetRelationshipTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetRelationshipTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetRelationshipTaggedBuilder interface {
 	WithValue(BACnetRelationship) BACnetRelationshipTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetRelationshipTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetRelationshipTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetRelationshipTaggedBuilder
 	// Build builds the BACnetRelationshipTagged or returns an error if something is wrong
 	Build() (BACnetRelationshipTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetRelationshipTaggedBuilder() BACnetRelationshipTaggedBuilder {
 type _BACnetRelationshipTaggedBuilder struct {
 	*_BACnetRelationshipTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetRelationshipTaggedBuilder) = (*_BACnetRelationshipTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetRelationshipTaggedBuilder) WithHeaderBuilder(builderSupplier fun
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetRelationshipTaggedBuilder) WithProprietaryValue(proprietaryValue
 	return b
 }
 
-func (b *_BACnetRelationshipTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetRelationshipTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetRelationshipTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetRelationshipTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetRelationshipTaggedBuilder) Build() (BACnetRelationshipTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetRelationshipTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetRelationshipTaggedBuilder) MustBuild() BACnetRelationshipTagged 
 
 func (b *_BACnetRelationshipTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetRelationshipTaggedBuilder().(*_BACnetRelationshipTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetRelationshipTaggedParseWithBufferProducer(tagNumber uint8, tagClass T
 }
 
 func BACnetRelationshipTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetRelationshipTagged, error) {
-	v, err := (&_BACnetRelationshipTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetRelationshipTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetRelationshipTagged) SerializeWithWriteBuffer(ctx context.Context
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetRelationshipTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetRelationshipTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetRelationshipTagged) IsBACnetRelationshipTagged() {}
 
 func (m *_BACnetRelationshipTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_BACnetRelationshipTagged) deepCopy() *_BACnetRelationshipTagged {
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetRelationshipTaggedCopy
 }

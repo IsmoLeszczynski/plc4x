@@ -49,21 +49,13 @@ public class BACnetConstructedDataSilenced extends BACnetConstructedData impleme
   // Properties.
   protected final BACnetSilencedStateTagged silenced;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataSilenced(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetSilencedStateTagged silenced,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetSilencedStateTagged silenced) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.silenced = silenced;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetSilencedStateTagged getSilenced() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataSilenced extends BACnetConstructedData impleme
     // Simple Field (silenced)
     writeSimpleField("silenced", silenced, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetSilencedStateTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,33 +126,21 @@ public class BACnetConstructedDataSilenced extends BACnetConstructedData impleme
 
     readBuffer.closeContext("BACnetConstructedDataSilenced");
     // Create the instance
-    return new BACnetConstructedDataSilencedBuilderImpl(silenced, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataSilencedBuilderImpl(silenced);
   }
 
   public static class BACnetConstructedDataSilencedBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetSilencedStateTagged silenced;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataSilencedBuilderImpl(
-        BACnetSilencedStateTagged silenced,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataSilencedBuilderImpl(BACnetSilencedStateTagged silenced) {
       this.silenced = silenced;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataSilenced build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataSilenced bACnetConstructedDataSilenced =
-          new BACnetConstructedDataSilenced(
-              openingTag, peekedTagHeader, closingTag, silenced, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataSilenced(openingTag, peekedTagHeader, closingTag, silenced);
       return bACnetConstructedDataSilenced;
     }
   }

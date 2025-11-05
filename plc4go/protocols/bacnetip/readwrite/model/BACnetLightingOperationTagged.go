@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetLightingOperationTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetLightingOperation
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetLightingOperationTagged = (*_BACnetLightingOperationTagged)(nil)
 
 // NewBACnetLightingOperationTagged factory function for _BACnetLightingOperationTagged
-func NewBACnetLightingOperationTagged(header BACnetTagHeader, value BACnetLightingOperation, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetLightingOperationTagged {
+func NewBACnetLightingOperationTagged(header BACnetTagHeader, value BACnetLightingOperation, proprietaryValue uint32) *_BACnetLightingOperationTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetLightingOperationTagged must not be nil")
 	}
-	return &_BACnetLightingOperationTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetLightingOperationTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetLightingOperationTaggedBuilder interface {
 	WithValue(BACnetLightingOperation) BACnetLightingOperationTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetLightingOperationTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetLightingOperationTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetLightingOperationTaggedBuilder
 	// Build builds the BACnetLightingOperationTagged or returns an error if something is wrong
 	Build() (BACnetLightingOperationTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetLightingOperationTaggedBuilder() BACnetLightingOperationTaggedBuil
 type _BACnetLightingOperationTaggedBuilder struct {
 	*_BACnetLightingOperationTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetLightingOperationTaggedBuilder) = (*_BACnetLightingOperationTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetLightingOperationTaggedBuilder) WithHeaderBuilder(builderSupplie
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetLightingOperationTaggedBuilder) WithProprietaryValue(proprietary
 	return b
 }
 
-func (b *_BACnetLightingOperationTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetLightingOperationTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetLightingOperationTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetLightingOperationTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetLightingOperationTaggedBuilder) Build() (BACnetLightingOperationTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetLightingOperationTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetLightingOperationTaggedBuilder) MustBuild() BACnetLightingOperat
 
 func (b *_BACnetLightingOperationTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetLightingOperationTaggedBuilder().(*_BACnetLightingOperationTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetLightingOperationTaggedParseWithBufferProducer(tagNumber uint8, tagCl
 }
 
 func BACnetLightingOperationTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetLightingOperationTagged, error) {
-	v, err := (&_BACnetLightingOperationTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetLightingOperationTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetLightingOperationTagged) SerializeWithWriteBuffer(ctx context.Co
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetLightingOperationTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetLightingOperationTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetLightingOperationTagged) IsBACnetLightingOperationTagged() {}
 
 func (m *_BACnetLightingOperationTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_BACnetLightingOperationTagged) deepCopy() *_BACnetLightingOperationTag
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetLightingOperationTaggedCopy
 }

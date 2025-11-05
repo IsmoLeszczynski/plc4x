@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataVerificationTime = (*_BACnetConstructedDataVerificati
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataVerificationTime)(nil)
 
 // NewBACnetConstructedDataVerificationTime factory function for _BACnetConstructedDataVerificationTime
-func NewBACnetConstructedDataVerificationTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, verificationTime BACnetApplicationTagSignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataVerificationTime {
+func NewBACnetConstructedDataVerificationTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, verificationTime BACnetApplicationTagSignedInteger) *_BACnetConstructedDataVerificationTime {
 	if verificationTime == nil {
 		panic("verificationTime of type BACnetApplicationTagSignedInteger for BACnetConstructedDataVerificationTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataVerificationTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		VerificationTime:              verificationTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataVerificationTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataVerificationTimeBuilder) = (*_BACnetConstructedDataVerificationTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataVerificationTimeBuilder) WithVerificationTimeBuil
 	var err error
 	b.VerificationTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagSignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagSignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataVerificationTimeBuilder) Build() (BACnetConstructedDataVerificationTime, error) {
 	if b.VerificationTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'verificationTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'verificationTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataVerificationTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataVerificationTimeBuilder) buildForBACnetConstructe
 
 func (b *_BACnetConstructedDataVerificationTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataVerificationTimeBuilder().(*_BACnetConstructedDataVerificationTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -49,21 +49,13 @@ public class BACnetConstructedDataDeadband extends BACnetConstructedData impleme
   // Properties.
   protected final BACnetApplicationTagReal deadband;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataDeadband(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagReal deadband,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagReal deadband) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.deadband = deadband;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagReal getDeadband() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataDeadband extends BACnetConstructedData impleme
     // Simple Field (deadband)
     writeSimpleField("deadband", deadband, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagReal actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -132,33 +124,21 @@ public class BACnetConstructedDataDeadband extends BACnetConstructedData impleme
 
     readBuffer.closeContext("BACnetConstructedDataDeadband");
     // Create the instance
-    return new BACnetConstructedDataDeadbandBuilderImpl(deadband, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataDeadbandBuilderImpl(deadband);
   }
 
   public static class BACnetConstructedDataDeadbandBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagReal deadband;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataDeadbandBuilderImpl(
-        BACnetApplicationTagReal deadband,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataDeadbandBuilderImpl(BACnetApplicationTagReal deadband) {
       this.deadband = deadband;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataDeadband build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataDeadband bACnetConstructedDataDeadband =
-          new BACnetConstructedDataDeadband(
-              openingTag, peekedTagHeader, closingTag, deadband, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataDeadband(openingTag, peekedTagHeader, closingTag, deadband);
       return bACnetConstructedDataDeadband;
     }
   }

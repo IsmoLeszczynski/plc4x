@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataMaxInfoFrames = (*_BACnetConstructedDataMaxInfoFrames
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMaxInfoFrames)(nil)
 
 // NewBACnetConstructedDataMaxInfoFrames factory function for _BACnetConstructedDataMaxInfoFrames
-func NewBACnetConstructedDataMaxInfoFrames(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maxInfoFrames BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMaxInfoFrames {
+func NewBACnetConstructedDataMaxInfoFrames(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maxInfoFrames BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataMaxInfoFrames {
 	if maxInfoFrames == nil {
 		panic("maxInfoFrames of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataMaxInfoFrames must not be nil")
 	}
 	_result := &_BACnetConstructedDataMaxInfoFrames{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		MaxInfoFrames:                 maxInfoFrames,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataMaxInfoFramesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMaxInfoFramesBuilder) = (*_BACnetConstructedDataMaxInfoFramesBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataMaxInfoFramesBuilder) WithMaxInfoFramesBuilder(bu
 	var err error
 	b.MaxInfoFrames, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataMaxInfoFramesBuilder) Build() (BACnetConstructedDataMaxInfoFrames, error) {
 	if b.MaxInfoFrames == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'maxInfoFrames' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'maxInfoFrames' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMaxInfoFrames.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataMaxInfoFramesBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataMaxInfoFramesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMaxInfoFramesBuilder().(*_BACnetConstructedDataMaxInfoFramesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

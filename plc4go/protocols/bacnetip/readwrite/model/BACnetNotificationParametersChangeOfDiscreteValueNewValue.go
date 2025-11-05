@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -59,8 +60,6 @@ type BACnetNotificationParametersChangeOfDiscreteValueNewValueContract interface
 	GetPeekedTagNumber() uint8
 	// GetPeekedIsContextTag returns PeekedIsContextTag (virtual field)
 	GetPeekedIsContextTag() bool
-	// GetTagNumber() returns a parser argument
-	GetTagNumber() uint8
 	// IsBACnetNotificationParametersChangeOfDiscreteValueNewValue is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetNotificationParametersChangeOfDiscreteValueNewValue()
 	// CreateBuilder creates a BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder
@@ -86,15 +85,12 @@ type _BACnetNotificationParametersChangeOfDiscreteValueNewValue struct {
 	OpeningTag      BACnetOpeningTag
 	PeekedTagHeader BACnetTagHeader
 	ClosingTag      BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetNotificationParametersChangeOfDiscreteValueNewValueContract = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValue)(nil)
 
 // NewBACnetNotificationParametersChangeOfDiscreteValueNewValue factory function for _BACnetNotificationParametersChangeOfDiscreteValueNewValue
-func NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetNotificationParametersChangeOfDiscreteValueNewValue {
+func NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetNotificationParametersChangeOfDiscreteValueNewValue {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetNotificationParametersChangeOfDiscreteValueNewValue must not be nil")
 	}
@@ -104,7 +100,7 @@ func NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag BAC
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetNotificationParametersChangeOfDiscreteValueNewValue must not be nil")
 	}
-	return &_BACnetNotificationParametersChangeOfDiscreteValueNewValue{OpeningTag: openingTag, PeekedTagHeader: peekedTagHeader, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetNotificationParametersChangeOfDiscreteValueNewValue{OpeningTag: openingTag, PeekedTagHeader: peekedTagHeader, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -129,8 +125,6 @@ type BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder interface 
 	WithClosingTag(BACnetClosingTag) BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder
 	// AsBACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean converts this build to a subType of BACnetNotificationParametersChangeOfDiscreteValueNewValue. It is always possible to return to current builder using Done()
 	AsBACnetNotificationParametersChangeOfDiscreteValueNewValueBoolean() BACnetNotificationParametersChangeOfDiscreteValueNewValueBooleanBuilder
 	// AsBACnetNotificationParametersChangeOfDiscreteValueNewValueUnsigned converts this build to a subType of BACnetNotificationParametersChangeOfDiscreteValueNewValue. It is always possible to return to current builder using Done()
@@ -177,7 +171,7 @@ type _BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder struct {
 
 	childBuilder _BACnetNotificationParametersChangeOfDiscreteValueNewValueChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder) = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder)(nil)
@@ -196,10 +190,7 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder) With
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -214,10 +205,7 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder) With
 	var err error
 	b.PeekedTagHeader, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -232,40 +220,23 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder) With
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder) WithArgTagNumber(tagNumber uint8) BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder) PartialBuild() (BACnetNotificationParametersChangeOfDiscreteValueNewValueContract, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.PeekedTagHeader == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'peekedTagHeader' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'peekedTagHeader' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNotificationParametersChangeOfDiscreteValueNewValue.deepCopy(), nil
 }
@@ -402,8 +373,8 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder) Deep
 	_copy := b.CreateBACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder().(*_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_BACnetNotificationParametersChangeOfDiscreteValueNewValueChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -521,7 +492,7 @@ func BACnetNotificationParametersChangeOfDiscreteValueNewValueParseWithBufferPro
 }
 
 func BACnetNotificationParametersChangeOfDiscreteValueNewValueParseWithBuffer[T BACnetNotificationParametersChangeOfDiscreteValueNewValue](ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (T, error) {
-	v, err := (&_BACnetNotificationParametersChangeOfDiscreteValueNewValue{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetNotificationParametersChangeOfDiscreteValueNewValue)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -675,16 +646,6 @@ func (pm *_BACnetNotificationParametersChangeOfDiscreteValueNewValue) serializeP
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetNotificationParametersChangeOfDiscreteValueNewValue) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetNotificationParametersChangeOfDiscreteValueNewValue) IsBACnetNotificationParametersChangeOfDiscreteValueNewValue() {
 }
 
@@ -701,7 +662,6 @@ func (m *_BACnetNotificationParametersChangeOfDiscreteValueNewValue) deepCopy() 
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopy[BACnetTagHeader](m.PeekedTagHeader),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetNotificationParametersChangeOfDiscreteValueNewValueCopy
 }

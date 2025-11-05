@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -144,6 +145,8 @@ type ExtensionObjectDefinitionBuilder interface {
 	AsSecuritySettingsDataType() SecuritySettingsDataTypeBuilder
 	// AsUserTokenSettingsDataType converts this build to a subType of ExtensionObjectDefinition. It is always possible to return to current builder using Done()
 	AsUserTokenSettingsDataType() UserTokenSettingsDataTypeBuilder
+	// AsServiceCertificateDataType converts this build to a subType of ExtensionObjectDefinition. It is always possible to return to current builder using Done()
+	AsServiceCertificateDataType() ServiceCertificateDataTypeBuilder
 	// AsAuthorizationServiceConfigurationDataType converts this build to a subType of ExtensionObjectDefinition. It is always possible to return to current builder using Done()
 	AsAuthorizationServiceConfigurationDataType() AuthorizationServiceConfigurationDataTypeBuilder
 	// AsDataTypeSchemaHeader converts this build to a subType of ExtensionObjectDefinition. It is always possible to return to current builder using Done()
@@ -810,7 +813,7 @@ type _ExtensionObjectDefinitionBuilder struct {
 
 	childBuilder _ExtensionObjectDefinitionChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ExtensionObjectDefinitionBuilder) = (*_ExtensionObjectDefinitionBuilder)(nil)
@@ -820,8 +823,8 @@ func (b *_ExtensionObjectDefinitionBuilder) WithMandatoryFields() ExtensionObjec
 }
 
 func (b *_ExtensionObjectDefinitionBuilder) PartialBuild() (ExtensionObjectDefinitionContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ExtensionObjectDefinition.deepCopy(), nil
 }
@@ -1119,6 +1122,16 @@ func (b *_ExtensionObjectDefinitionBuilder) AsUserTokenSettingsDataType() UserTo
 		return cb
 	}
 	cb := NewUserTokenSettingsDataTypeBuilder().(*_UserTokenSettingsDataTypeBuilder)
+	cb.parentBuilder = b
+	b.childBuilder = cb
+	return cb
+}
+
+func (b *_ExtensionObjectDefinitionBuilder) AsServiceCertificateDataType() ServiceCertificateDataTypeBuilder {
+	if cb, ok := b.childBuilder.(ServiceCertificateDataTypeBuilder); ok {
+		return cb
+	}
+	cb := NewServiceCertificateDataTypeBuilder().(*_ServiceCertificateDataTypeBuilder)
 	cb.parentBuilder = b
 	b.childBuilder = cb
 	return cb
@@ -4348,8 +4361,8 @@ func (b *_ExtensionObjectDefinitionBuilder) DeepCopy() any {
 	_copy := b.CreateExtensionObjectDefinitionBuilder().(*_ExtensionObjectDefinitionBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_ExtensionObjectDefinitionChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -4412,7 +4425,7 @@ func ExtensionObjectDefinitionParseWithBufferProducer[T ExtensionObjectDefinitio
 }
 
 func ExtensionObjectDefinitionParseWithBuffer[T ExtensionObjectDefinition](ctx context.Context, readBuffer utils.ReadBuffer, extensionId int32) (T, error) {
-	v, err := (&_ExtensionObjectDefinition{}).parse(ctx, readBuffer, extensionId)
+	v, err := (new(_ExtensionObjectDefinition)).parse(ctx, readBuffer, extensionId)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -4529,7 +4542,7 @@ func (m *_ExtensionObjectDefinition) parse(ctx context.Context, readBuffer utils
 		if _child, err = new(_TransactionErrorType).parse(ctx, readBuffer, m, extensionId); err != nil {
 			return nil, errors.Wrap(err, "Error parsing sub-type TransactionErrorType for type-switch of ExtensionObjectDefinition")
 		}
-	case extensionId == int32(15551): // ApplicationConfigurationDataType
+	case extensionId == int32(23745): // ApplicationConfigurationDataType
 		if _child, err = new(_ApplicationConfigurationDataType).parse(ctx, readBuffer, m, extensionId); err != nil {
 			return nil, errors.Wrap(err, "Error parsing sub-type ApplicationConfigurationDataType for type-switch of ExtensionObjectDefinition")
 		}
@@ -4553,7 +4566,11 @@ func (m *_ExtensionObjectDefinition) parse(ctx context.Context, readBuffer utils
 		if _child, err = new(_UserTokenSettingsDataType).parse(ctx, readBuffer, m, extensionId); err != nil {
 			return nil, errors.Wrap(err, "Error parsing sub-type UserTokenSettingsDataType for type-switch of ExtensionObjectDefinition")
 		}
-	case extensionId == int32(19447): // AuthorizationServiceConfigurationDataType
+	case extensionId == int32(23726): // ServiceCertificateDataType
+		if _child, err = new(_ServiceCertificateDataType).parse(ctx, readBuffer, m, extensionId); err != nil {
+			return nil, errors.Wrap(err, "Error parsing sub-type ServiceCertificateDataType for type-switch of ExtensionObjectDefinition")
+		}
+	case extensionId == int32(23746): // AuthorizationServiceConfigurationDataType
 		if _child, err = new(_AuthorizationServiceConfigurationDataType).parse(ctx, readBuffer, m, extensionId); err != nil {
 			return nil, errors.Wrap(err, "Error parsing sub-type AuthorizationServiceConfigurationDataType for type-switch of ExtensionObjectDefinition")
 		}

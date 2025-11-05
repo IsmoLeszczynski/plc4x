@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetTimerStateChangeValueEnumerated = (*_BACnetTimerStateChangeValueEnum
 var _ BACnetTimerStateChangeValueRequirements = (*_BACnetTimerStateChangeValueEnumerated)(nil)
 
 // NewBACnetTimerStateChangeValueEnumerated factory function for _BACnetTimerStateChangeValueEnumerated
-func NewBACnetTimerStateChangeValueEnumerated(peekedTagHeader BACnetTagHeader, enumeratedValue BACnetApplicationTagEnumerated, objectTypeArgument BACnetObjectType) *_BACnetTimerStateChangeValueEnumerated {
+func NewBACnetTimerStateChangeValueEnumerated(peekedTagHeader BACnetTagHeader, enumeratedValue BACnetApplicationTagEnumerated) *_BACnetTimerStateChangeValueEnumerated {
 	if enumeratedValue == nil {
 		panic("enumeratedValue of type BACnetApplicationTagEnumerated for BACnetTimerStateChangeValueEnumerated must not be nil")
 	}
 	_result := &_BACnetTimerStateChangeValueEnumerated{
-		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader, objectTypeArgument),
+		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader),
 		EnumeratedValue:                     enumeratedValue,
 	}
 	_result.BACnetTimerStateChangeValueContract.(*_BACnetTimerStateChangeValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetTimerStateChangeValueEnumeratedBuilder struct {
 
 	parentBuilder *_BACnetTimerStateChangeValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTimerStateChangeValueEnumeratedBuilder) = (*_BACnetTimerStateChangeValueEnumeratedBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetTimerStateChangeValueEnumeratedBuilder) WithEnumeratedValueBuild
 	var err error
 	b.EnumeratedValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagEnumeratedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagEnumeratedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetTimerStateChangeValueEnumeratedBuilder) Build() (BACnetTimerStateChangeValueEnumerated, error) {
 	if b.EnumeratedValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'enumeratedValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'enumeratedValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTimerStateChangeValueEnumerated.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetTimerStateChangeValueEnumeratedBuilder) buildForBACnetTimerState
 
 func (b *_BACnetTimerStateChangeValueEnumeratedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTimerStateChangeValueEnumeratedBuilder().(*_BACnetTimerStateChangeValueEnumeratedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

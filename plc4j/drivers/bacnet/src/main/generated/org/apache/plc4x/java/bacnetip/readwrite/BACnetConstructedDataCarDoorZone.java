@@ -49,21 +49,13 @@ public class BACnetConstructedDataCarDoorZone extends BACnetConstructedData impl
   // Properties.
   protected final BACnetApplicationTagBoolean carDoorZone;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataCarDoorZone(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagBoolean carDoorZone,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagBoolean carDoorZone) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.carDoorZone = carDoorZone;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagBoolean getCarDoorZone() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataCarDoorZone extends BACnetConstructedData impl
     // Simple Field (carDoorZone)
     writeSimpleField("carDoorZone", carDoorZone, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagBoolean actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -132,34 +124,22 @@ public class BACnetConstructedDataCarDoorZone extends BACnetConstructedData impl
 
     readBuffer.closeContext("BACnetConstructedDataCarDoorZone");
     // Create the instance
-    return new BACnetConstructedDataCarDoorZoneBuilderImpl(
-        carDoorZone, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataCarDoorZoneBuilderImpl(carDoorZone);
   }
 
   public static class BACnetConstructedDataCarDoorZoneBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagBoolean carDoorZone;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataCarDoorZoneBuilderImpl(
-        BACnetApplicationTagBoolean carDoorZone,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataCarDoorZoneBuilderImpl(BACnetApplicationTagBoolean carDoorZone) {
       this.carDoorZone = carDoorZone;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataCarDoorZone build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataCarDoorZone bACnetConstructedDataCarDoorZone =
           new BACnetConstructedDataCarDoorZone(
-              openingTag, peekedTagHeader, closingTag, carDoorZone, tagNumber, arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, carDoorZone);
       return bACnetConstructedDataCarDoorZone;
     }
   }

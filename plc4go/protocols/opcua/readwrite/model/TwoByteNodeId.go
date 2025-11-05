@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -85,7 +86,7 @@ func NewTwoByteNodeIdBuilder() TwoByteNodeIdBuilder {
 type _TwoByteNodeIdBuilder struct {
 	*_TwoByteNodeId
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (TwoByteNodeIdBuilder) = (*_TwoByteNodeIdBuilder)(nil)
@@ -100,8 +101,8 @@ func (b *_TwoByteNodeIdBuilder) WithIdentifier(identifier uint8) TwoByteNodeIdBu
 }
 
 func (b *_TwoByteNodeIdBuilder) Build() (TwoByteNodeId, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._TwoByteNodeId.deepCopy(), nil
 }
@@ -116,8 +117,8 @@ func (b *_TwoByteNodeIdBuilder) MustBuild() TwoByteNodeId {
 
 func (b *_TwoByteNodeIdBuilder) DeepCopy() any {
 	_copy := b.CreateTwoByteNodeIdBuilder().(*_TwoByteNodeIdBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -188,7 +189,7 @@ func TwoByteNodeIdParseWithBufferProducer() func(ctx context.Context, readBuffer
 }
 
 func TwoByteNodeIdParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (TwoByteNodeId, error) {
-	v, err := (&_TwoByteNodeId{}).parse(ctx, readBuffer)
+	v, err := (new(_TwoByteNodeId)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

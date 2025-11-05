@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -46,6 +47,7 @@ type CBusCommandDeviceManagement interface {
 	// GetParamNo returns ParamNo (property field)
 	GetParamNo() Parameter
 	// GetParameterValue returns ParameterValue (property field)
+	// TODO: check if this is one byte or many bytes
 	GetParameterValue() byte
 	// IsCBusCommandDeviceManagement is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsCBusCommandDeviceManagement()
@@ -64,9 +66,9 @@ var _ CBusCommandDeviceManagement = (*_CBusCommandDeviceManagement)(nil)
 var _ CBusCommandRequirements = (*_CBusCommandDeviceManagement)(nil)
 
 // NewCBusCommandDeviceManagement factory function for _CBusCommandDeviceManagement
-func NewCBusCommandDeviceManagement(header CBusHeader, paramNo Parameter, parameterValue byte, cBusOptions CBusOptions) *_CBusCommandDeviceManagement {
+func NewCBusCommandDeviceManagement(header CBusHeader, paramNo Parameter, parameterValue byte) *_CBusCommandDeviceManagement {
 	_result := &_CBusCommandDeviceManagement{
-		CBusCommandContract: NewCBusCommand(header, cBusOptions),
+		CBusCommandContract: NewCBusCommand(header),
 		ParamNo:             paramNo,
 		ParameterValue:      parameterValue,
 	}
@@ -106,7 +108,7 @@ type _CBusCommandDeviceManagementBuilder struct {
 
 	parentBuilder *_CBusCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CBusCommandDeviceManagementBuilder) = (*_CBusCommandDeviceManagementBuilder)(nil)
@@ -131,8 +133,8 @@ func (b *_CBusCommandDeviceManagementBuilder) WithParameterValue(parameterValue 
 }
 
 func (b *_CBusCommandDeviceManagementBuilder) Build() (CBusCommandDeviceManagement, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CBusCommandDeviceManagement.deepCopy(), nil
 }
@@ -158,8 +160,8 @@ func (b *_CBusCommandDeviceManagementBuilder) buildForCBusCommand() (CBusCommand
 
 func (b *_CBusCommandDeviceManagementBuilder) DeepCopy() any {
 	_copy := b.CreateCBusCommandDeviceManagementBuilder().(*_CBusCommandDeviceManagementBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -51,23 +51,15 @@ public class BACnetConstructedDataExecutionDelay extends BACnetConstructedData i
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetApplicationTagUnsignedInteger> executionDelay;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataExecutionDelay(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetApplicationTagUnsignedInteger> executionDelay,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetApplicationTagUnsignedInteger> executionDelay) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.executionDelay = executionDelay;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -78,6 +70,7 @@ public class BACnetConstructedDataExecutionDelay extends BACnetConstructedData i
     return executionDelay;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -91,16 +84,12 @@ public class BACnetConstructedDataExecutionDelay extends BACnetConstructedData i
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataExecutionDelay");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (executionDelay)
     writeComplexTypeArrayField("executionDelay", executionDelay, writeBuffer);
@@ -173,43 +162,26 @@ public class BACnetConstructedDataExecutionDelay extends BACnetConstructedData i
 
     readBuffer.closeContext("BACnetConstructedDataExecutionDelay");
     // Create the instance
-    return new BACnetConstructedDataExecutionDelayBuilderImpl(
-        numberOfDataElements, executionDelay, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataExecutionDelayBuilderImpl(numberOfDataElements, executionDelay);
   }
 
   public static class BACnetConstructedDataExecutionDelayBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetApplicationTagUnsignedInteger> executionDelay;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataExecutionDelayBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetApplicationTagUnsignedInteger> executionDelay,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetApplicationTagUnsignedInteger> executionDelay) {
       this.numberOfDataElements = numberOfDataElements;
       this.executionDelay = executionDelay;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataExecutionDelay build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataExecutionDelay bACnetConstructedDataExecutionDelay =
           new BACnetConstructedDataExecutionDelay(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              executionDelay,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, executionDelay);
       return bACnetConstructedDataExecutionDelay;
     }
   }

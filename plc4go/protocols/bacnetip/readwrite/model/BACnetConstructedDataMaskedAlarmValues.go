@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataMaskedAlarmValues = (*_BACnetConstructedDataMaskedAla
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMaskedAlarmValues)(nil)
 
 // NewBACnetConstructedDataMaskedAlarmValues factory function for _BACnetConstructedDataMaskedAlarmValues
-func NewBACnetConstructedDataMaskedAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maskedAlarmValues []BACnetDoorAlarmStateTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMaskedAlarmValues {
+func NewBACnetConstructedDataMaskedAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maskedAlarmValues []BACnetDoorAlarmStateTagged) *_BACnetConstructedDataMaskedAlarmValues {
 	_result := &_BACnetConstructedDataMaskedAlarmValues{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		MaskedAlarmValues:             maskedAlarmValues,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataMaskedAlarmValuesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMaskedAlarmValuesBuilder) = (*_BACnetConstructedDataMaskedAlarmValuesBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataMaskedAlarmValuesBuilder) WithMaskedAlarmValues(m
 }
 
 func (b *_BACnetConstructedDataMaskedAlarmValuesBuilder) Build() (BACnetConstructedDataMaskedAlarmValues, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMaskedAlarmValues.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataMaskedAlarmValuesBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataMaskedAlarmValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMaskedAlarmValuesBuilder().(*_BACnetConstructedDataMaskedAlarmValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

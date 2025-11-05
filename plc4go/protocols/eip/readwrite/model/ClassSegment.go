@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -100,7 +101,7 @@ func NewClassSegmentBuilder() ClassSegmentBuilder {
 type _ClassSegmentBuilder struct {
 	*_ClassSegment
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ClassSegmentBuilder) = (*_ClassSegmentBuilder)(nil)
@@ -130,8 +131,8 @@ func (b *_ClassSegmentBuilder) WithClassSegment(classSegment uint8) ClassSegment
 }
 
 func (b *_ClassSegmentBuilder) Build() (ClassSegment, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ClassSegment.deepCopy(), nil
 }
@@ -146,8 +147,8 @@ func (b *_ClassSegmentBuilder) MustBuild() ClassSegment {
 
 func (b *_ClassSegmentBuilder) DeepCopy() any {
 	_copy := b.CreateClassSegmentBuilder().(*_ClassSegmentBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -239,7 +240,7 @@ func ClassSegmentParseWithBufferProducer() func(ctx context.Context, readBuffer 
 }
 
 func ClassSegmentParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (ClassSegment, error) {
-	v, err := (&_ClassSegment{}).parse(ctx, readBuffer)
+	v, err := (new(_ClassSegment)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

@@ -41,20 +41,11 @@ public class BACnetObjectTypesSupportedTagged implements Message {
   protected final BACnetTagHeader header;
   protected final BACnetTagPayloadBitString payload;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
   public BACnetObjectTypesSupportedTagged(
-      BACnetTagHeader header,
-      BACnetTagPayloadBitString payload,
-      Short tagNumber,
-      TagClass tagClass) {
+      BACnetTagHeader header, BACnetTagPayloadBitString payload) {
     super();
     this.header = header;
     this.payload = payload;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -126,43 +117,43 @@ public class BACnetObjectTypesSupportedTagged implements Message {
     // Simple Field (payload)
     writeSimpleField("payload", payload, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean timeValue = getTimeValue();
     writeBuffer.writeVirtual("timeValue", timeValue);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean notificationForwarder = getNotificationForwarder();
     writeBuffer.writeVirtual("notificationForwarder", notificationForwarder);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean alertEnrollment = getAlertEnrollment();
     writeBuffer.writeVirtual("alertEnrollment", alertEnrollment);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean channel = getChannel();
     writeBuffer.writeVirtual("channel", channel);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean lightingOutput = getLightingOutput();
     writeBuffer.writeVirtual("lightingOutput", lightingOutput);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean binaryLightingOutput = getBinaryLightingOutput();
     writeBuffer.writeVirtual("binaryLightingOutput", binaryLightingOutput);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean networkPort = getNetworkPort();
     writeBuffer.writeVirtual("networkPort", networkPort);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean elevatorGroup = getElevatorGroup();
     writeBuffer.writeVirtual("elevatorGroup", elevatorGroup);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean escalator = getEscalator();
     writeBuffer.writeVirtual("escalator", escalator);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean lift = getLift();
     writeBuffer.writeVirtual("lift", lift);
 
@@ -290,8 +281,7 @@ public class BACnetObjectTypesSupportedTagged implements Message {
     readBuffer.closeContext("BACnetObjectTypesSupportedTagged");
     // Create the instance
     BACnetObjectTypesSupportedTagged _bACnetObjectTypesSupportedTagged;
-    _bACnetObjectTypesSupportedTagged =
-        new BACnetObjectTypesSupportedTagged(header, payload, tagNumber, tagClass);
+    _bACnetObjectTypesSupportedTagged = new BACnetObjectTypesSupportedTagged(header, payload);
     return _bACnetObjectTypesSupportedTagged;
   }
 

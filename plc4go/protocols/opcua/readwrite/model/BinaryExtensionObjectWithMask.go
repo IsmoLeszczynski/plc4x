@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BinaryExtensionObjectWithMask = (*_BinaryExtensionObjectWithMask)(nil)
 var _ ExtensionObjectWithMaskRequirements = (*_BinaryExtensionObjectWithMask)(nil)
 
 // NewBinaryExtensionObjectWithMask factory function for _BinaryExtensionObjectWithMask
-func NewBinaryExtensionObjectWithMask(typeId ExpandedNodeId, encodingMask ExtensionObjectEncodingMask, body ExtensionObjectDefinition, extensionId int32, includeEncodingMask bool) *_BinaryExtensionObjectWithMask {
+func NewBinaryExtensionObjectWithMask(typeId ExpandedNodeId, encodingMask ExtensionObjectEncodingMask, body ExtensionObjectDefinition) *_BinaryExtensionObjectWithMask {
 	if body == nil {
 		panic("body of type ExtensionObjectDefinition for BinaryExtensionObjectWithMask must not be nil")
 	}
 	_result := &_BinaryExtensionObjectWithMask{
-		ExtensionObjectWithMaskContract: NewExtensionObjectWithMask(typeId, encodingMask, extensionId),
+		ExtensionObjectWithMaskContract: NewExtensionObjectWithMask(typeId, encodingMask),
 		Body:                            body,
 	}
 	_result.ExtensionObjectWithMaskContract.(*_ExtensionObjectWithMask)._SubType = _result
@@ -102,7 +103,7 @@ type _BinaryExtensionObjectWithMaskBuilder struct {
 
 	parentBuilder *_ExtensionObjectWithMaskBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BinaryExtensionObjectWithMaskBuilder) = (*_BinaryExtensionObjectWithMaskBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BinaryExtensionObjectWithMaskBuilder) WithBodyBuilder(builderSupplier 
 	var err error
 	b.Body, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "ExtensionObjectDefinitionBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "ExtensionObjectDefinitionBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BinaryExtensionObjectWithMaskBuilder) Build() (BinaryExtensionObjectWithMask, error) {
 	if b.Body == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'body' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'body' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BinaryExtensionObjectWithMask.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BinaryExtensionObjectWithMaskBuilder) buildForExtensionObjectWithMask(
 
 func (b *_BinaryExtensionObjectWithMaskBuilder) DeepCopy() any {
 	_copy := b.CreateBinaryExtensionObjectWithMaskBuilder().(*_BinaryExtensionObjectWithMaskBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

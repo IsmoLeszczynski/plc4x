@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataControlledVariableReference = (*_BACnetConstructedDat
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataControlledVariableReference)(nil)
 
 // NewBACnetConstructedDataControlledVariableReference factory function for _BACnetConstructedDataControlledVariableReference
-func NewBACnetConstructedDataControlledVariableReference(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, controlledVariableReference BACnetObjectPropertyReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataControlledVariableReference {
+func NewBACnetConstructedDataControlledVariableReference(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, controlledVariableReference BACnetObjectPropertyReference) *_BACnetConstructedDataControlledVariableReference {
 	if controlledVariableReference == nil {
 		panic("controlledVariableReference of type BACnetObjectPropertyReference for BACnetConstructedDataControlledVariableReference must not be nil")
 	}
 	_result := &_BACnetConstructedDataControlledVariableReference{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ControlledVariableReference:   controlledVariableReference,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataControlledVariableReferenceBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataControlledVariableReferenceBuilder) = (*_BACnetConstructedDataControlledVariableReferenceBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataControlledVariableReferenceBuilder) WithControlle
 	var err error
 	b.ControlledVariableReference, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetObjectPropertyReferenceBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetObjectPropertyReferenceBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataControlledVariableReferenceBuilder) Build() (BACnetConstructedDataControlledVariableReference, error) {
 	if b.ControlledVariableReference == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'controlledVariableReference' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'controlledVariableReference' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataControlledVariableReference.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataControlledVariableReferenceBuilder) buildForBACne
 
 func (b *_BACnetConstructedDataControlledVariableReferenceBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataControlledVariableReferenceBuilder().(*_BACnetConstructedDataControlledVariableReferenceBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -52,16 +53,13 @@ type BACnetServiceAckReadPropertyMultiple interface {
 type _BACnetServiceAckReadPropertyMultiple struct {
 	BACnetServiceAckContract
 	Data []BACnetReadAccessResult
-
-	// Arguments.
-	ServiceAckPayloadLength uint32
 }
 
 var _ BACnetServiceAckReadPropertyMultiple = (*_BACnetServiceAckReadPropertyMultiple)(nil)
 var _ BACnetServiceAckRequirements = (*_BACnetServiceAckReadPropertyMultiple)(nil)
 
 // NewBACnetServiceAckReadPropertyMultiple factory function for _BACnetServiceAckReadPropertyMultiple
-func NewBACnetServiceAckReadPropertyMultiple(data []BACnetReadAccessResult, serviceAckPayloadLength uint32, serviceAckLength uint32) *_BACnetServiceAckReadPropertyMultiple {
+func NewBACnetServiceAckReadPropertyMultiple(serviceAckLength uint32, data []BACnetReadAccessResult) *_BACnetServiceAckReadPropertyMultiple {
 	_result := &_BACnetServiceAckReadPropertyMultiple{
 		BACnetServiceAckContract: NewBACnetServiceAck(serviceAckLength),
 		Data:                     data,
@@ -82,8 +80,6 @@ type BACnetServiceAckReadPropertyMultipleBuilder interface {
 	WithMandatoryFields(data []BACnetReadAccessResult) BACnetServiceAckReadPropertyMultipleBuilder
 	// WithData adds Data (property field)
 	WithData(...BACnetReadAccessResult) BACnetServiceAckReadPropertyMultipleBuilder
-	// WithArgServiceAckPayloadLength sets a parser argument
-	WithArgServiceAckPayloadLength(uint32) BACnetServiceAckReadPropertyMultipleBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BACnetServiceAckBuilder
 	// Build builds the BACnetServiceAckReadPropertyMultiple or returns an error if something is wrong
@@ -102,7 +98,7 @@ type _BACnetServiceAckReadPropertyMultipleBuilder struct {
 
 	parentBuilder *_BACnetServiceAckBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetServiceAckReadPropertyMultipleBuilder) = (*_BACnetServiceAckReadPropertyMultipleBuilder)(nil)
@@ -121,14 +117,9 @@ func (b *_BACnetServiceAckReadPropertyMultipleBuilder) WithData(data ...BACnetRe
 	return b
 }
 
-func (b *_BACnetServiceAckReadPropertyMultipleBuilder) WithArgServiceAckPayloadLength(serviceAckPayloadLength uint32) BACnetServiceAckReadPropertyMultipleBuilder {
-	b.ServiceAckPayloadLength = serviceAckPayloadLength
-	return b
-}
-
 func (b *_BACnetServiceAckReadPropertyMultipleBuilder) Build() (BACnetServiceAckReadPropertyMultiple, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetServiceAckReadPropertyMultiple.deepCopy(), nil
 }
@@ -154,8 +145,8 @@ func (b *_BACnetServiceAckReadPropertyMultipleBuilder) buildForBACnetServiceAck(
 
 func (b *_BACnetServiceAckReadPropertyMultipleBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetServiceAckReadPropertyMultipleBuilder().(*_BACnetServiceAckReadPropertyMultipleBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -291,16 +282,6 @@ func (m *_BACnetServiceAckReadPropertyMultiple) SerializeWithWriteBuffer(ctx con
 	return m.BACnetServiceAckContract.(*_BACnetServiceAck).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetServiceAckReadPropertyMultiple) GetServiceAckPayloadLength() uint32 {
-	return m.ServiceAckPayloadLength
-}
-
-//
-////
-
 func (m *_BACnetServiceAckReadPropertyMultiple) IsBACnetServiceAckReadPropertyMultiple() {}
 
 func (m *_BACnetServiceAckReadPropertyMultiple) DeepCopy() any {
@@ -314,7 +295,6 @@ func (m *_BACnetServiceAckReadPropertyMultiple) deepCopy() *_BACnetServiceAckRea
 	_BACnetServiceAckReadPropertyMultipleCopy := &_BACnetServiceAckReadPropertyMultiple{
 		m.BACnetServiceAckContract.(*_BACnetServiceAck).deepCopy(),
 		utils.DeepCopySlice[BACnetReadAccessResult, BACnetReadAccessResult](m.Data),
-		m.ServiceAckPayloadLength,
 	}
 	_BACnetServiceAckReadPropertyMultipleCopy.BACnetServiceAckContract.(*_BACnetServiceAck)._SubType = m
 	return _BACnetServiceAckReadPropertyMultipleCopy

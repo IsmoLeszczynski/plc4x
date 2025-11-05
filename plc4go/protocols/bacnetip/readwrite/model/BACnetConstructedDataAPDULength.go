@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAPDULength = (*_BACnetConstructedDataAPDULength)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAPDULength)(nil)
 
 // NewBACnetConstructedDataAPDULength factory function for _BACnetConstructedDataAPDULength
-func NewBACnetConstructedDataAPDULength(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, apduLength BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAPDULength {
+func NewBACnetConstructedDataAPDULength(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, apduLength BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataAPDULength {
 	if apduLength == nil {
 		panic("apduLength of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataAPDULength must not be nil")
 	}
 	_result := &_BACnetConstructedDataAPDULength{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ApduLength:                    apduLength,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAPDULengthBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAPDULengthBuilder) = (*_BACnetConstructedDataAPDULengthBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAPDULengthBuilder) WithApduLengthBuilder(builderS
 	var err error
 	b.ApduLength, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAPDULengthBuilder) Build() (BACnetConstructedDataAPDULength, error) {
 	if b.ApduLength == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'apduLength' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'apduLength' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAPDULength.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAPDULengthBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataAPDULengthBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAPDULengthBuilder().(*_BACnetConstructedDataAPDULengthBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

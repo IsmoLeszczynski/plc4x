@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ IdentifyReplyCommandTerminalLevels = (*_IdentifyReplyCommandTerminalLevels
 var _ IdentifyReplyCommandRequirements = (*_IdentifyReplyCommandTerminalLevels)(nil)
 
 // NewIdentifyReplyCommandTerminalLevels factory function for _IdentifyReplyCommandTerminalLevels
-func NewIdentifyReplyCommandTerminalLevels(terminalLevels []byte, numBytes uint8) *_IdentifyReplyCommandTerminalLevels {
+func NewIdentifyReplyCommandTerminalLevels(terminalLevels []byte) *_IdentifyReplyCommandTerminalLevels {
 	_result := &_IdentifyReplyCommandTerminalLevels{
-		IdentifyReplyCommandContract: NewIdentifyReplyCommand(numBytes),
+		IdentifyReplyCommandContract: NewIdentifyReplyCommand(),
 		TerminalLevels:               terminalLevels,
 	}
 	_result.IdentifyReplyCommandContract.(*_IdentifyReplyCommand)._SubType = _result
@@ -97,7 +98,7 @@ type _IdentifyReplyCommandTerminalLevelsBuilder struct {
 
 	parentBuilder *_IdentifyReplyCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (IdentifyReplyCommandTerminalLevelsBuilder) = (*_IdentifyReplyCommandTerminalLevelsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_IdentifyReplyCommandTerminalLevelsBuilder) WithTerminalLevels(terminal
 }
 
 func (b *_IdentifyReplyCommandTerminalLevelsBuilder) Build() (IdentifyReplyCommandTerminalLevels, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._IdentifyReplyCommandTerminalLevels.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_IdentifyReplyCommandTerminalLevelsBuilder) buildForIdentifyReplyComman
 
 func (b *_IdentifyReplyCommandTerminalLevelsBuilder) DeepCopy() any {
 	_copy := b.CreateIdentifyReplyCommandTerminalLevelsBuilder().(*_IdentifyReplyCommandTerminalLevelsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

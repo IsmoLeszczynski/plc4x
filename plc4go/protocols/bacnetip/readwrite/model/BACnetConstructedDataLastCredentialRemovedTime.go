@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLastCredentialRemovedTime = (*_BACnetConstructedDataL
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLastCredentialRemovedTime)(nil)
 
 // NewBACnetConstructedDataLastCredentialRemovedTime factory function for _BACnetConstructedDataLastCredentialRemovedTime
-func NewBACnetConstructedDataLastCredentialRemovedTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, lastCredentialRemovedTime BACnetDateTime, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLastCredentialRemovedTime {
+func NewBACnetConstructedDataLastCredentialRemovedTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, lastCredentialRemovedTime BACnetDateTime) *_BACnetConstructedDataLastCredentialRemovedTime {
 	if lastCredentialRemovedTime == nil {
 		panic("lastCredentialRemovedTime of type BACnetDateTime for BACnetConstructedDataLastCredentialRemovedTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataLastCredentialRemovedTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LastCredentialRemovedTime:     lastCredentialRemovedTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLastCredentialRemovedTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLastCredentialRemovedTimeBuilder) = (*_BACnetConstructedDataLastCredentialRemovedTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLastCredentialRemovedTimeBuilder) WithLastCredent
 	var err error
 	b.LastCredentialRemovedTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateTimeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateTimeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLastCredentialRemovedTimeBuilder) Build() (BACnetConstructedDataLastCredentialRemovedTime, error) {
 	if b.LastCredentialRemovedTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'lastCredentialRemovedTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'lastCredentialRemovedTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLastCredentialRemovedTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLastCredentialRemovedTimeBuilder) buildForBACnetC
 
 func (b *_BACnetConstructedDataLastCredentialRemovedTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLastCredentialRemovedTimeBuilder().(*_BACnetConstructedDataLastCredentialRemovedTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

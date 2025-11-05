@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,9 +62,9 @@ var _ NLMSecurityPayload = (*_NLMSecurityPayload)(nil)
 var _ NLMRequirements = (*_NLMSecurityPayload)(nil)
 
 // NewNLMSecurityPayload factory function for _NLMSecurityPayload
-func NewNLMSecurityPayload(payloadLength uint16, payload []byte, apduLength uint16) *_NLMSecurityPayload {
+func NewNLMSecurityPayload(payloadLength uint16, payload []byte) *_NLMSecurityPayload {
 	_result := &_NLMSecurityPayload{
-		NLMContract:   NewNLM(apduLength),
+		NLMContract:   NewNLM(),
 		PayloadLength: payloadLength,
 		Payload:       payload,
 	}
@@ -103,7 +104,7 @@ type _NLMSecurityPayloadBuilder struct {
 
 	parentBuilder *_NLMBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NLMSecurityPayloadBuilder) = (*_NLMSecurityPayloadBuilder)(nil)
@@ -128,8 +129,8 @@ func (b *_NLMSecurityPayloadBuilder) WithPayload(payload ...byte) NLMSecurityPay
 }
 
 func (b *_NLMSecurityPayloadBuilder) Build() (NLMSecurityPayload, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NLMSecurityPayload.deepCopy(), nil
 }
@@ -155,8 +156,8 @@ func (b *_NLMSecurityPayloadBuilder) buildForNLM() (NLM, error) {
 
 func (b *_NLMSecurityPayloadBuilder) DeepCopy() any {
 	_copy := b.CreateNLMSecurityPayloadBuilder().(*_NLMSecurityPayloadBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

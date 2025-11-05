@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetDoorAlarmStateTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetDoorAlarmState
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetDoorAlarmStateTagged = (*_BACnetDoorAlarmStateTagged)(nil)
 
 // NewBACnetDoorAlarmStateTagged factory function for _BACnetDoorAlarmStateTagged
-func NewBACnetDoorAlarmStateTagged(header BACnetTagHeader, value BACnetDoorAlarmState, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetDoorAlarmStateTagged {
+func NewBACnetDoorAlarmStateTagged(header BACnetTagHeader, value BACnetDoorAlarmState, proprietaryValue uint32) *_BACnetDoorAlarmStateTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetDoorAlarmStateTagged must not be nil")
 	}
-	return &_BACnetDoorAlarmStateTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetDoorAlarmStateTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetDoorAlarmStateTaggedBuilder interface {
 	WithValue(BACnetDoorAlarmState) BACnetDoorAlarmStateTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetDoorAlarmStateTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetDoorAlarmStateTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetDoorAlarmStateTaggedBuilder
 	// Build builds the BACnetDoorAlarmStateTagged or returns an error if something is wrong
 	Build() (BACnetDoorAlarmStateTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetDoorAlarmStateTaggedBuilder() BACnetDoorAlarmStateTaggedBuilder {
 type _BACnetDoorAlarmStateTaggedBuilder struct {
 	*_BACnetDoorAlarmStateTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetDoorAlarmStateTaggedBuilder) = (*_BACnetDoorAlarmStateTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetDoorAlarmStateTaggedBuilder) WithHeaderBuilder(builderSupplier f
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetDoorAlarmStateTaggedBuilder) WithProprietaryValue(proprietaryVal
 	return b
 }
 
-func (b *_BACnetDoorAlarmStateTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetDoorAlarmStateTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetDoorAlarmStateTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetDoorAlarmStateTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetDoorAlarmStateTaggedBuilder) Build() (BACnetDoorAlarmStateTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetDoorAlarmStateTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetDoorAlarmStateTaggedBuilder) MustBuild() BACnetDoorAlarmStateTag
 
 func (b *_BACnetDoorAlarmStateTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetDoorAlarmStateTaggedBuilder().(*_BACnetDoorAlarmStateTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetDoorAlarmStateTaggedParseWithBufferProducer(tagNumber uint8, tagClass
 }
 
 func BACnetDoorAlarmStateTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetDoorAlarmStateTagged, error) {
-	v, err := (&_BACnetDoorAlarmStateTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetDoorAlarmStateTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetDoorAlarmStateTagged) SerializeWithWriteBuffer(ctx context.Conte
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetDoorAlarmStateTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetDoorAlarmStateTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetDoorAlarmStateTagged) IsBACnetDoorAlarmStateTagged() {}
 
 func (m *_BACnetDoorAlarmStateTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_BACnetDoorAlarmStateTagged) deepCopy() *_BACnetDoorAlarmStateTagged {
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetDoorAlarmStateTaggedCopy
 }

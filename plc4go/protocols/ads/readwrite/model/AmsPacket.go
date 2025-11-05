@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,16 +61,24 @@ type AmsPacket interface {
 // AmsPacketContract provides a set of functions which can be overwritten by a sub struct
 type AmsPacketContract interface {
 	// GetTargetAmsNetId returns TargetAmsNetId (property field)
+	// AMS Header	32 bytes	The AMS/TCP-Header contains the addresses of the transmitter and receiver. In addition the AMS error code , the ADS command Id and some other information.
+	// This is the AmsNetId of the station, for which the packet is intended. Remarks see below.
 	GetTargetAmsNetId() AmsNetId
 	// GetTargetAmsPort returns TargetAmsPort (property field)
+	// This is the AmsPort of the station, for which the packet is intended.
 	GetTargetAmsPort() uint16
 	// GetSourceAmsNetId returns SourceAmsNetId (property field)
+	// This contains the AmsNetId of the station, from which the packet was sent.
 	GetSourceAmsNetId() AmsNetId
 	// GetSourceAmsPort returns SourceAmsPort (property field)
+	// This contains the AmsPort of the station, from which the packet was sent.
 	GetSourceAmsPort() uint16
 	// GetErrorCode returns ErrorCode (property field)
+	// 4 bytes	AMS error number. See ADS Return Codes.
 	GetErrorCode() uint32
 	// GetInvokeId returns InvokeId (property field)
+	// free usable field of 4 bytes
+	// 4 bytes	Free usable 32 bit array. Usually this array serves to send an Id. This Id makes is possible to assign a received response to a request, which was sent before.
 	GetInvokeId() uint32
 	// IsAmsPacket is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAmsPacket()
@@ -212,7 +221,7 @@ type _AmsPacketBuilder struct {
 
 	childBuilder _AmsPacketChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AmsPacketBuilder) = (*_AmsPacketBuilder)(nil)
@@ -231,10 +240,7 @@ func (b *_AmsPacketBuilder) WithTargetAmsNetIdBuilder(builderSupplier func(AmsNe
 	var err error
 	b.TargetAmsNetId, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "AmsNetIdBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "AmsNetIdBuilder failed"))
 	}
 	return b
 }
@@ -254,10 +260,7 @@ func (b *_AmsPacketBuilder) WithSourceAmsNetIdBuilder(builderSupplier func(AmsNe
 	var err error
 	b.SourceAmsNetId, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "AmsNetIdBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "AmsNetIdBuilder failed"))
 	}
 	return b
 }
@@ -279,19 +282,13 @@ func (b *_AmsPacketBuilder) WithInvokeId(invokeId uint32) AmsPacketBuilder {
 
 func (b *_AmsPacketBuilder) PartialBuild() (AmsPacketContract, error) {
 	if b.TargetAmsNetId == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'targetAmsNetId' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'targetAmsNetId' not set"))
 	}
 	if b.SourceAmsNetId == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'sourceAmsNetId' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'sourceAmsNetId' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AmsPacket.deepCopy(), nil
 }
@@ -538,8 +535,8 @@ func (b *_AmsPacketBuilder) DeepCopy() any {
 	_copy := b.CreateAmsPacketBuilder().(*_AmsPacketBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_AmsPacketChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -729,7 +726,7 @@ func AmsPacketParseWithBufferProducer[T AmsPacket]() func(ctx context.Context, r
 }
 
 func AmsPacketParseWithBuffer[T AmsPacket](ctx context.Context, readBuffer utils.ReadBuffer) (T, error) {
-	v, err := (&_AmsPacket{}).parse(ctx, readBuffer)
+	v, err := (new(_AmsPacket)).parse(ctx, readBuffer)
 	if err != nil {
 		var zero T
 		return zero, err

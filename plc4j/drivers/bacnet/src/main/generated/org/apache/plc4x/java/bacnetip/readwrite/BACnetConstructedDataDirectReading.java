@@ -49,21 +49,13 @@ public class BACnetConstructedDataDirectReading extends BACnetConstructedData im
   // Properties.
   protected final BACnetApplicationTagReal directReading;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataDirectReading(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagReal directReading,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagReal directReading) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.directReading = directReading;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagReal getDirectReading() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataDirectReading extends BACnetConstructedData im
     // Simple Field (directReading)
     writeSimpleField("directReading", directReading, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagReal actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -132,39 +124,22 @@ public class BACnetConstructedDataDirectReading extends BACnetConstructedData im
 
     readBuffer.closeContext("BACnetConstructedDataDirectReading");
     // Create the instance
-    return new BACnetConstructedDataDirectReadingBuilderImpl(
-        directReading, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataDirectReadingBuilderImpl(directReading);
   }
 
   public static class BACnetConstructedDataDirectReadingBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagReal directReading;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataDirectReadingBuilderImpl(
-        BACnetApplicationTagReal directReading,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataDirectReadingBuilderImpl(BACnetApplicationTagReal directReading) {
       this.directReading = directReading;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataDirectReading build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataDirectReading bACnetConstructedDataDirectReading =
           new BACnetConstructedDataDirectReading(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              directReading,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, directReading);
       return bACnetConstructedDataDirectReading;
     }
   }

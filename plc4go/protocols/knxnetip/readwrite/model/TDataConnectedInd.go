@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ TDataConnectedInd = (*_TDataConnectedInd)(nil)
 var _ CEMIRequirements = (*_TDataConnectedInd)(nil)
 
 // NewTDataConnectedInd factory function for _TDataConnectedInd
-func NewTDataConnectedInd(size uint16) *_TDataConnectedInd {
+func NewTDataConnectedInd() *_TDataConnectedInd {
 	_result := &_TDataConnectedInd{
-		CEMIContract: NewCEMI(size),
+		CEMIContract: NewCEMI(),
 	}
 	_result.CEMIContract.(*_CEMI)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _TDataConnectedIndBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (TDataConnectedIndBuilder) = (*_TDataConnectedIndBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_TDataConnectedIndBuilder) WithMandatoryFields() TDataConnectedIndBuild
 }
 
 func (b *_TDataConnectedIndBuilder) Build() (TDataConnectedInd, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._TDataConnectedInd.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_TDataConnectedIndBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_TDataConnectedIndBuilder) DeepCopy() any {
 	_copy := b.CreateTDataConnectedIndBuilder().(*_TDataConnectedIndBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

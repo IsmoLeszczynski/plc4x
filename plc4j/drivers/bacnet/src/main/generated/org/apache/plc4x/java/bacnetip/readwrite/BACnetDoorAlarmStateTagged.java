@@ -42,22 +42,12 @@ public class BACnetDoorAlarmStateTagged implements Message {
   protected final BACnetDoorAlarmState value;
   protected final long proprietaryValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
   public BACnetDoorAlarmStateTagged(
-      BACnetTagHeader header,
-      BACnetDoorAlarmState value,
-      long proprietaryValue,
-      Short tagNumber,
-      TagClass tagClass) {
+      BACnetTagHeader header, BACnetDoorAlarmState value, long proprietaryValue) {
     super();
     this.header = header;
     this.value = value;
     this.proprietaryValue = proprietaryValue;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -92,7 +82,7 @@ public class BACnetDoorAlarmStateTagged implements Message {
                 writeBuffer, value),
         writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isProprietary = getIsProprietary();
     writeBuffer.writeVirtual("isProprietary", isProprietary);
 
@@ -180,8 +170,7 @@ public class BACnetDoorAlarmStateTagged implements Message {
     readBuffer.closeContext("BACnetDoorAlarmStateTagged");
     // Create the instance
     BACnetDoorAlarmStateTagged _bACnetDoorAlarmStateTagged;
-    _bACnetDoorAlarmStateTagged =
-        new BACnetDoorAlarmStateTagged(header, value, proprietaryValue, tagNumber, tagClass);
+    _bACnetDoorAlarmStateTagged = new BACnetDoorAlarmStateTagged(header, value, proprietaryValue);
     return _bACnetDoorAlarmStateTagged;
   }
 

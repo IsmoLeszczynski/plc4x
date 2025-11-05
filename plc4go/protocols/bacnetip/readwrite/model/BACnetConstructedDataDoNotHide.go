@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataDoNotHide = (*_BACnetConstructedDataDoNotHide)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataDoNotHide)(nil)
 
 // NewBACnetConstructedDataDoNotHide factory function for _BACnetConstructedDataDoNotHide
-func NewBACnetConstructedDataDoNotHide(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, doNotHide BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataDoNotHide {
+func NewBACnetConstructedDataDoNotHide(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, doNotHide BACnetApplicationTagBoolean) *_BACnetConstructedDataDoNotHide {
 	if doNotHide == nil {
 		panic("doNotHide of type BACnetApplicationTagBoolean for BACnetConstructedDataDoNotHide must not be nil")
 	}
 	_result := &_BACnetConstructedDataDoNotHide{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		DoNotHide:                     doNotHide,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataDoNotHideBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataDoNotHideBuilder) = (*_BACnetConstructedDataDoNotHideBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataDoNotHideBuilder) WithDoNotHideBuilder(builderSup
 	var err error
 	b.DoNotHide, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataDoNotHideBuilder) Build() (BACnetConstructedDataDoNotHide, error) {
 	if b.DoNotHide == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'doNotHide' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'doNotHide' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataDoNotHide.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataDoNotHideBuilder) buildForBACnetConstructedData()
 
 func (b *_BACnetConstructedDataDoNotHideBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataDoNotHideBuilder().(*_BACnetConstructedDataDoNotHideBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

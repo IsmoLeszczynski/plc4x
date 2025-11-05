@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLocalDate = (*_BACnetConstructedDataLocalDate)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLocalDate)(nil)
 
 // NewBACnetConstructedDataLocalDate factory function for _BACnetConstructedDataLocalDate
-func NewBACnetConstructedDataLocalDate(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, localDate BACnetApplicationTagDate, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLocalDate {
+func NewBACnetConstructedDataLocalDate(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, localDate BACnetApplicationTagDate) *_BACnetConstructedDataLocalDate {
 	if localDate == nil {
 		panic("localDate of type BACnetApplicationTagDate for BACnetConstructedDataLocalDate must not be nil")
 	}
 	_result := &_BACnetConstructedDataLocalDate{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LocalDate:                     localDate,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLocalDateBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLocalDateBuilder) = (*_BACnetConstructedDataLocalDateBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLocalDateBuilder) WithLocalDateBuilder(builderSup
 	var err error
 	b.LocalDate, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagDateBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagDateBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLocalDateBuilder) Build() (BACnetConstructedDataLocalDate, error) {
 	if b.LocalDate == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'localDate' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'localDate' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLocalDate.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLocalDateBuilder) buildForBACnetConstructedData()
 
 func (b *_BACnetConstructedDataLocalDateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLocalDateBuilder().(*_BACnetConstructedDataLocalDateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

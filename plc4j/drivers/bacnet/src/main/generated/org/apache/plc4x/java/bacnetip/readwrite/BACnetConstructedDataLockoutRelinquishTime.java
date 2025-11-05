@@ -50,21 +50,13 @@ public class BACnetConstructedDataLockoutRelinquishTime extends BACnetConstructe
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger lockoutRelinquishTime;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataLockoutRelinquishTime(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger lockoutRelinquishTime,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger lockoutRelinquishTime) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.lockoutRelinquishTime = lockoutRelinquishTime;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getLockoutRelinquishTime() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataLockoutRelinquishTime extends BACnetConstructe
     // Simple Field (lockoutRelinquishTime)
     writeSimpleField("lockoutRelinquishTime", lockoutRelinquishTime, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataLockoutRelinquishTime extends BACnetConstructe
 
     readBuffer.closeContext("BACnetConstructedDataLockoutRelinquishTime");
     // Create the instance
-    return new BACnetConstructedDataLockoutRelinquishTimeBuilderImpl(
-        lockoutRelinquishTime, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataLockoutRelinquishTimeBuilderImpl(lockoutRelinquishTime);
   }
 
   public static class BACnetConstructedDataLockoutRelinquishTimeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger lockoutRelinquishTime;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataLockoutRelinquishTimeBuilderImpl(
-        BACnetApplicationTagUnsignedInteger lockoutRelinquishTime,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger lockoutRelinquishTime) {
       this.lockoutRelinquishTime = lockoutRelinquishTime;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataLockoutRelinquishTime build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataLockoutRelinquishTime bACnetConstructedDataLockoutRelinquishTime =
           new BACnetConstructedDataLockoutRelinquishTime(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              lockoutRelinquishTime,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, lockoutRelinquishTime);
       return bACnetConstructedDataLockoutRelinquishTime;
     }
   }

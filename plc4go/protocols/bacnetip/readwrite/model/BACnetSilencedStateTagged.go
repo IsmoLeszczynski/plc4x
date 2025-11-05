@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetSilencedStateTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetSilencedState
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetSilencedStateTagged = (*_BACnetSilencedStateTagged)(nil)
 
 // NewBACnetSilencedStateTagged factory function for _BACnetSilencedStateTagged
-func NewBACnetSilencedStateTagged(header BACnetTagHeader, value BACnetSilencedState, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetSilencedStateTagged {
+func NewBACnetSilencedStateTagged(header BACnetTagHeader, value BACnetSilencedState, proprietaryValue uint32) *_BACnetSilencedStateTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetSilencedStateTagged must not be nil")
 	}
-	return &_BACnetSilencedStateTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetSilencedStateTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetSilencedStateTaggedBuilder interface {
 	WithValue(BACnetSilencedState) BACnetSilencedStateTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetSilencedStateTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetSilencedStateTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetSilencedStateTaggedBuilder
 	// Build builds the BACnetSilencedStateTagged or returns an error if something is wrong
 	Build() (BACnetSilencedStateTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetSilencedStateTaggedBuilder() BACnetSilencedStateTaggedBuilder {
 type _BACnetSilencedStateTaggedBuilder struct {
 	*_BACnetSilencedStateTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetSilencedStateTaggedBuilder) = (*_BACnetSilencedStateTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetSilencedStateTaggedBuilder) WithHeaderBuilder(builderSupplier fu
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetSilencedStateTaggedBuilder) WithProprietaryValue(proprietaryValu
 	return b
 }
 
-func (b *_BACnetSilencedStateTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetSilencedStateTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetSilencedStateTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetSilencedStateTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetSilencedStateTaggedBuilder) Build() (BACnetSilencedStateTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetSilencedStateTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetSilencedStateTaggedBuilder) MustBuild() BACnetSilencedStateTagge
 
 func (b *_BACnetSilencedStateTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetSilencedStateTaggedBuilder().(*_BACnetSilencedStateTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetSilencedStateTaggedParseWithBufferProducer(tagNumber uint8, tagClass 
 }
 
 func BACnetSilencedStateTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetSilencedStateTagged, error) {
-	v, err := (&_BACnetSilencedStateTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetSilencedStateTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetSilencedStateTagged) SerializeWithWriteBuffer(ctx context.Contex
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetSilencedStateTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetSilencedStateTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetSilencedStateTagged) IsBACnetSilencedStateTagged() {}
 
 func (m *_BACnetSilencedStateTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_BACnetSilencedStateTagged) deepCopy() *_BACnetSilencedStateTagged {
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetSilencedStateTaggedCopy
 }

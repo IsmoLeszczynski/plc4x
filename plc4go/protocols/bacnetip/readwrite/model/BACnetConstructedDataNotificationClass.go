@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNotificationClass = (*_BACnetConstructedDataNotificat
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNotificationClass)(nil)
 
 // NewBACnetConstructedDataNotificationClass factory function for _BACnetConstructedDataNotificationClass
-func NewBACnetConstructedDataNotificationClass(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, notificationClass BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNotificationClass {
+func NewBACnetConstructedDataNotificationClass(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, notificationClass BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataNotificationClass {
 	if notificationClass == nil {
 		panic("notificationClass of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataNotificationClass must not be nil")
 	}
 	_result := &_BACnetConstructedDataNotificationClass{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NotificationClass:             notificationClass,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNotificationClassBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNotificationClassBuilder) = (*_BACnetConstructedDataNotificationClassBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNotificationClassBuilder) WithNotificationClassBu
 	var err error
 	b.NotificationClass, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNotificationClassBuilder) Build() (BACnetConstructedDataNotificationClass, error) {
 	if b.NotificationClass == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'notificationClass' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'notificationClass' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNotificationClass.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNotificationClassBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataNotificationClassBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNotificationClassBuilder().(*_BACnetConstructedDataNotificationClassBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

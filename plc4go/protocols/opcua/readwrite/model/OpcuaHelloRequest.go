@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -64,7 +65,7 @@ var _ OpcuaHelloRequest = (*_OpcuaHelloRequest)(nil)
 var _ MessagePDURequirements = (*_OpcuaHelloRequest)(nil)
 
 // NewOpcuaHelloRequest factory function for _OpcuaHelloRequest
-func NewOpcuaHelloRequest(chunk ChunkType, version uint32, limits OpcuaProtocolLimits, endpoint PascalString, binary bool) *_OpcuaHelloRequest {
+func NewOpcuaHelloRequest(chunk ChunkType, version uint32, limits OpcuaProtocolLimits, endpoint PascalString) *_OpcuaHelloRequest {
 	if limits == nil {
 		panic("limits of type OpcuaProtocolLimits for OpcuaHelloRequest must not be nil")
 	}
@@ -72,7 +73,7 @@ func NewOpcuaHelloRequest(chunk ChunkType, version uint32, limits OpcuaProtocolL
 		panic("endpoint of type PascalString for OpcuaHelloRequest must not be nil")
 	}
 	_result := &_OpcuaHelloRequest{
-		MessagePDUContract: NewMessagePDU(chunk, binary),
+		MessagePDUContract: NewMessagePDU(chunk),
 		Version:            version,
 		Limits:             limits,
 		Endpoint:           endpoint,
@@ -119,7 +120,7 @@ type _OpcuaHelloRequestBuilder struct {
 
 	parentBuilder *_MessagePDUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (OpcuaHelloRequestBuilder) = (*_OpcuaHelloRequestBuilder)(nil)
@@ -148,10 +149,7 @@ func (b *_OpcuaHelloRequestBuilder) WithLimitsBuilder(builderSupplier func(Opcua
 	var err error
 	b.Limits, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "OpcuaProtocolLimitsBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "OpcuaProtocolLimitsBuilder failed"))
 	}
 	return b
 }
@@ -166,29 +164,20 @@ func (b *_OpcuaHelloRequestBuilder) WithEndpointBuilder(builderSupplier func(Pas
 	var err error
 	b.Endpoint, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "PascalStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "PascalStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_OpcuaHelloRequestBuilder) Build() (OpcuaHelloRequest, error) {
 	if b.Limits == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'limits' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'limits' not set"))
 	}
 	if b.Endpoint == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'endpoint' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'endpoint' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._OpcuaHelloRequest.deepCopy(), nil
 }
@@ -214,8 +203,8 @@ func (b *_OpcuaHelloRequestBuilder) buildForMessagePDU() (MessagePDU, error) {
 
 func (b *_OpcuaHelloRequestBuilder) DeepCopy() any {
 	_copy := b.CreateOpcuaHelloRequestBuilder().(*_OpcuaHelloRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

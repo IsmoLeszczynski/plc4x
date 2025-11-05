@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,7 @@ type ApplicationAddress2 interface {
 	utils.Serializable
 	utils.Copyable
 	// GetAddress returns Address (property field)
+	// Note 1
 	GetAddress() byte
 	// GetIsWildcard returns IsWildcard (virtual field)
 	GetIsWildcard() bool
@@ -87,7 +89,7 @@ func NewApplicationAddress2Builder() ApplicationAddress2Builder {
 type _ApplicationAddress2Builder struct {
 	*_ApplicationAddress2
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApplicationAddress2Builder) = (*_ApplicationAddress2Builder)(nil)
@@ -102,8 +104,8 @@ func (b *_ApplicationAddress2Builder) WithAddress(address byte) ApplicationAddre
 }
 
 func (b *_ApplicationAddress2Builder) Build() (ApplicationAddress2, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApplicationAddress2.deepCopy(), nil
 }
@@ -118,8 +120,8 @@ func (b *_ApplicationAddress2Builder) MustBuild() ApplicationAddress2 {
 
 func (b *_ApplicationAddress2Builder) DeepCopy() any {
 	_copy := b.CreateApplicationAddress2Builder().(*_ApplicationAddress2Builder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -207,7 +209,7 @@ func ApplicationAddress2ParseWithBufferProducer() func(ctx context.Context, read
 }
 
 func ApplicationAddress2ParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (ApplicationAddress2, error) {
-	v, err := (&_ApplicationAddress2{}).parse(ctx, readBuffer)
+	v, err := (new(_ApplicationAddress2)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

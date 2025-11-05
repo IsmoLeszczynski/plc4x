@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataListOfObjectPropertyReferences = (*_BACnetConstructed
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataListOfObjectPropertyReferences)(nil)
 
 // NewBACnetConstructedDataListOfObjectPropertyReferences factory function for _BACnetConstructedDataListOfObjectPropertyReferences
-func NewBACnetConstructedDataListOfObjectPropertyReferences(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, references []BACnetDeviceObjectPropertyReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataListOfObjectPropertyReferences {
+func NewBACnetConstructedDataListOfObjectPropertyReferences(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, references []BACnetDeviceObjectPropertyReference) *_BACnetConstructedDataListOfObjectPropertyReferences {
 	_result := &_BACnetConstructedDataListOfObjectPropertyReferences{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		References:                    references,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataListOfObjectPropertyReferencesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataListOfObjectPropertyReferencesBuilder) = (*_BACnetConstructedDataListOfObjectPropertyReferencesBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataListOfObjectPropertyReferencesBuilder) WithRefere
 }
 
 func (b *_BACnetConstructedDataListOfObjectPropertyReferencesBuilder) Build() (BACnetConstructedDataListOfObjectPropertyReferences, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataListOfObjectPropertyReferences.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataListOfObjectPropertyReferencesBuilder) buildForBA
 
 func (b *_BACnetConstructedDataListOfObjectPropertyReferencesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataListOfObjectPropertyReferencesBuilder().(*_BACnetConstructedDataListOfObjectPropertyReferencesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -48,12 +48,18 @@ public class PnIoCm_Block_IoCrReq extends PnIoCm_Block implements Message {
   protected final PnIoCm_IoCrType ioCrType;
   protected final int ioCrReference;
   protected final int lt;
+
+  /** Begin IOCRProperties */
   protected final boolean fullSubFrameStructure;
+
   protected final boolean distributedSubFrameWatchDog;
   protected final boolean fastForwardingMacAdr;
   protected final boolean mediaRedundancy;
   protected final PnIoCm_RtClass rtClass;
+
+  /** End IOCRProperties */
   protected final int dataLength;
+
   protected final int frameId;
   protected final int sendClockFactor;
   protected final int reductionRatio;
@@ -65,7 +71,6 @@ public class PnIoCm_Block_IoCrReq extends PnIoCm_Block implements Message {
   protected final int ioCrTagHeader;
   protected final MacAddress ioCrMulticastMacAdr;
   protected final List<PnIoCm_IoCrBlockReqApi> apis;
-
   // Reserved Fields
   private Integer reservedField0;
   private Byte reservedField1;
@@ -138,6 +143,7 @@ public class PnIoCm_Block_IoCrReq extends PnIoCm_Block implements Message {
     return lt;
   }
 
+  /** Begin IOCRProperties */
   public boolean getFullSubFrameStructure() {
     return fullSubFrameStructure;
   }
@@ -158,6 +164,7 @@ public class PnIoCm_Block_IoCrReq extends PnIoCm_Block implements Message {
     return rtClass;
   }
 
+  /** End IOCRProperties */
   public int getDataLength() {
     return dataLength;
   }

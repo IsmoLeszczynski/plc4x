@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataDeadband = (*_BACnetConstructedDataDeadband)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataDeadband)(nil)
 
 // NewBACnetConstructedDataDeadband factory function for _BACnetConstructedDataDeadband
-func NewBACnetConstructedDataDeadband(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, deadband BACnetApplicationTagReal, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataDeadband {
+func NewBACnetConstructedDataDeadband(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, deadband BACnetApplicationTagReal) *_BACnetConstructedDataDeadband {
 	if deadband == nil {
 		panic("deadband of type BACnetApplicationTagReal for BACnetConstructedDataDeadband must not be nil")
 	}
 	_result := &_BACnetConstructedDataDeadband{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Deadband:                      deadband,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataDeadbandBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataDeadbandBuilder) = (*_BACnetConstructedDataDeadbandBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataDeadbandBuilder) WithDeadbandBuilder(builderSuppl
 	var err error
 	b.Deadband, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataDeadbandBuilder) Build() (BACnetConstructedDataDeadband, error) {
 	if b.Deadband == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'deadband' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'deadband' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataDeadband.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataDeadbandBuilder) buildForBACnetConstructedData() 
 
 func (b *_BACnetConstructedDataDeadbandBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataDeadbandBuilder().(*_BACnetConstructedDataDeadbandBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

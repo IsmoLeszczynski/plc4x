@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -70,7 +71,7 @@ var _ BACnetNotificationParametersCommandFailure = (*_BACnetNotificationParamete
 var _ BACnetNotificationParametersRequirements = (*_BACnetNotificationParametersCommandFailure)(nil)
 
 // NewBACnetNotificationParametersCommandFailure factory function for _BACnetNotificationParametersCommandFailure
-func NewBACnetNotificationParametersCommandFailure(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, innerOpeningTag BACnetOpeningTag, commandValue BACnetConstructedData, statusFlags BACnetStatusFlagsTagged, feedbackValue BACnetConstructedData, innerClosingTag BACnetClosingTag, tagNumber uint8, objectTypeArgument BACnetObjectType) *_BACnetNotificationParametersCommandFailure {
+func NewBACnetNotificationParametersCommandFailure(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, innerOpeningTag BACnetOpeningTag, commandValue BACnetConstructedData, statusFlags BACnetStatusFlagsTagged, feedbackValue BACnetConstructedData, innerClosingTag BACnetClosingTag) *_BACnetNotificationParametersCommandFailure {
 	if innerOpeningTag == nil {
 		panic("innerOpeningTag of type BACnetOpeningTag for BACnetNotificationParametersCommandFailure must not be nil")
 	}
@@ -87,7 +88,7 @@ func NewBACnetNotificationParametersCommandFailure(openingTag BACnetOpeningTag, 
 		panic("innerClosingTag of type BACnetClosingTag for BACnetNotificationParametersCommandFailure must not be nil")
 	}
 	_result := &_BACnetNotificationParametersCommandFailure{
-		BACnetNotificationParametersContract: NewBACnetNotificationParameters(openingTag, peekedTagHeader, closingTag, tagNumber, objectTypeArgument),
+		BACnetNotificationParametersContract: NewBACnetNotificationParameters(openingTag, peekedTagHeader, closingTag),
 		InnerOpeningTag:                      innerOpeningTag,
 		CommandValue:                         commandValue,
 		StatusFlags:                          statusFlags,
@@ -146,7 +147,7 @@ type _BACnetNotificationParametersCommandFailureBuilder struct {
 
 	parentBuilder *_BACnetNotificationParametersBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNotificationParametersCommandFailureBuilder) = (*_BACnetNotificationParametersCommandFailureBuilder)(nil)
@@ -170,10 +171,7 @@ func (b *_BACnetNotificationParametersCommandFailureBuilder) WithInnerOpeningTag
 	var err error
 	b.InnerOpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -188,10 +186,7 @@ func (b *_BACnetNotificationParametersCommandFailureBuilder) WithCommandValueBui
 	var err error
 	b.CommandValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetConstructedDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetConstructedDataBuilder failed"))
 	}
 	return b
 }
@@ -206,10 +201,7 @@ func (b *_BACnetNotificationParametersCommandFailureBuilder) WithStatusFlagsBuil
 	var err error
 	b.StatusFlags, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetStatusFlagsTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetStatusFlagsTaggedBuilder failed"))
 	}
 	return b
 }
@@ -224,10 +216,7 @@ func (b *_BACnetNotificationParametersCommandFailureBuilder) WithFeedbackValueBu
 	var err error
 	b.FeedbackValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetConstructedDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetConstructedDataBuilder failed"))
 	}
 	return b
 }
@@ -242,47 +231,29 @@ func (b *_BACnetNotificationParametersCommandFailureBuilder) WithInnerClosingTag
 	var err error
 	b.InnerClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetNotificationParametersCommandFailureBuilder) Build() (BACnetNotificationParametersCommandFailure, error) {
 	if b.InnerOpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'innerOpeningTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'innerOpeningTag' not set"))
 	}
 	if b.CommandValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'commandValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'commandValue' not set"))
 	}
 	if b.StatusFlags == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'statusFlags' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'statusFlags' not set"))
 	}
 	if b.FeedbackValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'feedbackValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'feedbackValue' not set"))
 	}
 	if b.InnerClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'innerClosingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'innerClosingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNotificationParametersCommandFailure.deepCopy(), nil
 }
@@ -308,8 +279,8 @@ func (b *_BACnetNotificationParametersCommandFailureBuilder) buildForBACnetNotif
 
 func (b *_BACnetNotificationParametersCommandFailureBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetNotificationParametersCommandFailureBuilder().(*_BACnetNotificationParametersCommandFailureBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

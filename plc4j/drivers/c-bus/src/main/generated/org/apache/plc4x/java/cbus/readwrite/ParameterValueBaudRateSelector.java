@@ -44,22 +44,21 @@ public class ParameterValueBaudRateSelector extends ParameterValue implements Me
 
   // Properties.
   protected final BaudRateSelector value;
+
+  /** TODO: find out what additional bytes mean here... */
   protected final byte[] data;
 
-  // Arguments.
-  protected final Short numBytes;
-
-  public ParameterValueBaudRateSelector(BaudRateSelector value, byte[] data, Short numBytes) {
-    super(numBytes);
+  public ParameterValueBaudRateSelector(BaudRateSelector value, byte[] data) {
+    super();
     this.value = value;
     this.data = data;
-    this.numBytes = numBytes;
   }
 
   public BaudRateSelector getValue() {
     return value;
   }
 
+  /** TODO: find out what additional bytes mean here... */
   public byte[] getData() {
     return data;
   }
@@ -129,26 +128,22 @@ public class ParameterValueBaudRateSelector extends ParameterValue implements Me
 
     readBuffer.closeContext("ParameterValueBaudRateSelector");
     // Create the instance
-    return new ParameterValueBaudRateSelectorBuilderImpl(value, data, numBytes);
+    return new ParameterValueBaudRateSelectorBuilderImpl(value, data);
   }
 
   public static class ParameterValueBaudRateSelectorBuilderImpl
       implements ParameterValue.ParameterValueBuilder {
     private final BaudRateSelector value;
     private final byte[] data;
-    private final Short numBytes;
 
-    public ParameterValueBaudRateSelectorBuilderImpl(
-        BaudRateSelector value, byte[] data, Short numBytes) {
+    public ParameterValueBaudRateSelectorBuilderImpl(BaudRateSelector value, byte[] data) {
       this.value = value;
       this.data = data;
-      this.numBytes = numBytes;
     }
 
-    public ParameterValueBaudRateSelector build(Short numBytes) {
-
+    public ParameterValueBaudRateSelector build() {
       ParameterValueBaudRateSelector parameterValueBaudRateSelector =
-          new ParameterValueBaudRateSelector(value, data, numBytes);
+          new ParameterValueBaudRateSelector(value, data);
       return parameterValueBaudRateSelector;
     }
   }

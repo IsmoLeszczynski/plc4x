@@ -52,23 +52,15 @@ public class BACnetConstructedDataCommandTimeArray extends BACnetConstructedData
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetTimeStamp> commandTimeArray;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataCommandTimeArray(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetTimeStamp> commandTimeArray,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetTimeStamp> commandTimeArray) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.commandTimeArray = commandTimeArray;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataCommandTimeArray extends BACnetConstructedData
     return commandTimeArray;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -92,16 +85,12 @@ public class BACnetConstructedDataCommandTimeArray extends BACnetConstructedData
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataCommandTimeArray");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (commandTimeArray)
     writeComplexTypeArrayField("commandTimeArray", commandTimeArray, writeBuffer);
@@ -175,42 +164,26 @@ public class BACnetConstructedDataCommandTimeArray extends BACnetConstructedData
     readBuffer.closeContext("BACnetConstructedDataCommandTimeArray");
     // Create the instance
     return new BACnetConstructedDataCommandTimeArrayBuilderImpl(
-        numberOfDataElements, commandTimeArray, tagNumber, arrayIndexArgument);
+        numberOfDataElements, commandTimeArray);
   }
 
   public static class BACnetConstructedDataCommandTimeArrayBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetTimeStamp> commandTimeArray;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataCommandTimeArrayBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetTimeStamp> commandTimeArray,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetTimeStamp> commandTimeArray) {
       this.numberOfDataElements = numberOfDataElements;
       this.commandTimeArray = commandTimeArray;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataCommandTimeArray build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataCommandTimeArray bACnetConstructedDataCommandTimeArray =
           new BACnetConstructedDataCommandTimeArray(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              commandTimeArray,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, commandTimeArray);
       return bACnetConstructedDataCommandTimeArray;
     }
   }

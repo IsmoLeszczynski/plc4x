@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtNetworkParameterWrite = (*_ApduDataExtNetworkParameterWrite)(ni
 var _ ApduDataExtRequirements = (*_ApduDataExtNetworkParameterWrite)(nil)
 
 // NewApduDataExtNetworkParameterWrite factory function for _ApduDataExtNetworkParameterWrite
-func NewApduDataExtNetworkParameterWrite(length uint8) *_ApduDataExtNetworkParameterWrite {
+func NewApduDataExtNetworkParameterWrite() *_ApduDataExtNetworkParameterWrite {
 	_result := &_ApduDataExtNetworkParameterWrite{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtNetworkParameterWriteBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtNetworkParameterWriteBuilder) = (*_ApduDataExtNetworkParameterWriteBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtNetworkParameterWriteBuilder) WithMandatoryFields() ApduDat
 }
 
 func (b *_ApduDataExtNetworkParameterWriteBuilder) Build() (ApduDataExtNetworkParameterWrite, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtNetworkParameterWrite.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtNetworkParameterWriteBuilder) buildForApduDataExt() (ApduDa
 
 func (b *_ApduDataExtNetworkParameterWriteBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtNetworkParameterWriteBuilder().(*_ApduDataExtNetworkParameterWriteBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

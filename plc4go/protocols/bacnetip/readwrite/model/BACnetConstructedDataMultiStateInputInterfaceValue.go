@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataMultiStateInputInterfaceValue = (*_BACnetConstructedD
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMultiStateInputInterfaceValue)(nil)
 
 // NewBACnetConstructedDataMultiStateInputInterfaceValue factory function for _BACnetConstructedDataMultiStateInputInterfaceValue
-func NewBACnetConstructedDataMultiStateInputInterfaceValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, interfaceValue BACnetOptionalBinaryPV, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMultiStateInputInterfaceValue {
+func NewBACnetConstructedDataMultiStateInputInterfaceValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, interfaceValue BACnetOptionalBinaryPV) *_BACnetConstructedDataMultiStateInputInterfaceValue {
 	if interfaceValue == nil {
 		panic("interfaceValue of type BACnetOptionalBinaryPV for BACnetConstructedDataMultiStateInputInterfaceValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataMultiStateInputInterfaceValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		InterfaceValue:                interfaceValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataMultiStateInputInterfaceValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMultiStateInputInterfaceValueBuilder) = (*_BACnetConstructedDataMultiStateInputInterfaceValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataMultiStateInputInterfaceValueBuilder) WithInterfa
 	var err error
 	b.InterfaceValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOptionalBinaryPVBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOptionalBinaryPVBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataMultiStateInputInterfaceValueBuilder) Build() (BACnetConstructedDataMultiStateInputInterfaceValue, error) {
 	if b.InterfaceValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'interfaceValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'interfaceValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMultiStateInputInterfaceValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataMultiStateInputInterfaceValueBuilder) buildForBAC
 
 func (b *_BACnetConstructedDataMultiStateInputInterfaceValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMultiStateInputInterfaceValueBuilder().(*_BACnetConstructedDataMultiStateInputInterfaceValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

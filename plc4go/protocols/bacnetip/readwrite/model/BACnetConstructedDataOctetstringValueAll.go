@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataOctetstringValueAll = (*_BACnetConstructedDataOctetst
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataOctetstringValueAll)(nil)
 
 // NewBACnetConstructedDataOctetstringValueAll factory function for _BACnetConstructedDataOctetstringValueAll
-func NewBACnetConstructedDataOctetstringValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataOctetstringValueAll {
+func NewBACnetConstructedDataOctetstringValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataOctetstringValueAll {
 	_result := &_BACnetConstructedDataOctetstringValueAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataOctetstringValueAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataOctetstringValueAllBuilder) = (*_BACnetConstructedDataOctetstringValueAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataOctetstringValueAllBuilder) WithMandatoryFields()
 }
 
 func (b *_BACnetConstructedDataOctetstringValueAllBuilder) Build() (BACnetConstructedDataOctetstringValueAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataOctetstringValueAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataOctetstringValueAllBuilder) buildForBACnetConstru
 
 func (b *_BACnetConstructedDataOctetstringValueAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataOctetstringValueAllBuilder().(*_BACnetConstructedDataOctetstringValueAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

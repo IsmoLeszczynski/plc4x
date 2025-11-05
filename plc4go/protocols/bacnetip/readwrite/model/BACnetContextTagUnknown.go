@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -52,18 +53,15 @@ type BACnetContextTagUnknown interface {
 type _BACnetContextTagUnknown struct {
 	BACnetContextTagContract
 	UnknownData []byte
-
-	// Arguments.
-	ActualLength uint32
 }
 
 var _ BACnetContextTagUnknown = (*_BACnetContextTagUnknown)(nil)
 var _ BACnetContextTagRequirements = (*_BACnetContextTagUnknown)(nil)
 
 // NewBACnetContextTagUnknown factory function for _BACnetContextTagUnknown
-func NewBACnetContextTagUnknown(header BACnetTagHeader, unknownData []byte, actualLength uint32, tagNumberArgument uint8) *_BACnetContextTagUnknown {
+func NewBACnetContextTagUnknown(header BACnetTagHeader, unknownData []byte) *_BACnetContextTagUnknown {
 	_result := &_BACnetContextTagUnknown{
-		BACnetContextTagContract: NewBACnetContextTag(header, tagNumberArgument),
+		BACnetContextTagContract: NewBACnetContextTag(header),
 		UnknownData:              unknownData,
 	}
 	_result.BACnetContextTagContract.(*_BACnetContextTag)._SubType = _result
@@ -82,8 +80,6 @@ type BACnetContextTagUnknownBuilder interface {
 	WithMandatoryFields(unknownData []byte) BACnetContextTagUnknownBuilder
 	// WithUnknownData adds UnknownData (property field)
 	WithUnknownData(...byte) BACnetContextTagUnknownBuilder
-	// WithArgActualLength sets a parser argument
-	WithArgActualLength(uint32) BACnetContextTagUnknownBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BACnetContextTagBuilder
 	// Build builds the BACnetContextTagUnknown or returns an error if something is wrong
@@ -102,7 +98,7 @@ type _BACnetContextTagUnknownBuilder struct {
 
 	parentBuilder *_BACnetContextTagBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetContextTagUnknownBuilder) = (*_BACnetContextTagUnknownBuilder)(nil)
@@ -121,14 +117,9 @@ func (b *_BACnetContextTagUnknownBuilder) WithUnknownData(unknownData ...byte) B
 	return b
 }
 
-func (b *_BACnetContextTagUnknownBuilder) WithArgActualLength(actualLength uint32) BACnetContextTagUnknownBuilder {
-	b.ActualLength = actualLength
-	return b
-}
-
 func (b *_BACnetContextTagUnknownBuilder) Build() (BACnetContextTagUnknown, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetContextTagUnknown.deepCopy(), nil
 }
@@ -154,8 +145,8 @@ func (b *_BACnetContextTagUnknownBuilder) buildForBACnetContextTag() (BACnetCont
 
 func (b *_BACnetContextTagUnknownBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetContextTagUnknownBuilder().(*_BACnetContextTagUnknownBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -289,16 +280,6 @@ func (m *_BACnetContextTagUnknown) SerializeWithWriteBuffer(ctx context.Context,
 	return m.BACnetContextTagContract.(*_BACnetContextTag).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetContextTagUnknown) GetActualLength() uint32 {
-	return m.ActualLength
-}
-
-//
-////
-
 func (m *_BACnetContextTagUnknown) IsBACnetContextTagUnknown() {}
 
 func (m *_BACnetContextTagUnknown) DeepCopy() any {
@@ -312,7 +293,6 @@ func (m *_BACnetContextTagUnknown) deepCopy() *_BACnetContextTagUnknown {
 	_BACnetContextTagUnknownCopy := &_BACnetContextTagUnknown{
 		m.BACnetContextTagContract.(*_BACnetContextTag).deepCopy(),
 		utils.DeepCopySlice[byte, byte](m.UnknownData),
-		m.ActualLength,
 	}
 	_BACnetContextTagUnknownCopy.BACnetContextTagContract.(*_BACnetContextTag)._SubType = m
 	return _BACnetContextTagUnknownCopy

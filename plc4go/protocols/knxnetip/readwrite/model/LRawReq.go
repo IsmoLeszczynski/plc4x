@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ LRawReq = (*_LRawReq)(nil)
 var _ CEMIRequirements = (*_LRawReq)(nil)
 
 // NewLRawReq factory function for _LRawReq
-func NewLRawReq(size uint16) *_LRawReq {
+func NewLRawReq() *_LRawReq {
 	_result := &_LRawReq{
-		CEMIContract: NewCEMI(size),
+		CEMIContract: NewCEMI(),
 	}
 	_result.CEMIContract.(*_CEMI)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _LRawReqBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (LRawReqBuilder) = (*_LRawReqBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_LRawReqBuilder) WithMandatoryFields() LRawReqBuilder {
 }
 
 func (b *_LRawReqBuilder) Build() (LRawReq, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._LRawReq.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_LRawReqBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_LRawReqBuilder) DeepCopy() any {
 	_copy := b.CreateLRawReqBuilder().(*_LRawReqBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

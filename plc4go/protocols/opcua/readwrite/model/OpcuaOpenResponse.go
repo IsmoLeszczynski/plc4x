@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -55,16 +56,13 @@ type _OpcuaOpenResponse struct {
 	MessagePDUContract
 	OpenResponse OpenChannelMessage
 	Message      Payload
-
-	// Arguments.
-	TotalLength uint32
 }
 
 var _ OpcuaOpenResponse = (*_OpcuaOpenResponse)(nil)
 var _ MessagePDURequirements = (*_OpcuaOpenResponse)(nil)
 
 // NewOpcuaOpenResponse factory function for _OpcuaOpenResponse
-func NewOpcuaOpenResponse(chunk ChunkType, openResponse OpenChannelMessage, message Payload, totalLength uint32, binary bool) *_OpcuaOpenResponse {
+func NewOpcuaOpenResponse(chunk ChunkType, openResponse OpenChannelMessage, message Payload) *_OpcuaOpenResponse {
 	if openResponse == nil {
 		panic("openResponse of type OpenChannelMessage for OpcuaOpenResponse must not be nil")
 	}
@@ -72,7 +70,7 @@ func NewOpcuaOpenResponse(chunk ChunkType, openResponse OpenChannelMessage, mess
 		panic("message of type Payload for OpcuaOpenResponse must not be nil")
 	}
 	_result := &_OpcuaOpenResponse{
-		MessagePDUContract: NewMessagePDU(chunk, binary),
+		MessagePDUContract: NewMessagePDU(chunk),
 		OpenResponse:       openResponse,
 		Message:            message,
 	}
@@ -98,8 +96,6 @@ type OpcuaOpenResponseBuilder interface {
 	WithMessage(Payload) OpcuaOpenResponseBuilder
 	// WithMessageBuilder adds Message (property field) which is build by the builder
 	WithMessageBuilder(func(PayloadBuilder) PayloadBuilder) OpcuaOpenResponseBuilder
-	// WithArgTotalLength sets a parser argument
-	WithArgTotalLength(uint32) OpcuaOpenResponseBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() MessagePDUBuilder
 	// Build builds the OpcuaOpenResponse or returns an error if something is wrong
@@ -118,7 +114,7 @@ type _OpcuaOpenResponseBuilder struct {
 
 	parentBuilder *_MessagePDUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (OpcuaOpenResponseBuilder) = (*_OpcuaOpenResponseBuilder)(nil)
@@ -142,10 +138,7 @@ func (b *_OpcuaOpenResponseBuilder) WithOpenResponseBuilder(builderSupplier func
 	var err error
 	b.OpenResponse, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "OpenChannelMessageBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "OpenChannelMessageBuilder failed"))
 	}
 	return b
 }
@@ -160,34 +153,20 @@ func (b *_OpcuaOpenResponseBuilder) WithMessageBuilder(builderSupplier func(Payl
 	var err error
 	b.Message, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "PayloadBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "PayloadBuilder failed"))
 	}
-	return b
-}
-
-func (b *_OpcuaOpenResponseBuilder) WithArgTotalLength(totalLength uint32) OpcuaOpenResponseBuilder {
-	b.TotalLength = totalLength
 	return b
 }
 
 func (b *_OpcuaOpenResponseBuilder) Build() (OpcuaOpenResponse, error) {
 	if b.OpenResponse == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openResponse' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openResponse' not set"))
 	}
 	if b.Message == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'message' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'message' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._OpcuaOpenResponse.deepCopy(), nil
 }
@@ -213,8 +192,8 @@ func (b *_OpcuaOpenResponseBuilder) buildForMessagePDU() (MessagePDU, error) {
 
 func (b *_OpcuaOpenResponseBuilder) DeepCopy() any {
 	_copy := b.CreateOpcuaOpenResponseBuilder().(*_OpcuaOpenResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -367,16 +346,6 @@ func (m *_OpcuaOpenResponse) SerializeWithWriteBuffer(ctx context.Context, write
 	return m.MessagePDUContract.(*_MessagePDU).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_OpcuaOpenResponse) GetTotalLength() uint32 {
-	return m.TotalLength
-}
-
-//
-////
-
 func (m *_OpcuaOpenResponse) IsOpcuaOpenResponse() {}
 
 func (m *_OpcuaOpenResponse) DeepCopy() any {
@@ -391,7 +360,6 @@ func (m *_OpcuaOpenResponse) deepCopy() *_OpcuaOpenResponse {
 		m.MessagePDUContract.(*_MessagePDU).deepCopy(),
 		utils.DeepCopy[OpenChannelMessage](m.OpenResponse),
 		utils.DeepCopy[Payload](m.Message),
-		m.TotalLength,
 	}
 	_OpcuaOpenResponseCopy.MessagePDUContract.(*_MessagePDU)._SubType = m
 	return _OpcuaOpenResponseCopy

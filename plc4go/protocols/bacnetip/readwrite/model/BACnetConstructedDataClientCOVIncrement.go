@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataClientCOVIncrement = (*_BACnetConstructedDataClientCO
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataClientCOVIncrement)(nil)
 
 // NewBACnetConstructedDataClientCOVIncrement factory function for _BACnetConstructedDataClientCOVIncrement
-func NewBACnetConstructedDataClientCOVIncrement(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, covIncrement BACnetClientCOV, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataClientCOVIncrement {
+func NewBACnetConstructedDataClientCOVIncrement(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, covIncrement BACnetClientCOV) *_BACnetConstructedDataClientCOVIncrement {
 	if covIncrement == nil {
 		panic("covIncrement of type BACnetClientCOV for BACnetConstructedDataClientCOVIncrement must not be nil")
 	}
 	_result := &_BACnetConstructedDataClientCOVIncrement{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		CovIncrement:                  covIncrement,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataClientCOVIncrementBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataClientCOVIncrementBuilder) = (*_BACnetConstructedDataClientCOVIncrementBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataClientCOVIncrementBuilder) WithCovIncrementBuilde
 	var err error
 	b.CovIncrement, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClientCOVBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClientCOVBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataClientCOVIncrementBuilder) Build() (BACnetConstructedDataClientCOVIncrement, error) {
 	if b.CovIncrement == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'covIncrement' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'covIncrement' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataClientCOVIncrement.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataClientCOVIncrementBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataClientCOVIncrementBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataClientCOVIncrementBuilder().(*_BACnetConstructedDataClientCOVIncrementBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -51,23 +51,15 @@ public class BACnetConstructedDataWeeklySchedule extends BACnetConstructedData i
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetDailySchedule> weeklySchedule;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataWeeklySchedule(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetDailySchedule> weeklySchedule,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetDailySchedule> weeklySchedule) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.weeklySchedule = weeklySchedule;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -78,6 +70,7 @@ public class BACnetConstructedDataWeeklySchedule extends BACnetConstructedData i
     return weeklySchedule;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -91,16 +84,12 @@ public class BACnetConstructedDataWeeklySchedule extends BACnetConstructedData i
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataWeeklySchedule");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (weeklySchedule)
     writeComplexTypeArrayField("weeklySchedule", weeklySchedule, writeBuffer);
@@ -173,43 +162,26 @@ public class BACnetConstructedDataWeeklySchedule extends BACnetConstructedData i
 
     readBuffer.closeContext("BACnetConstructedDataWeeklySchedule");
     // Create the instance
-    return new BACnetConstructedDataWeeklyScheduleBuilderImpl(
-        numberOfDataElements, weeklySchedule, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataWeeklyScheduleBuilderImpl(numberOfDataElements, weeklySchedule);
   }
 
   public static class BACnetConstructedDataWeeklyScheduleBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetDailySchedule> weeklySchedule;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataWeeklyScheduleBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetDailySchedule> weeklySchedule,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetDailySchedule> weeklySchedule) {
       this.numberOfDataElements = numberOfDataElements;
       this.weeklySchedule = weeklySchedule;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataWeeklySchedule build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataWeeklySchedule bACnetConstructedDataWeeklySchedule =
           new BACnetConstructedDataWeeklySchedule(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              weeklySchedule,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, weeklySchedule);
       return bACnetConstructedDataWeeklySchedule;
     }
   }

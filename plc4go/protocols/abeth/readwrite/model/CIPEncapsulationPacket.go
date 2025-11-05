@@ -22,6 +22,7 @@ package model
 import (
 	"context"
 	"encoding/binary"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -146,7 +147,7 @@ type _CIPEncapsulationPacketBuilder struct {
 
 	childBuilder _CIPEncapsulationPacketChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CIPEncapsulationPacketBuilder) = (*_CIPEncapsulationPacketBuilder)(nil)
@@ -176,8 +177,8 @@ func (b *_CIPEncapsulationPacketBuilder) WithOptions(options uint32) CIPEncapsul
 }
 
 func (b *_CIPEncapsulationPacketBuilder) PartialBuild() (CIPEncapsulationPacketContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CIPEncapsulationPacket.deepCopy(), nil
 }
@@ -254,8 +255,8 @@ func (b *_CIPEncapsulationPacketBuilder) DeepCopy() any {
 	_copy := b.CreateCIPEncapsulationPacketBuilder().(*_CIPEncapsulationPacketBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_CIPEncapsulationPacketChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -366,7 +367,7 @@ func CIPEncapsulationPacketParseWithBufferProducer[T CIPEncapsulationPacket]() f
 }
 
 func CIPEncapsulationPacketParseWithBuffer[T CIPEncapsulationPacket](ctx context.Context, readBuffer utils.ReadBuffer) (T, error) {
-	v, err := (&_CIPEncapsulationPacket{}).parse(ctx, readBuffer)
+	v, err := (new(_CIPEncapsulationPacket)).parse(ctx, readBuffer)
 	if err != nil {
 		var zero T
 		return zero, err

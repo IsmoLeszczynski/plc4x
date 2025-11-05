@@ -22,6 +22,7 @@ package model
 import (
 	"context"
 	"encoding/binary"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -54,16 +55,13 @@ type BVLCWriteBroadcastDistributionTable interface {
 type _BVLCWriteBroadcastDistributionTable struct {
 	BVLCContract
 	Table []BVLCBroadcastDistributionTableEntry
-
-	// Arguments.
-	BvlcPayloadLength uint16
 }
 
 var _ BVLCWriteBroadcastDistributionTable = (*_BVLCWriteBroadcastDistributionTable)(nil)
 var _ BVLCRequirements = (*_BVLCWriteBroadcastDistributionTable)(nil)
 
 // NewBVLCWriteBroadcastDistributionTable factory function for _BVLCWriteBroadcastDistributionTable
-func NewBVLCWriteBroadcastDistributionTable(table []BVLCBroadcastDistributionTableEntry, bvlcPayloadLength uint16) *_BVLCWriteBroadcastDistributionTable {
+func NewBVLCWriteBroadcastDistributionTable(table []BVLCBroadcastDistributionTableEntry) *_BVLCWriteBroadcastDistributionTable {
 	_result := &_BVLCWriteBroadcastDistributionTable{
 		BVLCContract: NewBVLC(),
 		Table:        table,
@@ -84,8 +82,6 @@ type BVLCWriteBroadcastDistributionTableBuilder interface {
 	WithMandatoryFields(table []BVLCBroadcastDistributionTableEntry) BVLCWriteBroadcastDistributionTableBuilder
 	// WithTable adds Table (property field)
 	WithTable(...BVLCBroadcastDistributionTableEntry) BVLCWriteBroadcastDistributionTableBuilder
-	// WithArgBvlcPayloadLength sets a parser argument
-	WithArgBvlcPayloadLength(uint16) BVLCWriteBroadcastDistributionTableBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BVLCBuilder
 	// Build builds the BVLCWriteBroadcastDistributionTable or returns an error if something is wrong
@@ -104,7 +100,7 @@ type _BVLCWriteBroadcastDistributionTableBuilder struct {
 
 	parentBuilder *_BVLCBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BVLCWriteBroadcastDistributionTableBuilder) = (*_BVLCWriteBroadcastDistributionTableBuilder)(nil)
@@ -123,14 +119,9 @@ func (b *_BVLCWriteBroadcastDistributionTableBuilder) WithTable(table ...BVLCBro
 	return b
 }
 
-func (b *_BVLCWriteBroadcastDistributionTableBuilder) WithArgBvlcPayloadLength(bvlcPayloadLength uint16) BVLCWriteBroadcastDistributionTableBuilder {
-	b.BvlcPayloadLength = bvlcPayloadLength
-	return b
-}
-
 func (b *_BVLCWriteBroadcastDistributionTableBuilder) Build() (BVLCWriteBroadcastDistributionTable, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BVLCWriteBroadcastDistributionTable.deepCopy(), nil
 }
@@ -156,8 +147,8 @@ func (b *_BVLCWriteBroadcastDistributionTableBuilder) buildForBVLC() (BVLC, erro
 
 func (b *_BVLCWriteBroadcastDistributionTableBuilder) DeepCopy() any {
 	_copy := b.CreateBVLCWriteBroadcastDistributionTableBuilder().(*_BVLCWriteBroadcastDistributionTableBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -293,16 +284,6 @@ func (m *_BVLCWriteBroadcastDistributionTable) SerializeWithWriteBuffer(ctx cont
 	return m.BVLCContract.(*_BVLC).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BVLCWriteBroadcastDistributionTable) GetBvlcPayloadLength() uint16 {
-	return m.BvlcPayloadLength
-}
-
-//
-////
-
 func (m *_BVLCWriteBroadcastDistributionTable) IsBVLCWriteBroadcastDistributionTable() {}
 
 func (m *_BVLCWriteBroadcastDistributionTable) DeepCopy() any {
@@ -316,7 +297,6 @@ func (m *_BVLCWriteBroadcastDistributionTable) deepCopy() *_BVLCWriteBroadcastDi
 	_BVLCWriteBroadcastDistributionTableCopy := &_BVLCWriteBroadcastDistributionTable{
 		m.BVLCContract.(*_BVLC).deepCopy(),
 		utils.DeepCopySlice[BVLCBroadcastDistributionTableEntry, BVLCBroadcastDistributionTableEntry](m.Table),
-		m.BvlcPayloadLength,
 	}
 	_BVLCWriteBroadcastDistributionTableCopy.BVLCContract.(*_BVLC)._SubType = m
 	return _BVLCWriteBroadcastDistributionTableCopy

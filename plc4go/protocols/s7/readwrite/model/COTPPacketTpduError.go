@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,9 +62,9 @@ var _ COTPPacketTpduError = (*_COTPPacketTpduError)(nil)
 var _ COTPPacketRequirements = (*_COTPPacketTpduError)(nil)
 
 // NewCOTPPacketTpduError factory function for _COTPPacketTpduError
-func NewCOTPPacketTpduError(parameters []COTPParameter, payload S7Message, destinationReference uint16, rejectCause uint8, cotpLen uint16) *_COTPPacketTpduError {
+func NewCOTPPacketTpduError(parameters []COTPParameter, payload S7Message, destinationReference uint16, rejectCause uint8) *_COTPPacketTpduError {
 	_result := &_COTPPacketTpduError{
-		COTPPacketContract:   NewCOTPPacket(parameters, payload, cotpLen),
+		COTPPacketContract:   NewCOTPPacket(parameters, payload),
 		DestinationReference: destinationReference,
 		RejectCause:          rejectCause,
 	}
@@ -103,7 +104,7 @@ type _COTPPacketTpduErrorBuilder struct {
 
 	parentBuilder *_COTPPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (COTPPacketTpduErrorBuilder) = (*_COTPPacketTpduErrorBuilder)(nil)
@@ -128,8 +129,8 @@ func (b *_COTPPacketTpduErrorBuilder) WithRejectCause(rejectCause uint8) COTPPac
 }
 
 func (b *_COTPPacketTpduErrorBuilder) Build() (COTPPacketTpduError, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._COTPPacketTpduError.deepCopy(), nil
 }
@@ -155,8 +156,8 @@ func (b *_COTPPacketTpduErrorBuilder) buildForCOTPPacket() (COTPPacket, error) {
 
 func (b *_COTPPacketTpduErrorBuilder) DeepCopy() any {
 	_copy := b.CreateCOTPPacketTpduErrorBuilder().(*_COTPPacketTpduErrorBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

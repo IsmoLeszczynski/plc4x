@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataShedLevels interface {
 	// GetShedLevels returns ShedLevels (property field)
 	GetShedLevels() []BACnetApplicationTagUnsignedInteger
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataShedLevels is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataShedLevels()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataShedLevels = (*_BACnetConstructedDataShedLevels)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataShedLevels)(nil)
 
 // NewBACnetConstructedDataShedLevels factory function for _BACnetConstructedDataShedLevels
-func NewBACnetConstructedDataShedLevels(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, shedLevels []BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataShedLevels {
+func NewBACnetConstructedDataShedLevels(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, shedLevels []BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataShedLevels {
 	_result := &_BACnetConstructedDataShedLevels{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		ShedLevels:                    shedLevels,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataShedLevelsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataShedLevelsBuilder) = (*_BACnetConstructedDataShedLevelsBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataShedLevelsBuilder) WithOptionalNumberOfDataElemen
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataShedLevelsBuilder) WithShedLevels(shedLevels ...B
 }
 
 func (b *_BACnetConstructedDataShedLevelsBuilder) Build() (BACnetConstructedDataShedLevels, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataShedLevels.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataShedLevelsBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataShedLevelsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataShedLevelsBuilder().(*_BACnetConstructedDataShedLevelsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

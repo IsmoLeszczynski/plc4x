@@ -49,21 +49,13 @@ public class BACnetConstructedDataBACnetIPv6Mode extends BACnetConstructedData i
   // Properties.
   protected final BACnetIPModeTagged bacnetIpv6Mode;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataBACnetIPv6Mode(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetIPModeTagged bacnetIpv6Mode,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetIPModeTagged bacnetIpv6Mode) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.bacnetIpv6Mode = bacnetIpv6Mode;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetIPModeTagged getBacnetIpv6Mode() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataBACnetIPv6Mode extends BACnetConstructedData i
     // Simple Field (bacnetIpv6Mode)
     writeSimpleField("bacnetIpv6Mode", bacnetIpv6Mode, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetIPModeTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,39 +126,22 @@ public class BACnetConstructedDataBACnetIPv6Mode extends BACnetConstructedData i
 
     readBuffer.closeContext("BACnetConstructedDataBACnetIPv6Mode");
     // Create the instance
-    return new BACnetConstructedDataBACnetIPv6ModeBuilderImpl(
-        bacnetIpv6Mode, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataBACnetIPv6ModeBuilderImpl(bacnetIpv6Mode);
   }
 
   public static class BACnetConstructedDataBACnetIPv6ModeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetIPModeTagged bacnetIpv6Mode;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataBACnetIPv6ModeBuilderImpl(
-        BACnetIPModeTagged bacnetIpv6Mode,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataBACnetIPv6ModeBuilderImpl(BACnetIPModeTagged bacnetIpv6Mode) {
       this.bacnetIpv6Mode = bacnetIpv6Mode;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataBACnetIPv6Mode build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataBACnetIPv6Mode bACnetConstructedDataBACnetIPv6Mode =
           new BACnetConstructedDataBACnetIPv6Mode(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              bacnetIpv6Mode,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, bacnetIpv6Mode);
       return bACnetConstructedDataBACnetIPv6Mode;
     }
   }

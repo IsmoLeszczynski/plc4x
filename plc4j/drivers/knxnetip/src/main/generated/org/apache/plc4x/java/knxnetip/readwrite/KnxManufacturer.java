@@ -28,11 +28,11 @@ import java.util.Map;
 public enum KnxManufacturer {
   M_UNKNOWN((int) 0, (int) 0, (String) "Unknown Manufacturer"),
   M_SIEMENS((int) 1, (int) 1, (String) "Siemens"),
-  M_ABB((int) 2, (int) 2, (String) "ABB"),
+  M_ABB_AG_STOTZ___KONTAKT((int) 2, (int) 2, (String) "ABB AG (Stotz - Kontakt)"),
   M_ALBRECHT_JUNG((int) 3, (int) 4, (String) "Albrecht Jung"),
   M_BTICINO((int) 4, (int) 5, (String) "Bticino"),
   M_BERKER((int) 5, (int) 6, (String) "Berker"),
-  M_BUSCH_JAEGER_ELEKTRO((int) 6, (int) 7, (String) "Busch-Jaeger Elektro"),
+  M_ABB_AG_BUSCH___JAEGER((int) 6, (int) 7, (String) "ABB AG (Busch - Jaeger)"),
   M_GIRA_GIERSIEPEN((int) 7, (int) 8, (String) "GIRA Giersiepen"),
   M_HAGER_ELECTRO((int) 8, (int) 9, (String) "Hager Electro"),
   M_INSTA_GMBH((int) 9, (int) 10, (String) "Insta GmbH"),
@@ -442,7 +442,7 @@ public enum KnxManufacturer {
   M_MOORGEN_DEUTSCHLAND_GMBH((int) 390, (int) 441, (String) "Moorgen Deutschland GmbH"),
   M_CULLMANN_TECH((int) 391, (int) 442, (String) "CULLMANN TECH"),
   M_EYRISE_B_V((int) 392, (int) 443, (String) "eyrise B.V"),
-  M_ABEGO((int) 393, (int) 444, (String) "ABEGO"),
+  M_DOBNEL((int) 393, (int) 444, (String) "Dobnel"),
   M_MYGEKKO((int) 394, (int) 445, (String) "myGEKKO"),
   M_ERGO3_SARL((int) 395, (int) 446, (String) "Ergo3 Sarl"),
   M_STMICROELECTRONICS_INTERNATIONAL_N_V_(
@@ -613,7 +613,8 @@ public enum KnxManufacturer {
       (int) 533, (int) 588, (String) "WUERTH ELEKTRONIK STELVIO KONTEK S.p.A."),
   M_NANOTECO_CORPORATION((int) 534, (int) 589, (String) "NANOTECO corporation"),
   M_NIETIAN((int) 535, (int) 590, (String) "Nietian"),
-  M_SUMSIR((int) 536, (int) 591, (String) "Sumsir"),
+  M_GUANGZHOU_SUMSIR_INTELLIGENT_TECHNOLOGY_CO___LTD(
+      (int) 536, (int) 591, (String) "Guangzhou Sumsir Intelligent Technology Co., Ltd"),
   M_ORBIS_TECNOLOGIA_ELECTRICA_SA((int) 537, (int) 592, (String) "ORBIS TECNOLOGIA ELECTRICA SA"),
   M_NANJING_ZHONGYI_IOT_TECHNOLOGY_CO___LTD_(
       (int) 538, (int) 593, (String) "Nanjing Zhongyi IoT Technology Co., Ltd."),
@@ -835,7 +836,7 @@ public enum KnxManufacturer {
   M_LAPP((int) 712, (int) 773, (String) "LAPP"),
   M_ZEROBIT_DYNAMIC((int) 713, (int) 774, (String) "ZEROBIT DYNAMIC"),
   M_HAVELLS((int) 714, (int) 775, (String) "havells"),
-  M_MULLER_INTUITIV((int) 715, (int) 776, (String) "Muller Intuitiv"),
+  M_INTUIS_ELEC((int) 715, (int) 776, (String) "intuis-Elec"),
   M_TASKIT_GMBH((int) 716, (int) 777, (String) "taskit GmbH"),
   M_COSTER_GROUP((int) 717, (int) 778, (String) "Coster Group"),
   M_NXP_SEMICONDUCTOR((int) 718, (int) 779, (String) "NXP Semiconductor"),
@@ -867,15 +868,42 @@ public enum KnxManufacturer {
       (int) 739, (int) 800, (String) "Hangzhou Konke Information Technology Co., Ltd."),
   M_SHANGHAI_FANTE_DIGITAL_TECHNOLOGY_CO___LTD(
       (int) 740, (int) 801, (String) "Shanghai Fante Digital Technology Co., Ltd"),
-  M_CONFIO((int) 741, (int) 802, (String) "CONFIO"),
+  M_CONFIO_TECHNOLOGIES_PVT__LTD((int) 741, (int) 802, (String) "Confio Technologies Pvt. Ltd"),
   M_SONIC_TECHNOLOGIES((int) 742, (int) 803, (String) "Sonic Technologies"),
   M_SHANGHAI_INNOVATECH_INFORMATION_TECHNOLOGY_CO___LT(
       (int) 743, (int) 804, (String) "Shanghai Innovatech Information Technology Co., Lt"),
   M_ABI_SICHERHEITSSYSTEME_GMBH((int) 744, (int) 805, (String) "ABI Sicherheitssysteme GmbH"),
   M_RYT((int) 745, (int) 806, (String) "RYT"),
-  M_ABB___RESERVED((int) 746, (int) 43954, (String) "ABB - reserved"),
+  M_AURIGA_SYSTEMS((int) 746, (int) 807, (String) "Auriga Systems"),
+  M_ALZINGERANDVOGEL_SOFTWAREENTWICKLUNGS_GMBH(
+      (int) 747, (int) 808, (String) "Alzinger&Vogel Softwareentwicklungs GmbH"),
+  M_GIANFRANCO_SMART_SOLUTIONS_LTD((int) 748, (int) 809, (String) "Gianfranco Smart Solutions Ltd"),
+  M_ROGERWELL_CONTROL_SYSTEM_LIMITED(
+      (int) 749, (int) 810, (String) "Rogerwell Control System Limited"),
+  M_SHANGHAI_YUKON_AUTOMATION_TECHNOLOGIES_CO___LTD_(
+      (int) 750, (int) 811, (String) "Shanghai YUKON Automation Technologies Co., Ltd."),
+  M_TECCO_PTY_LTD((int) 751, (int) 812, (String) "Tecco Pty Ltd"),
+  M_A_LAN_TECHNOLOGIE((int) 752, (int) 813, (String) "A-LAN Technologie"),
+  M_VOLTAN_TECHNOLOGY((int) 753, (int) 814, (String) "Voltan Technology"),
+  M_BAERWINKEL_AND_STRASSER_GMBH((int) 754, (int) 815, (String) "Baerwinkel & Strasser GmbH"),
+  M_CATERLUX((int) 755, (int) 816, (String) "Caterlux"),
+  M_EVOTEC_SOLUTION_LTD((int) 756, (int) 817, (String) "evotec solution ltd"),
+  M_NANTONG_JINGXI((int) 757, (int) 818, (String) "NanTong JingXi"),
+  M_ENERVON_TECHNOLOGY((int) 758, (int) 819, (String) "Enervon Technology"),
+  M_STRUCTURED_CABLE_PRODUCTS((int) 759, (int) 820, (String) "structured cable products"),
+  M_JIWU_FUZHOU_TECHNOLOGY_CO___LTD_(
+      (int) 760, (int) 821, (String) "Jiwu (Fuzhou) Technology Co., Ltd."),
+  M_FOSHAN_BRISDOM_TECHNOLOGY_CO___LTD_(
+      (int) 761, (int) 822, (String) "Foshan Brisdom Technology Co., Ltd."),
+  M_YUEOING_ZHONGYI_ELECTRICALCO__LTD(
+      (int) 762, (int) 823, (String) "YUEOING ZHONGYI ELECTRICALCO.,LTD"),
+  M_HYUNDAI((int) 763, (int) 824, (String) "HYUNDAI"),
+  M_QINGDAO_HISENSE_TRANSTECH_CO__LTD_(
+      (int) 764, (int) 825, (String) "Qingdao Hisense TransTech Co.,Ltd."),
+  M_SPECIALCAVI_BALDASSARI_SRL((int) 765, (int) 826, (String) "SPECIALCAVI BALDASSARI SRL"),
+  M_ABB___RESERVED((int) 766, (int) 43954, (String) "ABB - reserved"),
   M_BUSCH_JAEGER_ELEKTRO___RESERVED(
-      (int) 747, (int) 43959, (String) "Busch-Jaeger Elektro - reserved");
+      (int) 767, (int) 43959, (String) "Busch-Jaeger Elektro - reserved");
   private static final Map<Integer, KnxManufacturer> map;
 
   static {

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataMultiStateOutputRelinquishDefault = (*_BACnetConstruc
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMultiStateOutputRelinquishDefault)(nil)
 
 // NewBACnetConstructedDataMultiStateOutputRelinquishDefault factory function for _BACnetConstructedDataMultiStateOutputRelinquishDefault
-func NewBACnetConstructedDataMultiStateOutputRelinquishDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, relinquishDefault BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMultiStateOutputRelinquishDefault {
+func NewBACnetConstructedDataMultiStateOutputRelinquishDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, relinquishDefault BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataMultiStateOutputRelinquishDefault {
 	if relinquishDefault == nil {
 		panic("relinquishDefault of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataMultiStateOutputRelinquishDefault must not be nil")
 	}
 	_result := &_BACnetConstructedDataMultiStateOutputRelinquishDefault{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		RelinquishDefault:             relinquishDefault,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder) = (*_BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder) WithRel
 	var err error
 	b.RelinquishDefault, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder) Build() (BACnetConstructedDataMultiStateOutputRelinquishDefault, error) {
 	if b.RelinquishDefault == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'relinquishDefault' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'relinquishDefault' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMultiStateOutputRelinquishDefault.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder) buildFo
 
 func (b *_BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder().(*_BACnetConstructedDataMultiStateOutputRelinquishDefaultBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

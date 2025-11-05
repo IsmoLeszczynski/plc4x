@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataLifeSafetyZoneFaultValues = (*_BACnetConstructedDataL
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLifeSafetyZoneFaultValues)(nil)
 
 // NewBACnetConstructedDataLifeSafetyZoneFaultValues factory function for _BACnetConstructedDataLifeSafetyZoneFaultValues
-func NewBACnetConstructedDataLifeSafetyZoneFaultValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, faultValues []BACnetLifeSafetyStateTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLifeSafetyZoneFaultValues {
+func NewBACnetConstructedDataLifeSafetyZoneFaultValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, faultValues []BACnetLifeSafetyStateTagged) *_BACnetConstructedDataLifeSafetyZoneFaultValues {
 	_result := &_BACnetConstructedDataLifeSafetyZoneFaultValues{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FaultValues:                   faultValues,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder) = (*_BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder) WithFaultValues
 }
 
 func (b *_BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder) Build() (BACnetConstructedDataLifeSafetyZoneFaultValues, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLifeSafetyZoneFaultValues.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder) buildForBACnetC
 
 func (b *_BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLifeSafetyZoneFaultValuesBuilder().(*_BACnetConstructedDataLifeSafetyZoneFaultValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

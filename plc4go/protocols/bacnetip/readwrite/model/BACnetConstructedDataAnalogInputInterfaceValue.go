@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAnalogInputInterfaceValue = (*_BACnetConstructedDataA
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAnalogInputInterfaceValue)(nil)
 
 // NewBACnetConstructedDataAnalogInputInterfaceValue factory function for _BACnetConstructedDataAnalogInputInterfaceValue
-func NewBACnetConstructedDataAnalogInputInterfaceValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, interfaceValue BACnetOptionalREAL, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAnalogInputInterfaceValue {
+func NewBACnetConstructedDataAnalogInputInterfaceValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, interfaceValue BACnetOptionalREAL) *_BACnetConstructedDataAnalogInputInterfaceValue {
 	if interfaceValue == nil {
 		panic("interfaceValue of type BACnetOptionalREAL for BACnetConstructedDataAnalogInputInterfaceValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataAnalogInputInterfaceValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		InterfaceValue:                interfaceValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAnalogInputInterfaceValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAnalogInputInterfaceValueBuilder) = (*_BACnetConstructedDataAnalogInputInterfaceValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAnalogInputInterfaceValueBuilder) WithInterfaceVa
 	var err error
 	b.InterfaceValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOptionalREALBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOptionalREALBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAnalogInputInterfaceValueBuilder) Build() (BACnetConstructedDataAnalogInputInterfaceValue, error) {
 	if b.InterfaceValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'interfaceValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'interfaceValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAnalogInputInterfaceValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAnalogInputInterfaceValueBuilder) buildForBACnetC
 
 func (b *_BACnetConstructedDataAnalogInputInterfaceValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAnalogInputInterfaceValueBuilder().(*_BACnetConstructedDataAnalogInputInterfaceValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

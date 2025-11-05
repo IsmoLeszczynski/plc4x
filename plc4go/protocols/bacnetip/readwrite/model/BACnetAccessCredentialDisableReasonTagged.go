@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetAccessCredentialDisableReasonTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetAccessCredentialDisableReason
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetAccessCredentialDisableReasonTagged = (*_BACnetAccessCredentialDisableReasonTagged)(nil)
 
 // NewBACnetAccessCredentialDisableReasonTagged factory function for _BACnetAccessCredentialDisableReasonTagged
-func NewBACnetAccessCredentialDisableReasonTagged(header BACnetTagHeader, value BACnetAccessCredentialDisableReason, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetAccessCredentialDisableReasonTagged {
+func NewBACnetAccessCredentialDisableReasonTagged(header BACnetTagHeader, value BACnetAccessCredentialDisableReason, proprietaryValue uint32) *_BACnetAccessCredentialDisableReasonTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetAccessCredentialDisableReasonTagged must not be nil")
 	}
-	return &_BACnetAccessCredentialDisableReasonTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetAccessCredentialDisableReasonTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetAccessCredentialDisableReasonTaggedBuilder interface {
 	WithValue(BACnetAccessCredentialDisableReason) BACnetAccessCredentialDisableReasonTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetAccessCredentialDisableReasonTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetAccessCredentialDisableReasonTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetAccessCredentialDisableReasonTaggedBuilder
 	// Build builds the BACnetAccessCredentialDisableReasonTagged or returns an error if something is wrong
 	Build() (BACnetAccessCredentialDisableReasonTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetAccessCredentialDisableReasonTaggedBuilder() BACnetAccessCredentia
 type _BACnetAccessCredentialDisableReasonTaggedBuilder struct {
 	*_BACnetAccessCredentialDisableReasonTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetAccessCredentialDisableReasonTaggedBuilder) = (*_BACnetAccessCredentialDisableReasonTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetAccessCredentialDisableReasonTaggedBuilder) WithHeaderBuilder(bu
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetAccessCredentialDisableReasonTaggedBuilder) WithProprietaryValue
 	return b
 }
 
-func (b *_BACnetAccessCredentialDisableReasonTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetAccessCredentialDisableReasonTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetAccessCredentialDisableReasonTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetAccessCredentialDisableReasonTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetAccessCredentialDisableReasonTaggedBuilder) Build() (BACnetAccessCredentialDisableReasonTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetAccessCredentialDisableReasonTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetAccessCredentialDisableReasonTaggedBuilder) MustBuild() BACnetAc
 
 func (b *_BACnetAccessCredentialDisableReasonTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetAccessCredentialDisableReasonTaggedBuilder().(*_BACnetAccessCredentialDisableReasonTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetAccessCredentialDisableReasonTaggedParseWithBufferProducer(tagNumber 
 }
 
 func BACnetAccessCredentialDisableReasonTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetAccessCredentialDisableReasonTagged, error) {
-	v, err := (&_BACnetAccessCredentialDisableReasonTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetAccessCredentialDisableReasonTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetAccessCredentialDisableReasonTagged) SerializeWithWriteBuffer(ct
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetAccessCredentialDisableReasonTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetAccessCredentialDisableReasonTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetAccessCredentialDisableReasonTagged) IsBACnetAccessCredentialDisableReasonTagged() {}
 
 func (m *_BACnetAccessCredentialDisableReasonTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_BACnetAccessCredentialDisableReasonTagged) deepCopy() *_BACnetAccessCr
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetAccessCredentialDisableReasonTaggedCopy
 }

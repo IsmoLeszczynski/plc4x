@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ SetAttributeListResponse = (*_SetAttributeListResponse)(nil)
 var _ CipServiceRequirements = (*_SetAttributeListResponse)(nil)
 
 // NewSetAttributeListResponse factory function for _SetAttributeListResponse
-func NewSetAttributeListResponse(serviceLen uint16) *_SetAttributeListResponse {
+func NewSetAttributeListResponse() *_SetAttributeListResponse {
 	_result := &_SetAttributeListResponse{
-		CipServiceContract: NewCipService(serviceLen),
+		CipServiceContract: NewCipService(),
 	}
 	_result.CipServiceContract.(*_CipService)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _SetAttributeListResponseBuilder struct {
 
 	parentBuilder *_CipServiceBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (SetAttributeListResponseBuilder) = (*_SetAttributeListResponseBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_SetAttributeListResponseBuilder) WithMandatoryFields() SetAttributeLis
 }
 
 func (b *_SetAttributeListResponseBuilder) Build() (SetAttributeListResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._SetAttributeListResponse.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_SetAttributeListResponseBuilder) buildForCipService() (CipService, err
 
 func (b *_SetAttributeListResponseBuilder) DeepCopy() any {
 	_copy := b.CreateSetAttributeListResponseBuilder().(*_SetAttributeListResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

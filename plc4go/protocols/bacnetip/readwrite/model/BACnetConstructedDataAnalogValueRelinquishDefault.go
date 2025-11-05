@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAnalogValueRelinquishDefault = (*_BACnetConstructedDa
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAnalogValueRelinquishDefault)(nil)
 
 // NewBACnetConstructedDataAnalogValueRelinquishDefault factory function for _BACnetConstructedDataAnalogValueRelinquishDefault
-func NewBACnetConstructedDataAnalogValueRelinquishDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, relinquishDefault BACnetApplicationTagReal, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAnalogValueRelinquishDefault {
+func NewBACnetConstructedDataAnalogValueRelinquishDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, relinquishDefault BACnetApplicationTagReal) *_BACnetConstructedDataAnalogValueRelinquishDefault {
 	if relinquishDefault == nil {
 		panic("relinquishDefault of type BACnetApplicationTagReal for BACnetConstructedDataAnalogValueRelinquishDefault must not be nil")
 	}
 	_result := &_BACnetConstructedDataAnalogValueRelinquishDefault{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		RelinquishDefault:             relinquishDefault,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAnalogValueRelinquishDefaultBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAnalogValueRelinquishDefaultBuilder) = (*_BACnetConstructedDataAnalogValueRelinquishDefaultBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAnalogValueRelinquishDefaultBuilder) WithRelinqui
 	var err error
 	b.RelinquishDefault, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAnalogValueRelinquishDefaultBuilder) Build() (BACnetConstructedDataAnalogValueRelinquishDefault, error) {
 	if b.RelinquishDefault == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'relinquishDefault' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'relinquishDefault' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAnalogValueRelinquishDefault.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAnalogValueRelinquishDefaultBuilder) buildForBACn
 
 func (b *_BACnetConstructedDataAnalogValueRelinquishDefaultBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAnalogValueRelinquishDefaultBuilder().(*_BACnetConstructedDataAnalogValueRelinquishDefaultBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

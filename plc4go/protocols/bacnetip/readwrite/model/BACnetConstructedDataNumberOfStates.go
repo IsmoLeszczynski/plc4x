@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNumberOfStates = (*_BACnetConstructedDataNumberOfStat
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNumberOfStates)(nil)
 
 // NewBACnetConstructedDataNumberOfStates factory function for _BACnetConstructedDataNumberOfStates
-func NewBACnetConstructedDataNumberOfStates(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfState BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNumberOfStates {
+func NewBACnetConstructedDataNumberOfStates(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfState BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataNumberOfStates {
 	if numberOfState == nil {
 		panic("numberOfState of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataNumberOfStates must not be nil")
 	}
 	_result := &_BACnetConstructedDataNumberOfStates{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfState:                 numberOfState,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNumberOfStatesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNumberOfStatesBuilder) = (*_BACnetConstructedDataNumberOfStatesBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNumberOfStatesBuilder) WithNumberOfStateBuilder(b
 	var err error
 	b.NumberOfState, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNumberOfStatesBuilder) Build() (BACnetConstructedDataNumberOfStates, error) {
 	if b.NumberOfState == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'numberOfState' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'numberOfState' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNumberOfStates.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNumberOfStatesBuilder) buildForBACnetConstructedD
 
 func (b *_BACnetConstructedDataNumberOfStatesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNumberOfStatesBuilder().(*_BACnetConstructedDataNumberOfStatesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

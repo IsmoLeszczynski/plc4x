@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataGlobalGroupPresentValue interface {
 	// GetPresentValue returns PresentValue (property field)
 	GetPresentValue() []BACnetPropertyAccessResult
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataGlobalGroupPresentValue is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataGlobalGroupPresentValue()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataGlobalGroupPresentValue = (*_BACnetConstructedDataGlo
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataGlobalGroupPresentValue)(nil)
 
 // NewBACnetConstructedDataGlobalGroupPresentValue factory function for _BACnetConstructedDataGlobalGroupPresentValue
-func NewBACnetConstructedDataGlobalGroupPresentValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, presentValue []BACnetPropertyAccessResult, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataGlobalGroupPresentValue {
+func NewBACnetConstructedDataGlobalGroupPresentValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, presentValue []BACnetPropertyAccessResult) *_BACnetConstructedDataGlobalGroupPresentValue {
 	_result := &_BACnetConstructedDataGlobalGroupPresentValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		PresentValue:                  presentValue,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataGlobalGroupPresentValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataGlobalGroupPresentValueBuilder) = (*_BACnetConstructedDataGlobalGroupPresentValueBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataGlobalGroupPresentValueBuilder) WithOptionalNumbe
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataGlobalGroupPresentValueBuilder) WithPresentValue(
 }
 
 func (b *_BACnetConstructedDataGlobalGroupPresentValueBuilder) Build() (BACnetConstructedDataGlobalGroupPresentValue, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataGlobalGroupPresentValue.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataGlobalGroupPresentValueBuilder) buildForBACnetCon
 
 func (b *_BACnetConstructedDataGlobalGroupPresentValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataGlobalGroupPresentValueBuilder().(*_BACnetConstructedDataGlobalGroupPresentValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

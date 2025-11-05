@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -79,7 +80,7 @@ var _ BACnetNotificationParametersChangeOfTimer = (*_BACnetNotificationParameter
 var _ BACnetNotificationParametersRequirements = (*_BACnetNotificationParametersChangeOfTimer)(nil)
 
 // NewBACnetNotificationParametersChangeOfTimer factory function for _BACnetNotificationParametersChangeOfTimer
-func NewBACnetNotificationParametersChangeOfTimer(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, innerOpeningTag BACnetOpeningTag, newValue BACnetTimerStateTagged, statusFlags BACnetStatusFlagsTagged, updateTime BACnetDateTimeEnclosed, lastStateChange BACnetTimerTransitionTagged, initialTimeout BACnetContextTagUnsignedInteger, expirationTime BACnetDateTimeEnclosed, innerClosingTag BACnetClosingTag, tagNumber uint8, objectTypeArgument BACnetObjectType) *_BACnetNotificationParametersChangeOfTimer {
+func NewBACnetNotificationParametersChangeOfTimer(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, innerOpeningTag BACnetOpeningTag, newValue BACnetTimerStateTagged, statusFlags BACnetStatusFlagsTagged, updateTime BACnetDateTimeEnclosed, lastStateChange BACnetTimerTransitionTagged, initialTimeout BACnetContextTagUnsignedInteger, expirationTime BACnetDateTimeEnclosed, innerClosingTag BACnetClosingTag) *_BACnetNotificationParametersChangeOfTimer {
 	if innerOpeningTag == nil {
 		panic("innerOpeningTag of type BACnetOpeningTag for BACnetNotificationParametersChangeOfTimer must not be nil")
 	}
@@ -96,7 +97,7 @@ func NewBACnetNotificationParametersChangeOfTimer(openingTag BACnetOpeningTag, p
 		panic("innerClosingTag of type BACnetClosingTag for BACnetNotificationParametersChangeOfTimer must not be nil")
 	}
 	_result := &_BACnetNotificationParametersChangeOfTimer{
-		BACnetNotificationParametersContract: NewBACnetNotificationParameters(openingTag, peekedTagHeader, closingTag, tagNumber, objectTypeArgument),
+		BACnetNotificationParametersContract: NewBACnetNotificationParameters(openingTag, peekedTagHeader, closingTag),
 		InnerOpeningTag:                      innerOpeningTag,
 		NewValue:                             newValue,
 		StatusFlags:                          statusFlags,
@@ -170,7 +171,7 @@ type _BACnetNotificationParametersChangeOfTimerBuilder struct {
 
 	parentBuilder *_BACnetNotificationParametersBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNotificationParametersChangeOfTimerBuilder) = (*_BACnetNotificationParametersChangeOfTimerBuilder)(nil)
@@ -194,10 +195,7 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithInnerOpeningTagB
 	var err error
 	b.InnerOpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -212,10 +210,7 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithNewValueBuilder(
 	var err error
 	b.NewValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTimerStateTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTimerStateTaggedBuilder failed"))
 	}
 	return b
 }
@@ -230,10 +225,7 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithStatusFlagsBuild
 	var err error
 	b.StatusFlags, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetStatusFlagsTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetStatusFlagsTaggedBuilder failed"))
 	}
 	return b
 }
@@ -248,10 +240,7 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithUpdateTimeBuilde
 	var err error
 	b.UpdateTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
 	}
 	return b
 }
@@ -266,10 +255,7 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithOptionalLastStat
 	var err error
 	b.LastStateChange, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTimerTransitionTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTimerTransitionTaggedBuilder failed"))
 	}
 	return b
 }
@@ -284,10 +270,7 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithOptionalInitialT
 	var err error
 	b.InitialTimeout, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -302,10 +285,7 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithOptionalExpirati
 	var err error
 	b.ExpirationTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
 	}
 	return b
 }
@@ -320,47 +300,29 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) WithInnerClosingTagB
 	var err error
 	b.InnerClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetNotificationParametersChangeOfTimerBuilder) Build() (BACnetNotificationParametersChangeOfTimer, error) {
 	if b.InnerOpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'innerOpeningTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'innerOpeningTag' not set"))
 	}
 	if b.NewValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'newValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'newValue' not set"))
 	}
 	if b.StatusFlags == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'statusFlags' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'statusFlags' not set"))
 	}
 	if b.UpdateTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'updateTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'updateTime' not set"))
 	}
 	if b.InnerClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'innerClosingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'innerClosingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNotificationParametersChangeOfTimer.deepCopy(), nil
 }
@@ -386,8 +348,8 @@ func (b *_BACnetNotificationParametersChangeOfTimerBuilder) buildForBACnetNotifi
 
 func (b *_BACnetNotificationParametersChangeOfTimerBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetNotificationParametersChangeOfTimerBuilder().(*_BACnetNotificationParametersChangeOfTimerBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

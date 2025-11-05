@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BinaryPayload = (*_BinaryPayload)(nil)
 var _ PayloadRequirements = (*_BinaryPayload)(nil)
 
 // NewBinaryPayload factory function for _BinaryPayload
-func NewBinaryPayload(sequenceHeader SequenceHeader, payload []byte, byteCount uint32) *_BinaryPayload {
+func NewBinaryPayload(sequenceHeader SequenceHeader, payload []byte) *_BinaryPayload {
 	_result := &_BinaryPayload{
-		PayloadContract: NewPayload(sequenceHeader, byteCount),
+		PayloadContract: NewPayload(sequenceHeader),
 		Payload:         payload,
 	}
 	_result.PayloadContract.(*_Payload)._SubType = _result
@@ -97,7 +98,7 @@ type _BinaryPayloadBuilder struct {
 
 	parentBuilder *_PayloadBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BinaryPayloadBuilder) = (*_BinaryPayloadBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BinaryPayloadBuilder) WithPayload(payload ...byte) BinaryPayloadBuilde
 }
 
 func (b *_BinaryPayloadBuilder) Build() (BinaryPayload, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BinaryPayload.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BinaryPayloadBuilder) buildForPayload() (Payload, error) {
 
 func (b *_BinaryPayloadBuilder) DeepCopy() any {
 	_copy := b.CreateBinaryPayloadBuilder().(*_BinaryPayloadBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

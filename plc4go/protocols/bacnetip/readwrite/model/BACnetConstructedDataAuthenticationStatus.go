@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAuthenticationStatus = (*_BACnetConstructedDataAuthen
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAuthenticationStatus)(nil)
 
 // NewBACnetConstructedDataAuthenticationStatus factory function for _BACnetConstructedDataAuthenticationStatus
-func NewBACnetConstructedDataAuthenticationStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, authenticationStatus BACnetAuthenticationStatusTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAuthenticationStatus {
+func NewBACnetConstructedDataAuthenticationStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, authenticationStatus BACnetAuthenticationStatusTagged) *_BACnetConstructedDataAuthenticationStatus {
 	if authenticationStatus == nil {
 		panic("authenticationStatus of type BACnetAuthenticationStatusTagged for BACnetConstructedDataAuthenticationStatus must not be nil")
 	}
 	_result := &_BACnetConstructedDataAuthenticationStatus{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AuthenticationStatus:          authenticationStatus,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAuthenticationStatusBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAuthenticationStatusBuilder) = (*_BACnetConstructedDataAuthenticationStatusBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAuthenticationStatusBuilder) WithAuthenticationSt
 	var err error
 	b.AuthenticationStatus, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetAuthenticationStatusTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetAuthenticationStatusTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAuthenticationStatusBuilder) Build() (BACnetConstructedDataAuthenticationStatus, error) {
 	if b.AuthenticationStatus == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'authenticationStatus' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'authenticationStatus' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAuthenticationStatus.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAuthenticationStatusBuilder) buildForBACnetConstr
 
 func (b *_BACnetConstructedDataAuthenticationStatusBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAuthenticationStatusBuilder().(*_BACnetConstructedDataAuthenticationStatusBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

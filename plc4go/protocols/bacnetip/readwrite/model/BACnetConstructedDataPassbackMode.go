@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataPassbackMode = (*_BACnetConstructedDataPassbackMode)(
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataPassbackMode)(nil)
 
 // NewBACnetConstructedDataPassbackMode factory function for _BACnetConstructedDataPassbackMode
-func NewBACnetConstructedDataPassbackMode(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, passbackMode BACnetAccessPassbackModeTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataPassbackMode {
+func NewBACnetConstructedDataPassbackMode(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, passbackMode BACnetAccessPassbackModeTagged) *_BACnetConstructedDataPassbackMode {
 	if passbackMode == nil {
 		panic("passbackMode of type BACnetAccessPassbackModeTagged for BACnetConstructedDataPassbackMode must not be nil")
 	}
 	_result := &_BACnetConstructedDataPassbackMode{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		PassbackMode:                  passbackMode,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataPassbackModeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataPassbackModeBuilder) = (*_BACnetConstructedDataPassbackModeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataPassbackModeBuilder) WithPassbackModeBuilder(buil
 	var err error
 	b.PassbackMode, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetAccessPassbackModeTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetAccessPassbackModeTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataPassbackModeBuilder) Build() (BACnetConstructedDataPassbackMode, error) {
 	if b.PassbackMode == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'passbackMode' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'passbackMode' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataPassbackMode.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataPassbackModeBuilder) buildForBACnetConstructedDat
 
 func (b *_BACnetConstructedDataPassbackModeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataPassbackModeBuilder().(*_BACnetConstructedDataPassbackModeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

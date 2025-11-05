@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -38,6 +39,7 @@ const S7DataAlarmMessage_FUNCTIONID uint8 = 0x00
 const S7DataAlarmMessage_NUMBERMESSAGEOBJ uint8 = 0x01
 
 // S7DataAlarmMessage is the corresponding interface of S7DataAlarmMessage
+// Under test
 type S7DataAlarmMessage interface {
 	S7DataAlarmMessageContract
 	S7DataAlarmMessageRequirements
@@ -122,7 +124,7 @@ type _S7DataAlarmMessageBuilder struct {
 
 	childBuilder _S7DataAlarmMessageChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (S7DataAlarmMessageBuilder) = (*_S7DataAlarmMessageBuilder)(nil)
@@ -132,8 +134,8 @@ func (b *_S7DataAlarmMessageBuilder) WithMandatoryFields() S7DataAlarmMessageBui
 }
 
 func (b *_S7DataAlarmMessageBuilder) PartialBuild() (S7DataAlarmMessageContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._S7DataAlarmMessage.deepCopy(), nil
 }
@@ -190,8 +192,8 @@ func (b *_S7DataAlarmMessageBuilder) DeepCopy() any {
 	_copy := b.CreateS7DataAlarmMessageBuilder().(*_S7DataAlarmMessageBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_S7DataAlarmMessageChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -278,7 +280,7 @@ func S7DataAlarmMessageParseWithBufferProducer[T S7DataAlarmMessage](cpuFunction
 }
 
 func S7DataAlarmMessageParseWithBuffer[T S7DataAlarmMessage](ctx context.Context, readBuffer utils.ReadBuffer, cpuFunctionType uint8) (T, error) {
-	v, err := (&_S7DataAlarmMessage{}).parse(ctx, readBuffer, cpuFunctionType)
+	v, err := (new(_S7DataAlarmMessage)).parse(ctx, readBuffer, cpuFunctionType)
 	if err != nil {
 		var zero T
 		return zero, err

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataMaximumOutput = (*_BACnetConstructedDataMaximumOutput
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMaximumOutput)(nil)
 
 // NewBACnetConstructedDataMaximumOutput factory function for _BACnetConstructedDataMaximumOutput
-func NewBACnetConstructedDataMaximumOutput(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maximumOutput BACnetApplicationTagReal, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMaximumOutput {
+func NewBACnetConstructedDataMaximumOutput(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maximumOutput BACnetApplicationTagReal) *_BACnetConstructedDataMaximumOutput {
 	if maximumOutput == nil {
 		panic("maximumOutput of type BACnetApplicationTagReal for BACnetConstructedDataMaximumOutput must not be nil")
 	}
 	_result := &_BACnetConstructedDataMaximumOutput{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		MaximumOutput:                 maximumOutput,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataMaximumOutputBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMaximumOutputBuilder) = (*_BACnetConstructedDataMaximumOutputBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataMaximumOutputBuilder) WithMaximumOutputBuilder(bu
 	var err error
 	b.MaximumOutput, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataMaximumOutputBuilder) Build() (BACnetConstructedDataMaximumOutput, error) {
 	if b.MaximumOutput == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'maximumOutput' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'maximumOutput' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMaximumOutput.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataMaximumOutputBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataMaximumOutputBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMaximumOutputBuilder().(*_BACnetConstructedDataMaximumOutputBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

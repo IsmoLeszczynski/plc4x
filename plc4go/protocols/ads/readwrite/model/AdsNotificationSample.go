@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,10 +41,13 @@ type AdsNotificationSample interface {
 	utils.Serializable
 	utils.Copyable
 	// GetNotificationHandle returns NotificationHandle (property field)
+	// 4 bytes	Handle of notification
 	GetNotificationHandle() uint32
 	// GetSampleSize returns SampleSize (property field)
+	// 4 Bytes	Size of data range in bytes.
 	GetSampleSize() uint32
 	// GetData returns Data (property field)
+	// n Bytes	Data
 	GetData() []byte
 	// IsAdsNotificationSample is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsNotificationSample()
@@ -95,7 +99,7 @@ func NewAdsNotificationSampleBuilder() AdsNotificationSampleBuilder {
 type _AdsNotificationSampleBuilder struct {
 	*_AdsNotificationSample
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsNotificationSampleBuilder) = (*_AdsNotificationSampleBuilder)(nil)
@@ -120,8 +124,8 @@ func (b *_AdsNotificationSampleBuilder) WithData(data ...byte) AdsNotificationSa
 }
 
 func (b *_AdsNotificationSampleBuilder) Build() (AdsNotificationSample, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsNotificationSample.deepCopy(), nil
 }
@@ -136,8 +140,8 @@ func (b *_AdsNotificationSampleBuilder) MustBuild() AdsNotificationSample {
 
 func (b *_AdsNotificationSampleBuilder) DeepCopy() any {
 	_copy := b.CreateAdsNotificationSampleBuilder().(*_AdsNotificationSampleBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -224,7 +228,7 @@ func AdsNotificationSampleParseWithBufferProducer() func(ctx context.Context, re
 }
 
 func AdsNotificationSampleParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (AdsNotificationSample, error) {
-	v, err := (&_AdsNotificationSample{}).parse(ctx, readBuffer)
+	v, err := (new(_AdsNotificationSample)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNumberOfAuthenticationPolicies = (*_BACnetConstructed
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNumberOfAuthenticationPolicies)(nil)
 
 // NewBACnetConstructedDataNumberOfAuthenticationPolicies factory function for _BACnetConstructedDataNumberOfAuthenticationPolicies
-func NewBACnetConstructedDataNumberOfAuthenticationPolicies(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfAuthenticationPolicies BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNumberOfAuthenticationPolicies {
+func NewBACnetConstructedDataNumberOfAuthenticationPolicies(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfAuthenticationPolicies BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataNumberOfAuthenticationPolicies {
 	if numberOfAuthenticationPolicies == nil {
 		panic("numberOfAuthenticationPolicies of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataNumberOfAuthenticationPolicies must not be nil")
 	}
 	_result := &_BACnetConstructedDataNumberOfAuthenticationPolicies{
-		BACnetConstructedDataContract:  NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract:  NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfAuthenticationPolicies: numberOfAuthenticationPolicies,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder) = (*_BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder) WithNumber
 	var err error
 	b.NumberOfAuthenticationPolicies, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder) Build() (BACnetConstructedDataNumberOfAuthenticationPolicies, error) {
 	if b.NumberOfAuthenticationPolicies == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'numberOfAuthenticationPolicies' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'numberOfAuthenticationPolicies' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNumberOfAuthenticationPolicies.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder) buildForBA
 
 func (b *_BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNumberOfAuthenticationPoliciesBuilder().(*_BACnetConstructedDataNumberOfAuthenticationPoliciesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

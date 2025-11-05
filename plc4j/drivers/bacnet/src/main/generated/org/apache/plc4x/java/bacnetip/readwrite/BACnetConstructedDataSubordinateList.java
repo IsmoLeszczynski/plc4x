@@ -51,23 +51,15 @@ public class BACnetConstructedDataSubordinateList extends BACnetConstructedData 
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetDeviceObjectReference> subordinateList;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataSubordinateList(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetDeviceObjectReference> subordinateList,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetDeviceObjectReference> subordinateList) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.subordinateList = subordinateList;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -78,6 +70,7 @@ public class BACnetConstructedDataSubordinateList extends BACnetConstructedData 
     return subordinateList;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -91,16 +84,12 @@ public class BACnetConstructedDataSubordinateList extends BACnetConstructedData 
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataSubordinateList");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (subordinateList)
     writeComplexTypeArrayField("subordinateList", subordinateList, writeBuffer);
@@ -170,42 +159,26 @@ public class BACnetConstructedDataSubordinateList extends BACnetConstructedData 
     readBuffer.closeContext("BACnetConstructedDataSubordinateList");
     // Create the instance
     return new BACnetConstructedDataSubordinateListBuilderImpl(
-        numberOfDataElements, subordinateList, tagNumber, arrayIndexArgument);
+        numberOfDataElements, subordinateList);
   }
 
   public static class BACnetConstructedDataSubordinateListBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetDeviceObjectReference> subordinateList;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataSubordinateListBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetDeviceObjectReference> subordinateList,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetDeviceObjectReference> subordinateList) {
       this.numberOfDataElements = numberOfDataElements;
       this.subordinateList = subordinateList;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataSubordinateList build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataSubordinateList bACnetConstructedDataSubordinateList =
           new BACnetConstructedDataSubordinateList(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              subordinateList,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, subordinateList);
       return bACnetConstructedDataSubordinateList;
     }
   }

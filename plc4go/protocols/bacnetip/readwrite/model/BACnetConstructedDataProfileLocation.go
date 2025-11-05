@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataProfileLocation = (*_BACnetConstructedDataProfileLoca
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataProfileLocation)(nil)
 
 // NewBACnetConstructedDataProfileLocation factory function for _BACnetConstructedDataProfileLocation
-func NewBACnetConstructedDataProfileLocation(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, profileLocation BACnetApplicationTagCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataProfileLocation {
+func NewBACnetConstructedDataProfileLocation(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, profileLocation BACnetApplicationTagCharacterString) *_BACnetConstructedDataProfileLocation {
 	if profileLocation == nil {
 		panic("profileLocation of type BACnetApplicationTagCharacterString for BACnetConstructedDataProfileLocation must not be nil")
 	}
 	_result := &_BACnetConstructedDataProfileLocation{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ProfileLocation:               profileLocation,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataProfileLocationBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataProfileLocationBuilder) = (*_BACnetConstructedDataProfileLocationBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataProfileLocationBuilder) WithProfileLocationBuilde
 	var err error
 	b.ProfileLocation, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataProfileLocationBuilder) Build() (BACnetConstructedDataProfileLocation, error) {
 	if b.ProfileLocation == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'profileLocation' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'profileLocation' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataProfileLocation.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataProfileLocationBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataProfileLocationBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataProfileLocationBuilder().(*_BACnetConstructedDataProfileLocationBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

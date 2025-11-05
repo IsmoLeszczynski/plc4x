@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ MResetReq = (*_MResetReq)(nil)
 var _ CEMIRequirements = (*_MResetReq)(nil)
 
 // NewMResetReq factory function for _MResetReq
-func NewMResetReq(size uint16) *_MResetReq {
+func NewMResetReq() *_MResetReq {
 	_result := &_MResetReq{
-		CEMIContract: NewCEMI(size),
+		CEMIContract: NewCEMI(),
 	}
 	_result.CEMIContract.(*_CEMI)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _MResetReqBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (MResetReqBuilder) = (*_MResetReqBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_MResetReqBuilder) WithMandatoryFields() MResetReqBuilder {
 }
 
 func (b *_MResetReqBuilder) Build() (MResetReq, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._MResetReq.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_MResetReqBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_MResetReqBuilder) DeepCopy() any {
 	_copy := b.CreateMResetReqBuilder().(*_MResetReqBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

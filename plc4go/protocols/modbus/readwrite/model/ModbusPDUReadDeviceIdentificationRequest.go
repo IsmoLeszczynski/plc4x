@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -37,6 +38,9 @@ import (
 const ModbusPDUReadDeviceIdentificationRequest_MEITYPE uint8 = 0x0E
 
 // ModbusPDUReadDeviceIdentificationRequest is the corresponding interface of ModbusPDUReadDeviceIdentificationRequest
+// Remark: Even if the Modbus spec states that supporting this type of request is mandatory
+// I have not come across a single device that really supported it. Some devices just reacted
+// with an error.
 type ModbusPDUReadDeviceIdentificationRequest interface {
 	fmt.Stringer
 	utils.LengthAware
@@ -106,7 +110,7 @@ type _ModbusPDUReadDeviceIdentificationRequestBuilder struct {
 
 	parentBuilder *_ModbusPDUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ModbusPDUReadDeviceIdentificationRequestBuilder) = (*_ModbusPDUReadDeviceIdentificationRequestBuilder)(nil)
@@ -131,8 +135,8 @@ func (b *_ModbusPDUReadDeviceIdentificationRequestBuilder) WithObjectId(objectId
 }
 
 func (b *_ModbusPDUReadDeviceIdentificationRequestBuilder) Build() (ModbusPDUReadDeviceIdentificationRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ModbusPDUReadDeviceIdentificationRequest.deepCopy(), nil
 }
@@ -158,8 +162,8 @@ func (b *_ModbusPDUReadDeviceIdentificationRequestBuilder) buildForModbusPDU() (
 
 func (b *_ModbusPDUReadDeviceIdentificationRequestBuilder) DeepCopy() any {
 	_copy := b.CreateModbusPDUReadDeviceIdentificationRequestBuilder().(*_ModbusPDUReadDeviceIdentificationRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

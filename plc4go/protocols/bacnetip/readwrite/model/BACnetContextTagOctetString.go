@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetContextTagOctetString = (*_BACnetContextTagOctetString)(nil)
 var _ BACnetContextTagRequirements = (*_BACnetContextTagOctetString)(nil)
 
 // NewBACnetContextTagOctetString factory function for _BACnetContextTagOctetString
-func NewBACnetContextTagOctetString(header BACnetTagHeader, payload BACnetTagPayloadOctetString, tagNumberArgument uint8) *_BACnetContextTagOctetString {
+func NewBACnetContextTagOctetString(header BACnetTagHeader, payload BACnetTagPayloadOctetString) *_BACnetContextTagOctetString {
 	if payload == nil {
 		panic("payload of type BACnetTagPayloadOctetString for BACnetContextTagOctetString must not be nil")
 	}
 	_result := &_BACnetContextTagOctetString{
-		BACnetContextTagContract: NewBACnetContextTag(header, tagNumberArgument),
+		BACnetContextTagContract: NewBACnetContextTag(header),
 		Payload:                  payload,
 	}
 	_result.BACnetContextTagContract.(*_BACnetContextTag)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetContextTagOctetStringBuilder struct {
 
 	parentBuilder *_BACnetContextTagBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetContextTagOctetStringBuilder) = (*_BACnetContextTagOctetStringBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetContextTagOctetStringBuilder) WithPayloadBuilder(builderSupplier
 	var err error
 	b.Payload, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagPayloadOctetStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagPayloadOctetStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetContextTagOctetStringBuilder) Build() (BACnetContextTagOctetString, error) {
 	if b.Payload == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'payload' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'payload' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetContextTagOctetString.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetContextTagOctetStringBuilder) buildForBACnetContextTag() (BACnet
 
 func (b *_BACnetContextTagOctetStringBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetContextTagOctetStringBuilder().(*_BACnetContextTagOctetStringBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

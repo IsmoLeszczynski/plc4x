@@ -51,23 +51,15 @@ public class BACnetConstructedDataActionText extends BACnetConstructedData imple
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetApplicationTagCharacterString> actionText;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataActionText(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetApplicationTagCharacterString> actionText,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetApplicationTagCharacterString> actionText) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.actionText = actionText;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -78,6 +70,7 @@ public class BACnetConstructedDataActionText extends BACnetConstructedData imple
     return actionText;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -91,16 +84,12 @@ public class BACnetConstructedDataActionText extends BACnetConstructedData imple
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataActionText");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (actionText)
     writeComplexTypeArrayField("actionText", actionText, writeBuffer);
@@ -173,43 +162,26 @@ public class BACnetConstructedDataActionText extends BACnetConstructedData imple
 
     readBuffer.closeContext("BACnetConstructedDataActionText");
     // Create the instance
-    return new BACnetConstructedDataActionTextBuilderImpl(
-        numberOfDataElements, actionText, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataActionTextBuilderImpl(numberOfDataElements, actionText);
   }
 
   public static class BACnetConstructedDataActionTextBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetApplicationTagCharacterString> actionText;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataActionTextBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetApplicationTagCharacterString> actionText,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetApplicationTagCharacterString> actionText) {
       this.numberOfDataElements = numberOfDataElements;
       this.actionText = actionText;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataActionText build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataActionText bACnetConstructedDataActionText =
           new BACnetConstructedDataActionText(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              actionText,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, actionText);
       return bACnetConstructedDataActionText;
     }
   }

@@ -50,21 +50,13 @@ public class BACnetConstructedDataDatePatternValueRelinquishDefault extends BACn
   // Properties.
   protected final BACnetApplicationTagDate relinquishDefault;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataDatePatternValueRelinquishDefault(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagDate relinquishDefault,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagDate relinquishDefault) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.relinquishDefault = relinquishDefault;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagDate getRelinquishDefault() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataDatePatternValueRelinquishDefault extends BACn
     // Simple Field (relinquishDefault)
     writeSimpleField("relinquishDefault", relinquishDefault, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagDate actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -133,40 +125,24 @@ public class BACnetConstructedDataDatePatternValueRelinquishDefault extends BACn
 
     readBuffer.closeContext("BACnetConstructedDataDatePatternValueRelinquishDefault");
     // Create the instance
-    return new BACnetConstructedDataDatePatternValueRelinquishDefaultBuilderImpl(
-        relinquishDefault, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataDatePatternValueRelinquishDefaultBuilderImpl(relinquishDefault);
   }
 
   public static class BACnetConstructedDataDatePatternValueRelinquishDefaultBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagDate relinquishDefault;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataDatePatternValueRelinquishDefaultBuilderImpl(
-        BACnetApplicationTagDate relinquishDefault,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagDate relinquishDefault) {
       this.relinquishDefault = relinquishDefault;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataDatePatternValueRelinquishDefault build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataDatePatternValueRelinquishDefault
           bACnetConstructedDataDatePatternValueRelinquishDefault =
               new BACnetConstructedDataDatePatternValueRelinquishDefault(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  relinquishDefault,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, relinquishDefault);
       return bACnetConstructedDataDatePatternValueRelinquishDefault;
     }
   }

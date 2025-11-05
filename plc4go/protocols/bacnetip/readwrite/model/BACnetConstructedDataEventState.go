@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataEventState = (*_BACnetConstructedDataEventState)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEventState)(nil)
 
 // NewBACnetConstructedDataEventState factory function for _BACnetConstructedDataEventState
-func NewBACnetConstructedDataEventState(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, eventState BACnetEventStateTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEventState {
+func NewBACnetConstructedDataEventState(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, eventState BACnetEventStateTagged) *_BACnetConstructedDataEventState {
 	if eventState == nil {
 		panic("eventState of type BACnetEventStateTagged for BACnetConstructedDataEventState must not be nil")
 	}
 	_result := &_BACnetConstructedDataEventState{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		EventState:                    eventState,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataEventStateBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEventStateBuilder) = (*_BACnetConstructedDataEventStateBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataEventStateBuilder) WithEventStateBuilder(builderS
 	var err error
 	b.EventState, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetEventStateTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetEventStateTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataEventStateBuilder) Build() (BACnetConstructedDataEventState, error) {
 	if b.EventState == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'eventState' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'eventState' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEventState.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataEventStateBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataEventStateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEventStateBuilder().(*_BACnetConstructedDataEventStateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

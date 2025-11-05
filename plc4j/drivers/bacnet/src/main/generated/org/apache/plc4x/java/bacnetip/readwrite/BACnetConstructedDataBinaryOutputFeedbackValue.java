@@ -50,21 +50,13 @@ public class BACnetConstructedDataBinaryOutputFeedbackValue extends BACnetConstr
   // Properties.
   protected final BACnetBinaryPVTagged feedbackValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataBinaryOutputFeedbackValue(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetBinaryPVTagged feedbackValue,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetBinaryPVTagged feedbackValue) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.feedbackValue = feedbackValue;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetBinaryPVTagged getFeedbackValue() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataBinaryOutputFeedbackValue extends BACnetConstr
     // Simple Field (feedbackValue)
     writeSimpleField("feedbackValue", feedbackValue, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetBinaryPVTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -135,40 +127,24 @@ public class BACnetConstructedDataBinaryOutputFeedbackValue extends BACnetConstr
 
     readBuffer.closeContext("BACnetConstructedDataBinaryOutputFeedbackValue");
     // Create the instance
-    return new BACnetConstructedDataBinaryOutputFeedbackValueBuilderImpl(
-        feedbackValue, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataBinaryOutputFeedbackValueBuilderImpl(feedbackValue);
   }
 
   public static class BACnetConstructedDataBinaryOutputFeedbackValueBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetBinaryPVTagged feedbackValue;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataBinaryOutputFeedbackValueBuilderImpl(
-        BACnetBinaryPVTagged feedbackValue,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetBinaryPVTagged feedbackValue) {
       this.feedbackValue = feedbackValue;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataBinaryOutputFeedbackValue build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataBinaryOutputFeedbackValue
           bACnetConstructedDataBinaryOutputFeedbackValue =
               new BACnetConstructedDataBinaryOutputFeedbackValue(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  feedbackValue,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, feedbackValue);
       return bACnetConstructedDataBinaryOutputFeedbackValue;
     }
   }

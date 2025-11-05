@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLightingOutputPresentValue = (*_BACnetConstructedData
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLightingOutputPresentValue)(nil)
 
 // NewBACnetConstructedDataLightingOutputPresentValue factory function for _BACnetConstructedDataLightingOutputPresentValue
-func NewBACnetConstructedDataLightingOutputPresentValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, presentValue BACnetApplicationTagReal, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLightingOutputPresentValue {
+func NewBACnetConstructedDataLightingOutputPresentValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, presentValue BACnetApplicationTagReal) *_BACnetConstructedDataLightingOutputPresentValue {
 	if presentValue == nil {
 		panic("presentValue of type BACnetApplicationTagReal for BACnetConstructedDataLightingOutputPresentValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataLightingOutputPresentValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		PresentValue:                  presentValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLightingOutputPresentValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLightingOutputPresentValueBuilder) = (*_BACnetConstructedDataLightingOutputPresentValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLightingOutputPresentValueBuilder) WithPresentVal
 	var err error
 	b.PresentValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLightingOutputPresentValueBuilder) Build() (BACnetConstructedDataLightingOutputPresentValue, error) {
 	if b.PresentValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'presentValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'presentValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLightingOutputPresentValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLightingOutputPresentValueBuilder) buildForBACnet
 
 func (b *_BACnetConstructedDataLightingOutputPresentValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLightingOutputPresentValueBuilder().(*_BACnetConstructedDataLightingOutputPresentValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

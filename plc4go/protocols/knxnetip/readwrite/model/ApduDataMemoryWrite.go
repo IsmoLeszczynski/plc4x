@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataMemoryWrite = (*_ApduDataMemoryWrite)(nil)
 var _ ApduDataRequirements = (*_ApduDataMemoryWrite)(nil)
 
 // NewApduDataMemoryWrite factory function for _ApduDataMemoryWrite
-func NewApduDataMemoryWrite(dataLength uint8) *_ApduDataMemoryWrite {
+func NewApduDataMemoryWrite() *_ApduDataMemoryWrite {
 	_result := &_ApduDataMemoryWrite{
-		ApduDataContract: NewApduData(dataLength),
+		ApduDataContract: NewApduData(),
 	}
 	_result.ApduDataContract.(*_ApduData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataMemoryWriteBuilder struct {
 
 	parentBuilder *_ApduDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataMemoryWriteBuilder) = (*_ApduDataMemoryWriteBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataMemoryWriteBuilder) WithMandatoryFields() ApduDataMemoryWriteB
 }
 
 func (b *_ApduDataMemoryWriteBuilder) Build() (ApduDataMemoryWrite, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataMemoryWrite.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataMemoryWriteBuilder) buildForApduData() (ApduData, error) {
 
 func (b *_ApduDataMemoryWriteBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataMemoryWriteBuilder().(*_ApduDataMemoryWriteBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataElevatorGroupGroupMembers interface {
 	// GetGroupMembers returns GroupMembers (property field)
 	GetGroupMembers() []BACnetApplicationTagObjectIdentifier
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataElevatorGroupGroupMembers is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataElevatorGroupGroupMembers()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataElevatorGroupGroupMembers = (*_BACnetConstructedDataE
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataElevatorGroupGroupMembers)(nil)
 
 // NewBACnetConstructedDataElevatorGroupGroupMembers factory function for _BACnetConstructedDataElevatorGroupGroupMembers
-func NewBACnetConstructedDataElevatorGroupGroupMembers(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, groupMembers []BACnetApplicationTagObjectIdentifier, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataElevatorGroupGroupMembers {
+func NewBACnetConstructedDataElevatorGroupGroupMembers(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, groupMembers []BACnetApplicationTagObjectIdentifier) *_BACnetConstructedDataElevatorGroupGroupMembers {
 	_result := &_BACnetConstructedDataElevatorGroupGroupMembers{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		GroupMembers:                  groupMembers,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataElevatorGroupGroupMembersBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataElevatorGroupGroupMembersBuilder) = (*_BACnetConstructedDataElevatorGroupGroupMembersBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataElevatorGroupGroupMembersBuilder) WithOptionalNum
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataElevatorGroupGroupMembersBuilder) WithGroupMember
 }
 
 func (b *_BACnetConstructedDataElevatorGroupGroupMembersBuilder) Build() (BACnetConstructedDataElevatorGroupGroupMembers, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataElevatorGroupGroupMembers.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataElevatorGroupGroupMembersBuilder) buildForBACnetC
 
 func (b *_BACnetConstructedDataElevatorGroupGroupMembersBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataElevatorGroupGroupMembersBuilder().(*_BACnetConstructedDataElevatorGroupGroupMembersBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

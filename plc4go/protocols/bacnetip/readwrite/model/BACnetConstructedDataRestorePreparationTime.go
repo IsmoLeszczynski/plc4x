@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataRestorePreparationTime = (*_BACnetConstructedDataRest
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataRestorePreparationTime)(nil)
 
 // NewBACnetConstructedDataRestorePreparationTime factory function for _BACnetConstructedDataRestorePreparationTime
-func NewBACnetConstructedDataRestorePreparationTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, restorePreparationTime BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataRestorePreparationTime {
+func NewBACnetConstructedDataRestorePreparationTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, restorePreparationTime BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataRestorePreparationTime {
 	if restorePreparationTime == nil {
 		panic("restorePreparationTime of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataRestorePreparationTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataRestorePreparationTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		RestorePreparationTime:        restorePreparationTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataRestorePreparationTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataRestorePreparationTimeBuilder) = (*_BACnetConstructedDataRestorePreparationTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataRestorePreparationTimeBuilder) WithRestorePrepara
 	var err error
 	b.RestorePreparationTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataRestorePreparationTimeBuilder) Build() (BACnetConstructedDataRestorePreparationTime, error) {
 	if b.RestorePreparationTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'restorePreparationTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'restorePreparationTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataRestorePreparationTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataRestorePreparationTimeBuilder) buildForBACnetCons
 
 func (b *_BACnetConstructedDataRestorePreparationTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataRestorePreparationTimeBuilder().(*_BACnetConstructedDataRestorePreparationTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataRoutingTable = (*_BACnetConstructedDataRoutingTable)(
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataRoutingTable)(nil)
 
 // NewBACnetConstructedDataRoutingTable factory function for _BACnetConstructedDataRoutingTable
-func NewBACnetConstructedDataRoutingTable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, routingTable []BACnetRouterEntry, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataRoutingTable {
+func NewBACnetConstructedDataRoutingTable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, routingTable []BACnetRouterEntry) *_BACnetConstructedDataRoutingTable {
 	_result := &_BACnetConstructedDataRoutingTable{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		RoutingTable:                  routingTable,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataRoutingTableBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataRoutingTableBuilder) = (*_BACnetConstructedDataRoutingTableBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataRoutingTableBuilder) WithRoutingTable(routingTabl
 }
 
 func (b *_BACnetConstructedDataRoutingTableBuilder) Build() (BACnetConstructedDataRoutingTable, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataRoutingTable.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataRoutingTableBuilder) buildForBACnetConstructedDat
 
 func (b *_BACnetConstructedDataRoutingTableBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataRoutingTableBuilder().(*_BACnetConstructedDataRoutingTableBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

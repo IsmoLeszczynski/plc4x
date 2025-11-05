@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataTimePatternValueRelinquishDefault = (*_BACnetConstruc
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataTimePatternValueRelinquishDefault)(nil)
 
 // NewBACnetConstructedDataTimePatternValueRelinquishDefault factory function for _BACnetConstructedDataTimePatternValueRelinquishDefault
-func NewBACnetConstructedDataTimePatternValueRelinquishDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, relinquishDefault BACnetApplicationTagTime, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataTimePatternValueRelinquishDefault {
+func NewBACnetConstructedDataTimePatternValueRelinquishDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, relinquishDefault BACnetApplicationTagTime) *_BACnetConstructedDataTimePatternValueRelinquishDefault {
 	if relinquishDefault == nil {
 		panic("relinquishDefault of type BACnetApplicationTagTime for BACnetConstructedDataTimePatternValueRelinquishDefault must not be nil")
 	}
 	_result := &_BACnetConstructedDataTimePatternValueRelinquishDefault{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		RelinquishDefault:             relinquishDefault,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder) = (*_BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder) WithRel
 	var err error
 	b.RelinquishDefault, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagTimeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagTimeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder) Build() (BACnetConstructedDataTimePatternValueRelinquishDefault, error) {
 	if b.RelinquishDefault == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'relinquishDefault' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'relinquishDefault' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataTimePatternValueRelinquishDefault.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder) buildFo
 
 func (b *_BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataTimePatternValueRelinquishDefaultBuilder().(*_BACnetConstructedDataTimePatternValueRelinquishDefaultBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

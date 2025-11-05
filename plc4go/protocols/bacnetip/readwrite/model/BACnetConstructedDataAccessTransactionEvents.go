@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataAccessTransactionEvents = (*_BACnetConstructedDataAcc
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessTransactionEvents)(nil)
 
 // NewBACnetConstructedDataAccessTransactionEvents factory function for _BACnetConstructedDataAccessTransactionEvents
-func NewBACnetConstructedDataAccessTransactionEvents(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, accessTransactionEvents []BACnetAccessEventTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessTransactionEvents {
+func NewBACnetConstructedDataAccessTransactionEvents(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, accessTransactionEvents []BACnetAccessEventTagged) *_BACnetConstructedDataAccessTransactionEvents {
 	_result := &_BACnetConstructedDataAccessTransactionEvents{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AccessTransactionEvents:       accessTransactionEvents,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataAccessTransactionEventsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessTransactionEventsBuilder) = (*_BACnetConstructedDataAccessTransactionEventsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataAccessTransactionEventsBuilder) WithAccessTransac
 }
 
 func (b *_BACnetConstructedDataAccessTransactionEventsBuilder) Build() (BACnetConstructedDataAccessTransactionEvents, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessTransactionEvents.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataAccessTransactionEventsBuilder) buildForBACnetCon
 
 func (b *_BACnetConstructedDataAccessTransactionEventsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessTransactionEventsBuilder().(*_BACnetConstructedDataAccessTransactionEventsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

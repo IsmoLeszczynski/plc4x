@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ DF1CommandResponseMessageProtectedTypedLogicalRead = (*_DF1CommandResponse
 var _ DF1ResponseMessageRequirements = (*_DF1CommandResponseMessageProtectedTypedLogicalRead)(nil)
 
 // NewDF1CommandResponseMessageProtectedTypedLogicalRead factory function for _DF1CommandResponseMessageProtectedTypedLogicalRead
-func NewDF1CommandResponseMessageProtectedTypedLogicalRead(destinationAddress uint8, sourceAddress uint8, status uint8, transactionCounter uint16, data []uint8, payloadLength uint16) *_DF1CommandResponseMessageProtectedTypedLogicalRead {
+func NewDF1CommandResponseMessageProtectedTypedLogicalRead(destinationAddress uint8, sourceAddress uint8, status uint8, transactionCounter uint16, data []uint8) *_DF1CommandResponseMessageProtectedTypedLogicalRead {
 	_result := &_DF1CommandResponseMessageProtectedTypedLogicalRead{
-		DF1ResponseMessageContract: NewDF1ResponseMessage(destinationAddress, sourceAddress, status, transactionCounter, payloadLength),
+		DF1ResponseMessageContract: NewDF1ResponseMessage(destinationAddress, sourceAddress, status, transactionCounter),
 		Data:                       data,
 	}
 	_result.DF1ResponseMessageContract.(*_DF1ResponseMessage)._SubType = _result
@@ -97,7 +98,7 @@ type _DF1CommandResponseMessageProtectedTypedLogicalReadBuilder struct {
 
 	parentBuilder *_DF1ResponseMessageBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (DF1CommandResponseMessageProtectedTypedLogicalReadBuilder) = (*_DF1CommandResponseMessageProtectedTypedLogicalReadBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_DF1CommandResponseMessageProtectedTypedLogicalReadBuilder) WithData(da
 }
 
 func (b *_DF1CommandResponseMessageProtectedTypedLogicalReadBuilder) Build() (DF1CommandResponseMessageProtectedTypedLogicalRead, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._DF1CommandResponseMessageProtectedTypedLogicalRead.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_DF1CommandResponseMessageProtectedTypedLogicalReadBuilder) buildForDF1
 
 func (b *_DF1CommandResponseMessageProtectedTypedLogicalReadBuilder) DeepCopy() any {
 	_copy := b.CreateDF1CommandResponseMessageProtectedTypedLogicalReadBuilder().(*_DF1CommandResponseMessageProtectedTypedLogicalReadBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

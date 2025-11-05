@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,10 +42,13 @@ type AdsReadRequest interface {
 	utils.Copyable
 	AmsPacket
 	// GetIndexGroup returns IndexGroup (property field)
+	// 4 bytes	Index Group of the data which should be read.
 	GetIndexGroup() uint32
 	// GetIndexOffset returns IndexOffset (property field)
+	// 4 bytes	Index Offset of the data which should be read.
 	GetIndexOffset() uint32
 	// GetLength returns Length (property field)
+	// 4 bytes	Length of the data (in bytes) which should be read.
 	GetLength() uint32
 	// IsAdsReadRequest is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsReadRequest()
@@ -109,7 +113,7 @@ type _AdsReadRequestBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsReadRequestBuilder) = (*_AdsReadRequestBuilder)(nil)
@@ -139,8 +143,8 @@ func (b *_AdsReadRequestBuilder) WithLength(length uint32) AdsReadRequestBuilder
 }
 
 func (b *_AdsReadRequestBuilder) Build() (AdsReadRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsReadRequest.deepCopy(), nil
 }
@@ -166,8 +170,8 @@ func (b *_AdsReadRequestBuilder) buildForAmsPacket() (AmsPacket, error) {
 
 func (b *_AdsReadRequestBuilder) DeepCopy() any {
 	_copy := b.CreateAdsReadRequestBuilder().(*_AdsReadRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -52,16 +53,13 @@ type BACnetConfirmedServiceRequestWritePropertyMultiple interface {
 type _BACnetConfirmedServiceRequestWritePropertyMultiple struct {
 	BACnetConfirmedServiceRequestContract
 	Data []BACnetWriteAccessSpecification
-
-	// Arguments.
-	ServiceRequestPayloadLength uint32
 }
 
 var _ BACnetConfirmedServiceRequestWritePropertyMultiple = (*_BACnetConfirmedServiceRequestWritePropertyMultiple)(nil)
 var _ BACnetConfirmedServiceRequestRequirements = (*_BACnetConfirmedServiceRequestWritePropertyMultiple)(nil)
 
 // NewBACnetConfirmedServiceRequestWritePropertyMultiple factory function for _BACnetConfirmedServiceRequestWritePropertyMultiple
-func NewBACnetConfirmedServiceRequestWritePropertyMultiple(data []BACnetWriteAccessSpecification, serviceRequestPayloadLength uint32, serviceRequestLength uint32) *_BACnetConfirmedServiceRequestWritePropertyMultiple {
+func NewBACnetConfirmedServiceRequestWritePropertyMultiple(serviceRequestLength uint32, data []BACnetWriteAccessSpecification) *_BACnetConfirmedServiceRequestWritePropertyMultiple {
 	_result := &_BACnetConfirmedServiceRequestWritePropertyMultiple{
 		BACnetConfirmedServiceRequestContract: NewBACnetConfirmedServiceRequest(serviceRequestLength),
 		Data:                                  data,
@@ -82,8 +80,6 @@ type BACnetConfirmedServiceRequestWritePropertyMultipleBuilder interface {
 	WithMandatoryFields(data []BACnetWriteAccessSpecification) BACnetConfirmedServiceRequestWritePropertyMultipleBuilder
 	// WithData adds Data (property field)
 	WithData(...BACnetWriteAccessSpecification) BACnetConfirmedServiceRequestWritePropertyMultipleBuilder
-	// WithArgServiceRequestPayloadLength sets a parser argument
-	WithArgServiceRequestPayloadLength(uint32) BACnetConfirmedServiceRequestWritePropertyMultipleBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BACnetConfirmedServiceRequestBuilder
 	// Build builds the BACnetConfirmedServiceRequestWritePropertyMultiple or returns an error if something is wrong
@@ -102,7 +98,7 @@ type _BACnetConfirmedServiceRequestWritePropertyMultipleBuilder struct {
 
 	parentBuilder *_BACnetConfirmedServiceRequestBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConfirmedServiceRequestWritePropertyMultipleBuilder) = (*_BACnetConfirmedServiceRequestWritePropertyMultipleBuilder)(nil)
@@ -121,14 +117,9 @@ func (b *_BACnetConfirmedServiceRequestWritePropertyMultipleBuilder) WithData(da
 	return b
 }
 
-func (b *_BACnetConfirmedServiceRequestWritePropertyMultipleBuilder) WithArgServiceRequestPayloadLength(serviceRequestPayloadLength uint32) BACnetConfirmedServiceRequestWritePropertyMultipleBuilder {
-	b.ServiceRequestPayloadLength = serviceRequestPayloadLength
-	return b
-}
-
 func (b *_BACnetConfirmedServiceRequestWritePropertyMultipleBuilder) Build() (BACnetConfirmedServiceRequestWritePropertyMultiple, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConfirmedServiceRequestWritePropertyMultiple.deepCopy(), nil
 }
@@ -154,8 +145,8 @@ func (b *_BACnetConfirmedServiceRequestWritePropertyMultipleBuilder) buildForBAC
 
 func (b *_BACnetConfirmedServiceRequestWritePropertyMultipleBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConfirmedServiceRequestWritePropertyMultipleBuilder().(*_BACnetConfirmedServiceRequestWritePropertyMultipleBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -291,16 +282,6 @@ func (m *_BACnetConfirmedServiceRequestWritePropertyMultiple) SerializeWithWrite
 	return m.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetConfirmedServiceRequestWritePropertyMultiple) GetServiceRequestPayloadLength() uint32 {
-	return m.ServiceRequestPayloadLength
-}
-
-//
-////
-
 func (m *_BACnetConfirmedServiceRequestWritePropertyMultiple) IsBACnetConfirmedServiceRequestWritePropertyMultiple() {
 }
 
@@ -315,7 +296,6 @@ func (m *_BACnetConfirmedServiceRequestWritePropertyMultiple) deepCopy() *_BACne
 	_BACnetConfirmedServiceRequestWritePropertyMultipleCopy := &_BACnetConfirmedServiceRequestWritePropertyMultiple{
 		m.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest).deepCopy(),
 		utils.DeepCopySlice[BACnetWriteAccessSpecification, BACnetWriteAccessSpecification](m.Data),
-		m.ServiceRequestPayloadLength,
 	}
 	_BACnetConfirmedServiceRequestWritePropertyMultipleCopy.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest)._SubType = m
 	return _BACnetConfirmedServiceRequestWritePropertyMultipleCopy

@@ -44,23 +44,21 @@ public class CBusCommandDeviceManagement extends CBusCommand implements Message 
 
   // Properties.
   protected final Parameter paramNo;
+
+  /** TODO: check if this is one byte or many bytes */
   protected final byte parameterValue;
 
-  // Arguments.
-  protected final CBusOptions cBusOptions;
-
-  public CBusCommandDeviceManagement(
-      CBusHeader header, Parameter paramNo, byte parameterValue, CBusOptions cBusOptions) {
-    super(header, cBusOptions);
+  public CBusCommandDeviceManagement(CBusHeader header, Parameter paramNo, byte parameterValue) {
+    super(header);
     this.paramNo = paramNo;
     this.parameterValue = parameterValue;
-    this.cBusOptions = cBusOptions;
   }
 
   public Parameter getParamNo() {
     return paramNo;
   }
 
+  /** TODO: check if this is one byte or many bytes */
   public byte getParameterValue() {
     return parameterValue;
   }
@@ -133,25 +131,22 @@ public class CBusCommandDeviceManagement extends CBusCommand implements Message 
 
     readBuffer.closeContext("CBusCommandDeviceManagement");
     // Create the instance
-    return new CBusCommandDeviceManagementBuilderImpl(paramNo, parameterValue, cBusOptions);
+    return new CBusCommandDeviceManagementBuilderImpl(paramNo, parameterValue);
   }
 
   public static class CBusCommandDeviceManagementBuilderImpl
       implements CBusCommand.CBusCommandBuilder {
     private final Parameter paramNo;
     private final byte parameterValue;
-    private final CBusOptions cBusOptions;
 
-    public CBusCommandDeviceManagementBuilderImpl(
-        Parameter paramNo, byte parameterValue, CBusOptions cBusOptions) {
+    public CBusCommandDeviceManagementBuilderImpl(Parameter paramNo, byte parameterValue) {
       this.paramNo = paramNo;
       this.parameterValue = parameterValue;
-      this.cBusOptions = cBusOptions;
     }
 
-    public CBusCommandDeviceManagement build(CBusHeader header, CBusOptions cBusOptions) {
+    public CBusCommandDeviceManagement build(CBusHeader header) {
       CBusCommandDeviceManagement cBusCommandDeviceManagement =
-          new CBusCommandDeviceManagement(header, paramNo, parameterValue, cBusOptions);
+          new CBusCommandDeviceManagement(header, paramNo, parameterValue);
       return cBusCommandDeviceManagement;
     }
   }

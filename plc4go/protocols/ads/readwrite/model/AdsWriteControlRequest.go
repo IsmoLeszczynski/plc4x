@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,10 +42,13 @@ type AdsWriteControlRequest interface {
 	utils.Copyable
 	AmsPacket
 	// GetAdsState returns AdsState (property field)
+	// 2 bytes	New ADS status (see data type ADSSTATE of the ADS-DLL).
 	GetAdsState() uint16
 	// GetDeviceState returns DeviceState (property field)
+	// 2 bytes	New device status.
 	GetDeviceState() uint16
 	// GetData returns Data (property field)
+	// n bytes	Additional data which are sent to the ADS device
 	GetData() []byte
 	// IsAdsWriteControlRequest is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsWriteControlRequest()
@@ -109,7 +113,7 @@ type _AdsWriteControlRequestBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsWriteControlRequestBuilder) = (*_AdsWriteControlRequestBuilder)(nil)
@@ -139,8 +143,8 @@ func (b *_AdsWriteControlRequestBuilder) WithData(data ...byte) AdsWriteControlR
 }
 
 func (b *_AdsWriteControlRequestBuilder) Build() (AdsWriteControlRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsWriteControlRequest.deepCopy(), nil
 }
@@ -166,8 +170,8 @@ func (b *_AdsWriteControlRequestBuilder) buildForAmsPacket() (AmsPacket, error) 
 
 func (b *_AdsWriteControlRequestBuilder) DeepCopy() any {
 	_copy := b.CreateAdsWriteControlRequestBuilder().(*_AdsWriteControlRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

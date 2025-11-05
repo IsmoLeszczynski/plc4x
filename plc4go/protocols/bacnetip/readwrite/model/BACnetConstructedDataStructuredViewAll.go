@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataStructuredViewAll = (*_BACnetConstructedDataStructure
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataStructuredViewAll)(nil)
 
 // NewBACnetConstructedDataStructuredViewAll factory function for _BACnetConstructedDataStructuredViewAll
-func NewBACnetConstructedDataStructuredViewAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataStructuredViewAll {
+func NewBACnetConstructedDataStructuredViewAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataStructuredViewAll {
 	_result := &_BACnetConstructedDataStructuredViewAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataStructuredViewAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataStructuredViewAllBuilder) = (*_BACnetConstructedDataStructuredViewAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataStructuredViewAllBuilder) WithMandatoryFields() B
 }
 
 func (b *_BACnetConstructedDataStructuredViewAllBuilder) Build() (BACnetConstructedDataStructuredViewAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataStructuredViewAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataStructuredViewAllBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataStructuredViewAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataStructuredViewAllBuilder().(*_BACnetConstructedDataStructuredViewAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

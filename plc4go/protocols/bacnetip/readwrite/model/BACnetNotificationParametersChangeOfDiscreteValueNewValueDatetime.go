@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime = (*_BAC
 var _ BACnetNotificationParametersChangeOfDiscreteValueNewValueRequirements = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime)(nil)
 
 // NewBACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime factory function for _BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime
-func NewBACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, dateTimeValue BACnetDateTimeEnclosed, tagNumber uint8) *_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime {
+func NewBACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, dateTimeValue BACnetDateTimeEnclosed) *_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime {
 	if dateTimeValue == nil {
 		panic("dateTimeValue of type BACnetDateTimeEnclosed for BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime must not be nil")
 	}
 	_result := &_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime{
-		BACnetNotificationParametersChangeOfDiscreteValueNewValueContract: NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag, peekedTagHeader, closingTag, tagNumber),
+		BACnetNotificationParametersChangeOfDiscreteValueNewValueContract: NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag, peekedTagHeader, closingTag),
 		DateTimeValue: dateTimeValue,
 	}
 	_result.BACnetNotificationParametersChangeOfDiscreteValueNewValueContract.(*_BACnetNotificationParametersChangeOfDiscreteValueNewValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuilder s
 
 	parentBuilder *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuilder) = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuild
 	var err error
 	b.DateTimeValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuilder) Build() (BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime, error) {
 	if b.DateTimeValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'dateTimeValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'dateTimeValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetime.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuild
 
 func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuilder().(*_BACnetNotificationParametersChangeOfDiscreteValueNewValueDatetimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

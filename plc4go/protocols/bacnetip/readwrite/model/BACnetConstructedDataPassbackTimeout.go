@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataPassbackTimeout = (*_BACnetConstructedDataPassbackTim
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataPassbackTimeout)(nil)
 
 // NewBACnetConstructedDataPassbackTimeout factory function for _BACnetConstructedDataPassbackTimeout
-func NewBACnetConstructedDataPassbackTimeout(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, passbackTimeout BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataPassbackTimeout {
+func NewBACnetConstructedDataPassbackTimeout(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, passbackTimeout BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataPassbackTimeout {
 	if passbackTimeout == nil {
 		panic("passbackTimeout of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataPassbackTimeout must not be nil")
 	}
 	_result := &_BACnetConstructedDataPassbackTimeout{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		PassbackTimeout:               passbackTimeout,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataPassbackTimeoutBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataPassbackTimeoutBuilder) = (*_BACnetConstructedDataPassbackTimeoutBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataPassbackTimeoutBuilder) WithPassbackTimeoutBuilde
 	var err error
 	b.PassbackTimeout, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataPassbackTimeoutBuilder) Build() (BACnetConstructedDataPassbackTimeout, error) {
 	if b.PassbackTimeout == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'passbackTimeout' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'passbackTimeout' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataPassbackTimeout.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataPassbackTimeoutBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataPassbackTimeoutBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataPassbackTimeoutBuilder().(*_BACnetConstructedDataPassbackTimeoutBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataMultiStateOutputFeedbackValue = (*_BACnetConstructedD
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMultiStateOutputFeedbackValue)(nil)
 
 // NewBACnetConstructedDataMultiStateOutputFeedbackValue factory function for _BACnetConstructedDataMultiStateOutputFeedbackValue
-func NewBACnetConstructedDataMultiStateOutputFeedbackValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, feedbackValue BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMultiStateOutputFeedbackValue {
+func NewBACnetConstructedDataMultiStateOutputFeedbackValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, feedbackValue BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataMultiStateOutputFeedbackValue {
 	if feedbackValue == nil {
 		panic("feedbackValue of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataMultiStateOutputFeedbackValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataMultiStateOutputFeedbackValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FeedbackValue:                 feedbackValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataMultiStateOutputFeedbackValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMultiStateOutputFeedbackValueBuilder) = (*_BACnetConstructedDataMultiStateOutputFeedbackValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataMultiStateOutputFeedbackValueBuilder) WithFeedbac
 	var err error
 	b.FeedbackValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataMultiStateOutputFeedbackValueBuilder) Build() (BACnetConstructedDataMultiStateOutputFeedbackValue, error) {
 	if b.FeedbackValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'feedbackValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'feedbackValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMultiStateOutputFeedbackValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataMultiStateOutputFeedbackValueBuilder) buildForBAC
 
 func (b *_BACnetConstructedDataMultiStateOutputFeedbackValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMultiStateOutputFeedbackValueBuilder().(*_BACnetConstructedDataMultiStateOutputFeedbackValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

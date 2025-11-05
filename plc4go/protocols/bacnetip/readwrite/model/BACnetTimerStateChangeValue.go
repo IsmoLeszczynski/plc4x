@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -55,8 +56,6 @@ type BACnetTimerStateChangeValueContract interface {
 	GetPeekedTagNumber() uint8
 	// GetPeekedIsContextTag returns PeekedIsContextTag (virtual field)
 	GetPeekedIsContextTag() bool
-	// GetObjectTypeArgument() returns a parser argument
-	GetObjectTypeArgument() BACnetObjectType
 	// IsBACnetTimerStateChangeValue is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetTimerStateChangeValue()
 	// CreateBuilder creates a BACnetTimerStateChangeValueBuilder
@@ -80,19 +79,16 @@ type _BACnetTimerStateChangeValue struct {
 		BACnetTimerStateChangeValueRequirements
 	}
 	PeekedTagHeader BACnetTagHeader
-
-	// Arguments.
-	ObjectTypeArgument BACnetObjectType
 }
 
 var _ BACnetTimerStateChangeValueContract = (*_BACnetTimerStateChangeValue)(nil)
 
 // NewBACnetTimerStateChangeValue factory function for _BACnetTimerStateChangeValue
-func NewBACnetTimerStateChangeValue(peekedTagHeader BACnetTagHeader, objectTypeArgument BACnetObjectType) *_BACnetTimerStateChangeValue {
+func NewBACnetTimerStateChangeValue(peekedTagHeader BACnetTagHeader) *_BACnetTimerStateChangeValue {
 	if peekedTagHeader == nil {
 		panic("peekedTagHeader of type BACnetTagHeader for BACnetTimerStateChangeValue must not be nil")
 	}
-	return &_BACnetTimerStateChangeValue{PeekedTagHeader: peekedTagHeader, ObjectTypeArgument: objectTypeArgument}
+	return &_BACnetTimerStateChangeValue{PeekedTagHeader: peekedTagHeader}
 }
 
 ///////////////////////////////////////////////////////////
@@ -109,8 +105,6 @@ type BACnetTimerStateChangeValueBuilder interface {
 	WithPeekedTagHeader(BACnetTagHeader) BACnetTimerStateChangeValueBuilder
 	// WithPeekedTagHeaderBuilder adds PeekedTagHeader (property field) which is build by the builder
 	WithPeekedTagHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetTimerStateChangeValueBuilder
-	// WithArgObjectTypeArgument sets a parser argument
-	WithArgObjectTypeArgument(BACnetObjectType) BACnetTimerStateChangeValueBuilder
 	// AsBACnetTimerStateChangeValueNull converts this build to a subType of BACnetTimerStateChangeValue. It is always possible to return to current builder using Done()
 	AsBACnetTimerStateChangeValueNull() BACnetTimerStateChangeValueNullBuilder
 	// AsBACnetTimerStateChangeValueBoolean converts this build to a subType of BACnetTimerStateChangeValue. It is always possible to return to current builder using Done()
@@ -171,7 +165,7 @@ type _BACnetTimerStateChangeValueBuilder struct {
 
 	childBuilder _BACnetTimerStateChangeValueChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTimerStateChangeValueBuilder) = (*_BACnetTimerStateChangeValueBuilder)(nil)
@@ -190,28 +184,17 @@ func (b *_BACnetTimerStateChangeValueBuilder) WithPeekedTagHeaderBuilder(builder
 	var err error
 	b.PeekedTagHeader, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetTimerStateChangeValueBuilder) WithArgObjectTypeArgument(objectTypeArgument BACnetObjectType) BACnetTimerStateChangeValueBuilder {
-	b.ObjectTypeArgument = objectTypeArgument
 	return b
 }
 
 func (b *_BACnetTimerStateChangeValueBuilder) PartialBuild() (BACnetTimerStateChangeValueContract, error) {
 	if b.PeekedTagHeader == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'peekedTagHeader' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'peekedTagHeader' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTimerStateChangeValue.deepCopy(), nil
 }
@@ -418,8 +401,8 @@ func (b *_BACnetTimerStateChangeValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTimerStateChangeValueBuilder().(*_BACnetTimerStateChangeValueBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_BACnetTimerStateChangeValueChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -523,7 +506,7 @@ func BACnetTimerStateChangeValueParseWithBufferProducer[T BACnetTimerStateChange
 }
 
 func BACnetTimerStateChangeValueParseWithBuffer[T BACnetTimerStateChangeValue](ctx context.Context, readBuffer utils.ReadBuffer, objectTypeArgument BACnetObjectType) (T, error) {
-	v, err := (&_BACnetTimerStateChangeValue{ObjectTypeArgument: objectTypeArgument}).parse(ctx, readBuffer, objectTypeArgument)
+	v, err := (new(_BACnetTimerStateChangeValue)).parse(ctx, readBuffer, objectTypeArgument)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -685,16 +668,6 @@ func (pm *_BACnetTimerStateChangeValue) serializeParent(ctx context.Context, wri
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetTimerStateChangeValue) GetObjectTypeArgument() BACnetObjectType {
-	return m.ObjectTypeArgument
-}
-
-//
-////
-
 func (m *_BACnetTimerStateChangeValue) IsBACnetTimerStateChangeValue() {}
 
 func (m *_BACnetTimerStateChangeValue) DeepCopy() any {
@@ -708,7 +681,6 @@ func (m *_BACnetTimerStateChangeValue) deepCopy() *_BACnetTimerStateChangeValue 
 	_BACnetTimerStateChangeValueCopy := &_BACnetTimerStateChangeValue{
 		nil, // will be set by child
 		utils.DeepCopy[BACnetTagHeader](m.PeekedTagHeader),
-		m.ObjectTypeArgument,
 	}
 	return _BACnetTimerStateChangeValueCopy
 }

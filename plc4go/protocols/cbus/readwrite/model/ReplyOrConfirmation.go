@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,10 +54,6 @@ type ReplyOrConfirmationContract interface {
 	GetPeekedByte() byte
 	// GetIsAlpha returns IsAlpha (virtual field)
 	GetIsAlpha() bool
-	// GetCBusOptions() returns a parser argument
-	GetCBusOptions() CBusOptions
-	// GetRequestContext() returns a parser argument
-	GetRequestContext() RequestContext
 	// IsReplyOrConfirmation is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsReplyOrConfirmation()
 	// CreateBuilder creates a ReplyOrConfirmationBuilder
@@ -80,17 +77,13 @@ type _ReplyOrConfirmation struct {
 		ReplyOrConfirmationRequirements
 	}
 	PeekedByte byte
-
-	// Arguments.
-	CBusOptions    CBusOptions
-	RequestContext RequestContext
 }
 
 var _ ReplyOrConfirmationContract = (*_ReplyOrConfirmation)(nil)
 
 // NewReplyOrConfirmation factory function for _ReplyOrConfirmation
-func NewReplyOrConfirmation(peekedByte byte, cBusOptions CBusOptions, requestContext RequestContext) *_ReplyOrConfirmation {
-	return &_ReplyOrConfirmation{PeekedByte: peekedByte, CBusOptions: cBusOptions, RequestContext: requestContext}
+func NewReplyOrConfirmation(peekedByte byte) *_ReplyOrConfirmation {
+	return &_ReplyOrConfirmation{PeekedByte: peekedByte}
 }
 
 ///////////////////////////////////////////////////////////
@@ -105,10 +98,6 @@ type ReplyOrConfirmationBuilder interface {
 	WithMandatoryFields(peekedByte byte) ReplyOrConfirmationBuilder
 	// WithPeekedByte adds PeekedByte (property field)
 	WithPeekedByte(byte) ReplyOrConfirmationBuilder
-	// WithArgCBusOptions sets a parser argument
-	WithArgCBusOptions(CBusOptions) ReplyOrConfirmationBuilder
-	// WithArgRequestContext sets a parser argument
-	WithArgRequestContext(RequestContext) ReplyOrConfirmationBuilder
 	// AsServerErrorReply converts this build to a subType of ReplyOrConfirmation. It is always possible to return to current builder using Done()
 	AsServerErrorReply() ServerErrorReplyBuilder
 	// AsReplyOrConfirmationConfirmation converts this build to a subType of ReplyOrConfirmation. It is always possible to return to current builder using Done()
@@ -141,7 +130,7 @@ type _ReplyOrConfirmationBuilder struct {
 
 	childBuilder _ReplyOrConfirmationChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ReplyOrConfirmationBuilder) = (*_ReplyOrConfirmationBuilder)(nil)
@@ -155,18 +144,9 @@ func (b *_ReplyOrConfirmationBuilder) WithPeekedByte(peekedByte byte) ReplyOrCon
 	return b
 }
 
-func (b *_ReplyOrConfirmationBuilder) WithArgCBusOptions(cBusOptions CBusOptions) ReplyOrConfirmationBuilder {
-	b.CBusOptions = cBusOptions
-	return b
-}
-func (b *_ReplyOrConfirmationBuilder) WithArgRequestContext(requestContext RequestContext) ReplyOrConfirmationBuilder {
-	b.RequestContext = requestContext
-	return b
-}
-
 func (b *_ReplyOrConfirmationBuilder) PartialBuild() (ReplyOrConfirmationContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ReplyOrConfirmation.deepCopy(), nil
 }
@@ -233,8 +213,8 @@ func (b *_ReplyOrConfirmationBuilder) DeepCopy() any {
 	_copy := b.CreateReplyOrConfirmationBuilder().(*_ReplyOrConfirmationBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_ReplyOrConfirmationChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -329,7 +309,7 @@ func ReplyOrConfirmationParseWithBufferProducer[T ReplyOrConfirmation](cBusOptio
 }
 
 func ReplyOrConfirmationParseWithBuffer[T ReplyOrConfirmation](ctx context.Context, readBuffer utils.ReadBuffer, cBusOptions CBusOptions, requestContext RequestContext) (T, error) {
-	v, err := (&_ReplyOrConfirmation{CBusOptions: cBusOptions, RequestContext: requestContext}).parse(ctx, readBuffer, cBusOptions, requestContext)
+	v, err := (new(_ReplyOrConfirmation)).parse(ctx, readBuffer, cBusOptions, requestContext)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -418,19 +398,6 @@ func (pm *_ReplyOrConfirmation) serializeParent(ctx context.Context, writeBuffer
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_ReplyOrConfirmation) GetCBusOptions() CBusOptions {
-	return m.CBusOptions
-}
-func (m *_ReplyOrConfirmation) GetRequestContext() RequestContext {
-	return m.RequestContext
-}
-
-//
-////
-
 func (m *_ReplyOrConfirmation) IsReplyOrConfirmation() {}
 
 func (m *_ReplyOrConfirmation) DeepCopy() any {
@@ -444,8 +411,6 @@ func (m *_ReplyOrConfirmation) deepCopy() *_ReplyOrConfirmation {
 	_ReplyOrConfirmationCopy := &_ReplyOrConfirmation{
 		nil, // will be set by child
 		m.PeekedByte,
-		m.CBusOptions,
-		m.RequestContext,
 	}
 	return _ReplyOrConfirmationCopy
 }

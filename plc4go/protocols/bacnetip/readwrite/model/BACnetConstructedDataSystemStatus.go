@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataSystemStatus = (*_BACnetConstructedDataSystemStatus)(
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataSystemStatus)(nil)
 
 // NewBACnetConstructedDataSystemStatus factory function for _BACnetConstructedDataSystemStatus
-func NewBACnetConstructedDataSystemStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, systemStatus BACnetDeviceStatusTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataSystemStatus {
+func NewBACnetConstructedDataSystemStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, systemStatus BACnetDeviceStatusTagged) *_BACnetConstructedDataSystemStatus {
 	if systemStatus == nil {
 		panic("systemStatus of type BACnetDeviceStatusTagged for BACnetConstructedDataSystemStatus must not be nil")
 	}
 	_result := &_BACnetConstructedDataSystemStatus{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		SystemStatus:                  systemStatus,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataSystemStatusBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataSystemStatusBuilder) = (*_BACnetConstructedDataSystemStatusBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataSystemStatusBuilder) WithSystemStatusBuilder(buil
 	var err error
 	b.SystemStatus, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDeviceStatusTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDeviceStatusTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataSystemStatusBuilder) Build() (BACnetConstructedDataSystemStatus, error) {
 	if b.SystemStatus == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'systemStatus' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'systemStatus' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataSystemStatus.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataSystemStatusBuilder) buildForBACnetConstructedDat
 
 func (b *_BACnetConstructedDataSystemStatusBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataSystemStatusBuilder().(*_BACnetConstructedDataSystemStatusBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

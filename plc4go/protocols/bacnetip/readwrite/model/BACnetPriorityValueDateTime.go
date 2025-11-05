@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetPriorityValueDateTime = (*_BACnetPriorityValueDateTime)(nil)
 var _ BACnetPriorityValueRequirements = (*_BACnetPriorityValueDateTime)(nil)
 
 // NewBACnetPriorityValueDateTime factory function for _BACnetPriorityValueDateTime
-func NewBACnetPriorityValueDateTime(peekedTagHeader BACnetTagHeader, dateTimeValue BACnetDateTimeEnclosed, objectTypeArgument BACnetObjectType) *_BACnetPriorityValueDateTime {
+func NewBACnetPriorityValueDateTime(peekedTagHeader BACnetTagHeader, dateTimeValue BACnetDateTimeEnclosed) *_BACnetPriorityValueDateTime {
 	if dateTimeValue == nil {
 		panic("dateTimeValue of type BACnetDateTimeEnclosed for BACnetPriorityValueDateTime must not be nil")
 	}
 	_result := &_BACnetPriorityValueDateTime{
-		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader, objectTypeArgument),
+		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader),
 		DateTimeValue:               dateTimeValue,
 	}
 	_result.BACnetPriorityValueContract.(*_BACnetPriorityValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetPriorityValueDateTimeBuilder struct {
 
 	parentBuilder *_BACnetPriorityValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetPriorityValueDateTimeBuilder) = (*_BACnetPriorityValueDateTimeBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetPriorityValueDateTimeBuilder) WithDateTimeValueBuilder(builderSu
 	var err error
 	b.DateTimeValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateTimeEnclosedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetPriorityValueDateTimeBuilder) Build() (BACnetPriorityValueDateTime, error) {
 	if b.DateTimeValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'dateTimeValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'dateTimeValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetPriorityValueDateTime.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetPriorityValueDateTimeBuilder) buildForBACnetPriorityValue() (BAC
 
 func (b *_BACnetPriorityValueDateTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetPriorityValueDateTimeBuilder().(*_BACnetPriorityValueDateTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

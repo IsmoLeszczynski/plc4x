@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataEventLogLogBuffer = (*_BACnetConstructedDataEventLogL
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEventLogLogBuffer)(nil)
 
 // NewBACnetConstructedDataEventLogLogBuffer factory function for _BACnetConstructedDataEventLogLogBuffer
-func NewBACnetConstructedDataEventLogLogBuffer(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, floorText []BACnetEventLogRecord, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEventLogLogBuffer {
+func NewBACnetConstructedDataEventLogLogBuffer(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, floorText []BACnetEventLogRecord) *_BACnetConstructedDataEventLogLogBuffer {
 	_result := &_BACnetConstructedDataEventLogLogBuffer{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FloorText:                     floorText,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataEventLogLogBufferBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEventLogLogBufferBuilder) = (*_BACnetConstructedDataEventLogLogBufferBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataEventLogLogBufferBuilder) WithFloorText(floorText
 }
 
 func (b *_BACnetConstructedDataEventLogLogBufferBuilder) Build() (BACnetConstructedDataEventLogLogBuffer, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEventLogLogBuffer.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataEventLogLogBufferBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataEventLogLogBufferBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEventLogLogBufferBuilder().(*_BACnetConstructedDataEventLogLogBufferBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

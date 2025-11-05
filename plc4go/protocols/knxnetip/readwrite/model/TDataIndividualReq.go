@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ TDataIndividualReq = (*_TDataIndividualReq)(nil)
 var _ CEMIRequirements = (*_TDataIndividualReq)(nil)
 
 // NewTDataIndividualReq factory function for _TDataIndividualReq
-func NewTDataIndividualReq(size uint16) *_TDataIndividualReq {
+func NewTDataIndividualReq() *_TDataIndividualReq {
 	_result := &_TDataIndividualReq{
-		CEMIContract: NewCEMI(size),
+		CEMIContract: NewCEMI(),
 	}
 	_result.CEMIContract.(*_CEMI)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _TDataIndividualReqBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (TDataIndividualReqBuilder) = (*_TDataIndividualReqBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_TDataIndividualReqBuilder) WithMandatoryFields() TDataIndividualReqBui
 }
 
 func (b *_TDataIndividualReqBuilder) Build() (TDataIndividualReq, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._TDataIndividualReq.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_TDataIndividualReqBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_TDataIndividualReqBuilder) DeepCopy() any {
 	_copy := b.CreateTDataIndividualReqBuilder().(*_TDataIndividualReqBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

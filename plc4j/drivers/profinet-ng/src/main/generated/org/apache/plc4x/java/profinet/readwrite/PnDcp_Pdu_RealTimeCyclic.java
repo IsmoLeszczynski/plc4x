@@ -42,13 +42,15 @@ public class PnDcp_Pdu_RealTimeCyclic extends PnDcp_Pdu implements Message {
   // Properties.
   protected final PnIo_CyclicServiceDataUnit dataUnit;
   protected final int cycleCounter;
+
+  /** Data Status Start (4.7.2.1.3) */
   protected final boolean ignore;
+
   protected final boolean stationProblemIndicatorOk;
   protected final boolean providerStateRun;
   protected final boolean dataValid;
   protected final boolean redundancy;
   protected final boolean statePrimary;
-
   // Reserved Fields
   private Boolean reservedField0;
   private Boolean reservedField1;
@@ -83,6 +85,7 @@ public class PnDcp_Pdu_RealTimeCyclic extends PnDcp_Pdu implements Message {
     return cycleCounter;
   }
 
+  /** Data Status Start (4.7.2.1.3) */
   public boolean getIgnore() {
     return ignore;
   }

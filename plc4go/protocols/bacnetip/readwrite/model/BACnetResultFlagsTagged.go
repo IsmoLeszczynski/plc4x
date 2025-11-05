@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -59,23 +60,19 @@ type BACnetResultFlagsTagged interface {
 type _BACnetResultFlagsTagged struct {
 	Header  BACnetTagHeader
 	Payload BACnetTagPayloadBitString
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetResultFlagsTagged = (*_BACnetResultFlagsTagged)(nil)
 
 // NewBACnetResultFlagsTagged factory function for _BACnetResultFlagsTagged
-func NewBACnetResultFlagsTagged(header BACnetTagHeader, payload BACnetTagPayloadBitString, tagNumber uint8, tagClass TagClass) *_BACnetResultFlagsTagged {
+func NewBACnetResultFlagsTagged(header BACnetTagHeader, payload BACnetTagPayloadBitString) *_BACnetResultFlagsTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetResultFlagsTagged must not be nil")
 	}
 	if payload == nil {
 		panic("payload of type BACnetTagPayloadBitString for BACnetResultFlagsTagged must not be nil")
 	}
-	return &_BACnetResultFlagsTagged{Header: header, Payload: payload, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetResultFlagsTagged{Header: header, Payload: payload}
 }
 
 ///////////////////////////////////////////////////////////
@@ -96,10 +93,6 @@ type BACnetResultFlagsTaggedBuilder interface {
 	WithPayload(BACnetTagPayloadBitString) BACnetResultFlagsTaggedBuilder
 	// WithPayloadBuilder adds Payload (property field) which is build by the builder
 	WithPayloadBuilder(func(BACnetTagPayloadBitStringBuilder) BACnetTagPayloadBitStringBuilder) BACnetResultFlagsTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetResultFlagsTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetResultFlagsTaggedBuilder
 	// Build builds the BACnetResultFlagsTagged or returns an error if something is wrong
 	Build() (BACnetResultFlagsTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -114,7 +107,7 @@ func NewBACnetResultFlagsTaggedBuilder() BACnetResultFlagsTaggedBuilder {
 type _BACnetResultFlagsTaggedBuilder struct {
 	*_BACnetResultFlagsTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetResultFlagsTaggedBuilder) = (*_BACnetResultFlagsTaggedBuilder)(nil)
@@ -133,10 +126,7 @@ func (b *_BACnetResultFlagsTaggedBuilder) WithHeaderBuilder(builderSupplier func
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -151,38 +141,20 @@ func (b *_BACnetResultFlagsTaggedBuilder) WithPayloadBuilder(builderSupplier fun
 	var err error
 	b.Payload, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagPayloadBitStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagPayloadBitStringBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetResultFlagsTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetResultFlagsTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetResultFlagsTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetResultFlagsTaggedBuilder {
-	b.TagClass = tagClass
 	return b
 }
 
 func (b *_BACnetResultFlagsTaggedBuilder) Build() (BACnetResultFlagsTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
 	if b.Payload == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'payload' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'payload' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetResultFlagsTagged.deepCopy(), nil
 }
@@ -197,8 +169,8 @@ func (b *_BACnetResultFlagsTaggedBuilder) MustBuild() BACnetResultFlagsTagged {
 
 func (b *_BACnetResultFlagsTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetResultFlagsTaggedBuilder().(*_BACnetResultFlagsTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -309,7 +281,7 @@ func BACnetResultFlagsTaggedParseWithBufferProducer(tagNumber uint8, tagClass Ta
 }
 
 func BACnetResultFlagsTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetResultFlagsTagged, error) {
-	v, err := (&_BACnetResultFlagsTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetResultFlagsTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -421,19 +393,6 @@ func (m *_BACnetResultFlagsTagged) SerializeWithWriteBuffer(ctx context.Context,
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetResultFlagsTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetResultFlagsTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetResultFlagsTagged) IsBACnetResultFlagsTagged() {}
 
 func (m *_BACnetResultFlagsTagged) DeepCopy() any {
@@ -447,8 +406,6 @@ func (m *_BACnetResultFlagsTagged) deepCopy() *_BACnetResultFlagsTagged {
 	_BACnetResultFlagsTaggedCopy := &_BACnetResultFlagsTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		utils.DeepCopy[BACnetTagPayloadBitString](m.Payload),
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetResultFlagsTaggedCopy
 }

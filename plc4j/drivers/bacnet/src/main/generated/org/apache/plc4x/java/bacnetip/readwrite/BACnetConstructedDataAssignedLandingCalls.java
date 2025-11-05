@@ -52,23 +52,15 @@ public class BACnetConstructedDataAssignedLandingCalls extends BACnetConstructed
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetAssignedLandingCalls> assignedLandingCalls;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataAssignedLandingCalls(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetAssignedLandingCalls> assignedLandingCalls,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetAssignedLandingCalls> assignedLandingCalls) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.assignedLandingCalls = assignedLandingCalls;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataAssignedLandingCalls extends BACnetConstructed
     return assignedLandingCalls;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -92,16 +85,12 @@ public class BACnetConstructedDataAssignedLandingCalls extends BACnetConstructed
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataAssignedLandingCalls");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (assignedLandingCalls)
     writeComplexTypeArrayField("assignedLandingCalls", assignedLandingCalls, writeBuffer);
@@ -171,42 +160,26 @@ public class BACnetConstructedDataAssignedLandingCalls extends BACnetConstructed
     readBuffer.closeContext("BACnetConstructedDataAssignedLandingCalls");
     // Create the instance
     return new BACnetConstructedDataAssignedLandingCallsBuilderImpl(
-        numberOfDataElements, assignedLandingCalls, tagNumber, arrayIndexArgument);
+        numberOfDataElements, assignedLandingCalls);
   }
 
   public static class BACnetConstructedDataAssignedLandingCallsBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetAssignedLandingCalls> assignedLandingCalls;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataAssignedLandingCallsBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetAssignedLandingCalls> assignedLandingCalls,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetAssignedLandingCalls> assignedLandingCalls) {
       this.numberOfDataElements = numberOfDataElements;
       this.assignedLandingCalls = assignedLandingCalls;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataAssignedLandingCalls build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataAssignedLandingCalls bACnetConstructedDataAssignedLandingCalls =
           new BACnetConstructedDataAssignedLandingCalls(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              assignedLandingCalls,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, assignedLandingCalls);
       return bACnetConstructedDataAssignedLandingCalls;
     }
   }

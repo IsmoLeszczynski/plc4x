@@ -49,13 +49,15 @@ public class PnIoCm_Block_AlarmCrReq extends PnIoCm_Block implements Message {
   protected final int lt;
   protected final boolean transport;
   protected final boolean priority;
+
+  /** End AlarmCrProperties */
   protected final int rtaTimeoutFactor;
+
   protected final int rtaRetries;
   protected final int localAlarmReference;
   protected final int maxAlarmDataLength;
   protected final int alarmCtrTagHeaderHigh;
   protected final int alarmCtrTagHeaderLow;
-
   // Reserved Fields
   private Integer reservedField0;
 
@@ -111,6 +113,7 @@ public class PnIoCm_Block_AlarmCrReq extends PnIoCm_Block implements Message {
     return priority;
   }
 
+  /** End AlarmCrProperties */
   public int getRtaTimeoutFactor() {
     return rtaTimeoutFactor;
   }

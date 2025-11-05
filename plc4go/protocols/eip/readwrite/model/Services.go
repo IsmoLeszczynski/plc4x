@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,16 +54,13 @@ type Services interface {
 type _Services struct {
 	Offsets  []uint16
 	Services []CipService
-
-	// Arguments.
-	ServicesLen uint16
 }
 
 var _ Services = (*_Services)(nil)
 
 // NewServices factory function for _Services
-func NewServices(offsets []uint16, services []CipService, servicesLen uint16) *_Services {
-	return &_Services{Offsets: offsets, Services: services, ServicesLen: servicesLen}
+func NewServices(offsets []uint16, services []CipService) *_Services {
+	return &_Services{Offsets: offsets, Services: services}
 }
 
 ///////////////////////////////////////////////////////////
@@ -79,8 +77,6 @@ type ServicesBuilder interface {
 	WithOffsets(...uint16) ServicesBuilder
 	// WithServices adds Services (property field)
 	WithServices(...CipService) ServicesBuilder
-	// WithArgServicesLen sets a parser argument
-	WithArgServicesLen(uint16) ServicesBuilder
 	// Build builds the Services or returns an error if something is wrong
 	Build() (Services, error)
 	// MustBuild does the same as Build but panics on error
@@ -95,7 +91,7 @@ func NewServicesBuilder() ServicesBuilder {
 type _ServicesBuilder struct {
 	*_Services
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ServicesBuilder) = (*_ServicesBuilder)(nil)
@@ -114,14 +110,9 @@ func (b *_ServicesBuilder) WithServices(services ...CipService) ServicesBuilder 
 	return b
 }
 
-func (b *_ServicesBuilder) WithArgServicesLen(servicesLen uint16) ServicesBuilder {
-	b.ServicesLen = servicesLen
-	return b
-}
-
 func (b *_ServicesBuilder) Build() (Services, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._Services.deepCopy(), nil
 }
@@ -136,8 +127,8 @@ func (b *_ServicesBuilder) MustBuild() Services {
 
 func (b *_ServicesBuilder) DeepCopy() any {
 	_copy := b.CreateServicesBuilder().(*_ServicesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -225,7 +216,7 @@ func ServicesParseWithBufferProducer(servicesLen uint16) func(ctx context.Contex
 }
 
 func ServicesParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, servicesLen uint16) (Services, error) {
-	v, err := (&_Services{ServicesLen: servicesLen}).parse(ctx, readBuffer, servicesLen)
+	v, err := (new(_Services)).parse(ctx, readBuffer, servicesLen)
 	if err != nil {
 		return nil, err
 	}
@@ -301,16 +292,6 @@ func (m *_Services) SerializeWithWriteBuffer(ctx context.Context, writeBuffer ut
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_Services) GetServicesLen() uint16 {
-	return m.ServicesLen
-}
-
-//
-////
-
 func (m *_Services) IsServices() {}
 
 func (m *_Services) DeepCopy() any {
@@ -324,7 +305,6 @@ func (m *_Services) deepCopy() *_Services {
 	_ServicesCopy := &_Services{
 		utils.DeepCopySlice[uint16, uint16](m.Offsets),
 		utils.DeepCopySlice[CipService, CipService](m.Services),
-		m.ServicesLen,
 	}
 	return _ServicesCopy
 }

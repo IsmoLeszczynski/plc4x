@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -43,6 +44,7 @@ type ParameterValueBaudRateSelector interface {
 	// GetValue returns Value (property field)
 	GetValue() BaudRateSelector
 	// GetData returns Data (property field)
+	// TODO: find out what additional bytes mean here...
 	GetData() []byte
 	// IsParameterValueBaudRateSelector is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsParameterValueBaudRateSelector()
@@ -61,9 +63,9 @@ var _ ParameterValueBaudRateSelector = (*_ParameterValueBaudRateSelector)(nil)
 var _ ParameterValueRequirements = (*_ParameterValueBaudRateSelector)(nil)
 
 // NewParameterValueBaudRateSelector factory function for _ParameterValueBaudRateSelector
-func NewParameterValueBaudRateSelector(value BaudRateSelector, data []byte, numBytes uint8) *_ParameterValueBaudRateSelector {
+func NewParameterValueBaudRateSelector(value BaudRateSelector, data []byte) *_ParameterValueBaudRateSelector {
 	_result := &_ParameterValueBaudRateSelector{
-		ParameterValueContract: NewParameterValue(numBytes),
+		ParameterValueContract: NewParameterValue(),
 		Value:                  value,
 		Data:                   data,
 	}
@@ -103,7 +105,7 @@ type _ParameterValueBaudRateSelectorBuilder struct {
 
 	parentBuilder *_ParameterValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ParameterValueBaudRateSelectorBuilder) = (*_ParameterValueBaudRateSelectorBuilder)(nil)
@@ -128,8 +130,8 @@ func (b *_ParameterValueBaudRateSelectorBuilder) WithData(data ...byte) Paramete
 }
 
 func (b *_ParameterValueBaudRateSelectorBuilder) Build() (ParameterValueBaudRateSelector, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ParameterValueBaudRateSelector.deepCopy(), nil
 }
@@ -155,8 +157,8 @@ func (b *_ParameterValueBaudRateSelectorBuilder) buildForParameterValue() (Param
 
 func (b *_ParameterValueBaudRateSelectorBuilder) DeepCopy() any {
 	_copy := b.CreateParameterValueBaudRateSelectorBuilder().(*_ParameterValueBaudRateSelectorBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

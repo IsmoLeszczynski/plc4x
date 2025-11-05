@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetLiftCarDoorCommandTagged interface {
 type _BACnetLiftCarDoorCommandTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetLiftCarDoorCommand
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetLiftCarDoorCommandTagged = (*_BACnetLiftCarDoorCommandTagged)(nil)
 
 // NewBACnetLiftCarDoorCommandTagged factory function for _BACnetLiftCarDoorCommandTagged
-func NewBACnetLiftCarDoorCommandTagged(header BACnetTagHeader, value BACnetLiftCarDoorCommand, tagNumber uint8, tagClass TagClass) *_BACnetLiftCarDoorCommandTagged {
+func NewBACnetLiftCarDoorCommandTagged(header BACnetTagHeader, value BACnetLiftCarDoorCommand) *_BACnetLiftCarDoorCommandTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetLiftCarDoorCommandTagged must not be nil")
 	}
-	return &_BACnetLiftCarDoorCommandTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetLiftCarDoorCommandTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetLiftCarDoorCommandTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetLiftCarDoorCommandTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetLiftCarDoorCommand) BACnetLiftCarDoorCommandTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetLiftCarDoorCommandTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetLiftCarDoorCommandTaggedBuilder
 	// Build builds the BACnetLiftCarDoorCommandTagged or returns an error if something is wrong
 	Build() (BACnetLiftCarDoorCommandTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetLiftCarDoorCommandTaggedBuilder() BACnetLiftCarDoorCommandTaggedBu
 type _BACnetLiftCarDoorCommandTaggedBuilder struct {
 	*_BACnetLiftCarDoorCommandTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetLiftCarDoorCommandTaggedBuilder) = (*_BACnetLiftCarDoorCommandTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetLiftCarDoorCommandTaggedBuilder) WithHeaderBuilder(builderSuppli
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetLiftCarDoorCommandTaggedBuilder) WithValue(value BACnetLiftCarDo
 	return b
 }
 
-func (b *_BACnetLiftCarDoorCommandTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetLiftCarDoorCommandTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetLiftCarDoorCommandTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetLiftCarDoorCommandTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetLiftCarDoorCommandTaggedBuilder) Build() (BACnetLiftCarDoorCommandTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetLiftCarDoorCommandTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetLiftCarDoorCommandTaggedBuilder) MustBuild() BACnetLiftCarDoorCo
 
 func (b *_BACnetLiftCarDoorCommandTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetLiftCarDoorCommandTaggedBuilder().(*_BACnetLiftCarDoorCommandTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetLiftCarDoorCommandTaggedParseWithBufferProducer(tagNumber uint8, tagC
 }
 
 func BACnetLiftCarDoorCommandTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetLiftCarDoorCommandTagged, error) {
-	v, err := (&_BACnetLiftCarDoorCommandTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetLiftCarDoorCommandTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetLiftCarDoorCommandTagged) SerializeWithWriteBuffer(ctx context.C
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetLiftCarDoorCommandTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetLiftCarDoorCommandTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetLiftCarDoorCommandTagged) IsBACnetLiftCarDoorCommandTagged() {}
 
 func (m *_BACnetLiftCarDoorCommandTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetLiftCarDoorCommandTagged) deepCopy() *_BACnetLiftCarDoorCommandT
 	_BACnetLiftCarDoorCommandTaggedCopy := &_BACnetLiftCarDoorCommandTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetLiftCarDoorCommandTaggedCopy
 }

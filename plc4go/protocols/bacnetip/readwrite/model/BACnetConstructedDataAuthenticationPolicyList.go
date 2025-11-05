@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataAuthenticationPolicyList interface {
 	// GetAuthenticationPolicyList returns AuthenticationPolicyList (property field)
 	GetAuthenticationPolicyList() []BACnetAuthenticationPolicy
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataAuthenticationPolicyList is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataAuthenticationPolicyList()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataAuthenticationPolicyList = (*_BACnetConstructedDataAu
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAuthenticationPolicyList)(nil)
 
 // NewBACnetConstructedDataAuthenticationPolicyList factory function for _BACnetConstructedDataAuthenticationPolicyList
-func NewBACnetConstructedDataAuthenticationPolicyList(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, authenticationPolicyList []BACnetAuthenticationPolicy, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAuthenticationPolicyList {
+func NewBACnetConstructedDataAuthenticationPolicyList(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, authenticationPolicyList []BACnetAuthenticationPolicy) *_BACnetConstructedDataAuthenticationPolicyList {
 	_result := &_BACnetConstructedDataAuthenticationPolicyList{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		AuthenticationPolicyList:      authenticationPolicyList,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataAuthenticationPolicyListBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAuthenticationPolicyListBuilder) = (*_BACnetConstructedDataAuthenticationPolicyListBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataAuthenticationPolicyListBuilder) WithOptionalNumb
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataAuthenticationPolicyListBuilder) WithAuthenticati
 }
 
 func (b *_BACnetConstructedDataAuthenticationPolicyListBuilder) Build() (BACnetConstructedDataAuthenticationPolicyList, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAuthenticationPolicyList.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataAuthenticationPolicyListBuilder) buildForBACnetCo
 
 func (b *_BACnetConstructedDataAuthenticationPolicyListBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAuthenticationPolicyListBuilder().(*_BACnetConstructedDataAuthenticationPolicyListBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

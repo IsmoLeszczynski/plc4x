@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataOccupancyCountAdjust = (*_BACnetConstructedDataOccupa
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataOccupancyCountAdjust)(nil)
 
 // NewBACnetConstructedDataOccupancyCountAdjust factory function for _BACnetConstructedDataOccupancyCountAdjust
-func NewBACnetConstructedDataOccupancyCountAdjust(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, occupancyCountAdjust BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataOccupancyCountAdjust {
+func NewBACnetConstructedDataOccupancyCountAdjust(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, occupancyCountAdjust BACnetApplicationTagBoolean) *_BACnetConstructedDataOccupancyCountAdjust {
 	if occupancyCountAdjust == nil {
 		panic("occupancyCountAdjust of type BACnetApplicationTagBoolean for BACnetConstructedDataOccupancyCountAdjust must not be nil")
 	}
 	_result := &_BACnetConstructedDataOccupancyCountAdjust{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		OccupancyCountAdjust:          occupancyCountAdjust,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataOccupancyCountAdjustBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataOccupancyCountAdjustBuilder) = (*_BACnetConstructedDataOccupancyCountAdjustBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataOccupancyCountAdjustBuilder) WithOccupancyCountAd
 	var err error
 	b.OccupancyCountAdjust, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataOccupancyCountAdjustBuilder) Build() (BACnetConstructedDataOccupancyCountAdjust, error) {
 	if b.OccupancyCountAdjust == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'occupancyCountAdjust' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'occupancyCountAdjust' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataOccupancyCountAdjust.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataOccupancyCountAdjustBuilder) buildForBACnetConstr
 
 func (b *_BACnetConstructedDataOccupancyCountAdjustBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataOccupancyCountAdjustBuilder().(*_BACnetConstructedDataOccupancyCountAdjustBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

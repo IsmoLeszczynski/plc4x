@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNumberOfAPDURetries = (*_BACnetConstructedDataNumberO
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNumberOfAPDURetries)(nil)
 
 // NewBACnetConstructedDataNumberOfAPDURetries factory function for _BACnetConstructedDataNumberOfAPDURetries
-func NewBACnetConstructedDataNumberOfAPDURetries(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfApduRetries BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNumberOfAPDURetries {
+func NewBACnetConstructedDataNumberOfAPDURetries(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfApduRetries BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataNumberOfAPDURetries {
 	if numberOfApduRetries == nil {
 		panic("numberOfApduRetries of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataNumberOfAPDURetries must not be nil")
 	}
 	_result := &_BACnetConstructedDataNumberOfAPDURetries{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfApduRetries:           numberOfApduRetries,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNumberOfAPDURetriesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNumberOfAPDURetriesBuilder) = (*_BACnetConstructedDataNumberOfAPDURetriesBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNumberOfAPDURetriesBuilder) WithNumberOfApduRetri
 	var err error
 	b.NumberOfApduRetries, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNumberOfAPDURetriesBuilder) Build() (BACnetConstructedDataNumberOfAPDURetries, error) {
 	if b.NumberOfApduRetries == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'numberOfApduRetries' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'numberOfApduRetries' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNumberOfAPDURetries.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNumberOfAPDURetriesBuilder) buildForBACnetConstru
 
 func (b *_BACnetConstructedDataNumberOfAPDURetriesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNumberOfAPDURetriesBuilder().(*_BACnetConstructedDataNumberOfAPDURetriesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

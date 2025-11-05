@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLargeAnalogValueResolution = (*_BACnetConstructedData
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLargeAnalogValueResolution)(nil)
 
 // NewBACnetConstructedDataLargeAnalogValueResolution factory function for _BACnetConstructedDataLargeAnalogValueResolution
-func NewBACnetConstructedDataLargeAnalogValueResolution(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, resolution BACnetApplicationTagDouble, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLargeAnalogValueResolution {
+func NewBACnetConstructedDataLargeAnalogValueResolution(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, resolution BACnetApplicationTagDouble) *_BACnetConstructedDataLargeAnalogValueResolution {
 	if resolution == nil {
 		panic("resolution of type BACnetApplicationTagDouble for BACnetConstructedDataLargeAnalogValueResolution must not be nil")
 	}
 	_result := &_BACnetConstructedDataLargeAnalogValueResolution{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Resolution:                    resolution,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLargeAnalogValueResolutionBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLargeAnalogValueResolutionBuilder) = (*_BACnetConstructedDataLargeAnalogValueResolutionBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLargeAnalogValueResolutionBuilder) WithResolution
 	var err error
 	b.Resolution, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagDoubleBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagDoubleBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLargeAnalogValueResolutionBuilder) Build() (BACnetConstructedDataLargeAnalogValueResolution, error) {
 	if b.Resolution == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'resolution' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'resolution' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLargeAnalogValueResolution.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLargeAnalogValueResolutionBuilder) buildForBACnet
 
 func (b *_BACnetConstructedDataLargeAnalogValueResolutionBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLargeAnalogValueResolutionBuilder().(*_BACnetConstructedDataLargeAnalogValueResolutionBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

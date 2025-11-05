@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ IdentifyReplyCommandCurrentSenseLevels = (*_IdentifyReplyCommandCurrentSen
 var _ IdentifyReplyCommandRequirements = (*_IdentifyReplyCommandCurrentSenseLevels)(nil)
 
 // NewIdentifyReplyCommandCurrentSenseLevels factory function for _IdentifyReplyCommandCurrentSenseLevels
-func NewIdentifyReplyCommandCurrentSenseLevels(currentSenseLevels []byte, numBytes uint8) *_IdentifyReplyCommandCurrentSenseLevels {
+func NewIdentifyReplyCommandCurrentSenseLevels(currentSenseLevels []byte) *_IdentifyReplyCommandCurrentSenseLevels {
 	_result := &_IdentifyReplyCommandCurrentSenseLevels{
-		IdentifyReplyCommandContract: NewIdentifyReplyCommand(numBytes),
+		IdentifyReplyCommandContract: NewIdentifyReplyCommand(),
 		CurrentSenseLevels:           currentSenseLevels,
 	}
 	_result.IdentifyReplyCommandContract.(*_IdentifyReplyCommand)._SubType = _result
@@ -97,7 +98,7 @@ type _IdentifyReplyCommandCurrentSenseLevelsBuilder struct {
 
 	parentBuilder *_IdentifyReplyCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (IdentifyReplyCommandCurrentSenseLevelsBuilder) = (*_IdentifyReplyCommandCurrentSenseLevelsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_IdentifyReplyCommandCurrentSenseLevelsBuilder) WithCurrentSenseLevels(
 }
 
 func (b *_IdentifyReplyCommandCurrentSenseLevelsBuilder) Build() (IdentifyReplyCommandCurrentSenseLevels, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._IdentifyReplyCommandCurrentSenseLevels.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_IdentifyReplyCommandCurrentSenseLevelsBuilder) buildForIdentifyReplyCo
 
 func (b *_IdentifyReplyCommandCurrentSenseLevelsBuilder) DeepCopy() any {
 	_copy := b.CreateIdentifyReplyCommandCurrentSenseLevelsBuilder().(*_IdentifyReplyCommandCurrentSenseLevelsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

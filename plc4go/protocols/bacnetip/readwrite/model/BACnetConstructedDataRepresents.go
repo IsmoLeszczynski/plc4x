@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataRepresents = (*_BACnetConstructedDataRepresents)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataRepresents)(nil)
 
 // NewBACnetConstructedDataRepresents factory function for _BACnetConstructedDataRepresents
-func NewBACnetConstructedDataRepresents(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, represents BACnetDeviceObjectReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataRepresents {
+func NewBACnetConstructedDataRepresents(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, represents BACnetDeviceObjectReference) *_BACnetConstructedDataRepresents {
 	if represents == nil {
 		panic("represents of type BACnetDeviceObjectReference for BACnetConstructedDataRepresents must not be nil")
 	}
 	_result := &_BACnetConstructedDataRepresents{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Represents:                    represents,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataRepresentsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataRepresentsBuilder) = (*_BACnetConstructedDataRepresentsBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataRepresentsBuilder) WithRepresentsBuilder(builderS
 	var err error
 	b.Represents, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDeviceObjectReferenceBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDeviceObjectReferenceBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataRepresentsBuilder) Build() (BACnetConstructedDataRepresents, error) {
 	if b.Represents == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'represents' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'represents' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataRepresents.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataRepresentsBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataRepresentsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataRepresentsBuilder().(*_BACnetConstructedDataRepresentsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

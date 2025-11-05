@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLargeAnalogValuePresentValue = (*_BACnetConstructedDa
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLargeAnalogValuePresentValue)(nil)
 
 // NewBACnetConstructedDataLargeAnalogValuePresentValue factory function for _BACnetConstructedDataLargeAnalogValuePresentValue
-func NewBACnetConstructedDataLargeAnalogValuePresentValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, presentValue BACnetApplicationTagDouble, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLargeAnalogValuePresentValue {
+func NewBACnetConstructedDataLargeAnalogValuePresentValue(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, presentValue BACnetApplicationTagDouble) *_BACnetConstructedDataLargeAnalogValuePresentValue {
 	if presentValue == nil {
 		panic("presentValue of type BACnetApplicationTagDouble for BACnetConstructedDataLargeAnalogValuePresentValue must not be nil")
 	}
 	_result := &_BACnetConstructedDataLargeAnalogValuePresentValue{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		PresentValue:                  presentValue,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLargeAnalogValuePresentValueBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLargeAnalogValuePresentValueBuilder) = (*_BACnetConstructedDataLargeAnalogValuePresentValueBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLargeAnalogValuePresentValueBuilder) WithPresentV
 	var err error
 	b.PresentValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagDoubleBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagDoubleBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLargeAnalogValuePresentValueBuilder) Build() (BACnetConstructedDataLargeAnalogValuePresentValue, error) {
 	if b.PresentValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'presentValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'presentValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLargeAnalogValuePresentValue.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLargeAnalogValuePresentValueBuilder) buildForBACn
 
 func (b *_BACnetConstructedDataLargeAnalogValuePresentValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLargeAnalogValuePresentValueBuilder().(*_BACnetConstructedDataLargeAnalogValuePresentValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataScheduleDefault = (*_BACnetConstructedDataScheduleDef
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataScheduleDefault)(nil)
 
 // NewBACnetConstructedDataScheduleDefault factory function for _BACnetConstructedDataScheduleDefault
-func NewBACnetConstructedDataScheduleDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, scheduleDefault BACnetConstructedDataElement, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataScheduleDefault {
+func NewBACnetConstructedDataScheduleDefault(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, scheduleDefault BACnetConstructedDataElement) *_BACnetConstructedDataScheduleDefault {
 	if scheduleDefault == nil {
 		panic("scheduleDefault of type BACnetConstructedDataElement for BACnetConstructedDataScheduleDefault must not be nil")
 	}
 	_result := &_BACnetConstructedDataScheduleDefault{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ScheduleDefault:               scheduleDefault,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataScheduleDefaultBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataScheduleDefaultBuilder) = (*_BACnetConstructedDataScheduleDefaultBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataScheduleDefaultBuilder) WithScheduleDefaultBuilde
 	var err error
 	b.ScheduleDefault, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetConstructedDataElementBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetConstructedDataElementBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataScheduleDefaultBuilder) Build() (BACnetConstructedDataScheduleDefault, error) {
 	if b.ScheduleDefault == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'scheduleDefault' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'scheduleDefault' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataScheduleDefault.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataScheduleDefaultBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataScheduleDefaultBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataScheduleDefaultBuilder().(*_BACnetConstructedDataScheduleDefaultBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

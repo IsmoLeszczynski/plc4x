@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataInProgress = (*_BACnetConstructedDataInProgress)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataInProgress)(nil)
 
 // NewBACnetConstructedDataInProgress factory function for _BACnetConstructedDataInProgress
-func NewBACnetConstructedDataInProgress(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, inProgress BACnetLightingInProgressTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataInProgress {
+func NewBACnetConstructedDataInProgress(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, inProgress BACnetLightingInProgressTagged) *_BACnetConstructedDataInProgress {
 	if inProgress == nil {
 		panic("inProgress of type BACnetLightingInProgressTagged for BACnetConstructedDataInProgress must not be nil")
 	}
 	_result := &_BACnetConstructedDataInProgress{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		InProgress:                    inProgress,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataInProgressBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataInProgressBuilder) = (*_BACnetConstructedDataInProgressBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataInProgressBuilder) WithInProgressBuilder(builderS
 	var err error
 	b.InProgress, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetLightingInProgressTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetLightingInProgressTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataInProgressBuilder) Build() (BACnetConstructedDataInProgress, error) {
 	if b.InProgress == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'inProgress' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'inProgress' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataInProgress.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataInProgressBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataInProgressBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataInProgressBuilder().(*_BACnetConstructedDataInProgressBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

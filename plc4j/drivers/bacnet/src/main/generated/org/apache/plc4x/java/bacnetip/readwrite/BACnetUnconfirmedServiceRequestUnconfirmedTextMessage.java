@@ -46,25 +46,24 @@ public class BACnetUnconfirmedServiceRequestUnconfirmedTextMessage
   // Properties.
   protected final BACnetContextTagObjectIdentifier textMessageSourceDevice;
   protected final BACnetConfirmedServiceRequestConfirmedTextMessageMessageClass messageClass;
+
+  /** Note we reuse the once from confirmed here */
   protected final BACnetConfirmedServiceRequestConfirmedTextMessageMessagePriorityTagged
       messagePriority;
-  protected final BACnetContextTagCharacterString message;
 
-  // Arguments.
-  protected final Integer serviceRequestLength;
+  /** Note we reuse the once from confirmed here */
+  protected final BACnetContextTagCharacterString message;
 
   public BACnetUnconfirmedServiceRequestUnconfirmedTextMessage(
       BACnetContextTagObjectIdentifier textMessageSourceDevice,
       BACnetConfirmedServiceRequestConfirmedTextMessageMessageClass messageClass,
       BACnetConfirmedServiceRequestConfirmedTextMessageMessagePriorityTagged messagePriority,
-      BACnetContextTagCharacterString message,
-      Integer serviceRequestLength) {
-    super(serviceRequestLength);
+      BACnetContextTagCharacterString message) {
+    super();
     this.textMessageSourceDevice = textMessageSourceDevice;
     this.messageClass = messageClass;
     this.messagePriority = messagePriority;
     this.message = message;
-    this.serviceRequestLength = serviceRequestLength;
   }
 
   public BACnetContextTagObjectIdentifier getTextMessageSourceDevice() {
@@ -75,11 +74,13 @@ public class BACnetUnconfirmedServiceRequestUnconfirmedTextMessage
     return messageClass;
   }
 
+  /** Note we reuse the once from confirmed here */
   public BACnetConfirmedServiceRequestConfirmedTextMessageMessagePriorityTagged
       getMessagePriority() {
     return messagePriority;
   }
 
+  /** Note we reuse the once from confirmed here */
   public BACnetContextTagCharacterString getMessage() {
     return message;
   }
@@ -187,7 +188,7 @@ public class BACnetUnconfirmedServiceRequestUnconfirmedTextMessage
     readBuffer.closeContext("BACnetUnconfirmedServiceRequestUnconfirmedTextMessage");
     // Create the instance
     return new BACnetUnconfirmedServiceRequestUnconfirmedTextMessageBuilderImpl(
-        textMessageSourceDevice, messageClass, messagePriority, message, serviceRequestLength);
+        textMessageSourceDevice, messageClass, messagePriority, message);
   }
 
   public static class BACnetUnconfirmedServiceRequestUnconfirmedTextMessageBuilderImpl
@@ -197,31 +198,23 @@ public class BACnetUnconfirmedServiceRequestUnconfirmedTextMessage
     private final BACnetConfirmedServiceRequestConfirmedTextMessageMessagePriorityTagged
         messagePriority;
     private final BACnetContextTagCharacterString message;
-    private final Integer serviceRequestLength;
 
     public BACnetUnconfirmedServiceRequestUnconfirmedTextMessageBuilderImpl(
         BACnetContextTagObjectIdentifier textMessageSourceDevice,
         BACnetConfirmedServiceRequestConfirmedTextMessageMessageClass messageClass,
         BACnetConfirmedServiceRequestConfirmedTextMessageMessagePriorityTagged messagePriority,
-        BACnetContextTagCharacterString message,
-        Integer serviceRequestLength) {
+        BACnetContextTagCharacterString message) {
       this.textMessageSourceDevice = textMessageSourceDevice;
       this.messageClass = messageClass;
       this.messagePriority = messagePriority;
       this.message = message;
-      this.serviceRequestLength = serviceRequestLength;
     }
 
-    public BACnetUnconfirmedServiceRequestUnconfirmedTextMessage build(
-        Integer serviceRequestLength) {
+    public BACnetUnconfirmedServiceRequestUnconfirmedTextMessage build() {
       BACnetUnconfirmedServiceRequestUnconfirmedTextMessage
           bACnetUnconfirmedServiceRequestUnconfirmedTextMessage =
               new BACnetUnconfirmedServiceRequestUnconfirmedTextMessage(
-                  textMessageSourceDevice,
-                  messageClass,
-                  messagePriority,
-                  message,
-                  serviceRequestLength);
+                  textMessageSourceDevice, messageClass, messagePriority, message);
       return bACnetUnconfirmedServiceRequestUnconfirmedTextMessage;
     }
   }

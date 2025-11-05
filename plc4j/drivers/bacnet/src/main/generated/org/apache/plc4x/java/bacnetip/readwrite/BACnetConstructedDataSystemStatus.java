@@ -49,21 +49,13 @@ public class BACnetConstructedDataSystemStatus extends BACnetConstructedData imp
   // Properties.
   protected final BACnetDeviceStatusTagged systemStatus;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataSystemStatus(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetDeviceStatusTagged systemStatus,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetDeviceStatusTagged systemStatus) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.systemStatus = systemStatus;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetDeviceStatusTagged getSystemStatus() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataSystemStatus extends BACnetConstructedData imp
     // Simple Field (systemStatus)
     writeSimpleField("systemStatus", systemStatus, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetDeviceStatusTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,22 @@ public class BACnetConstructedDataSystemStatus extends BACnetConstructedData imp
 
     readBuffer.closeContext("BACnetConstructedDataSystemStatus");
     // Create the instance
-    return new BACnetConstructedDataSystemStatusBuilderImpl(
-        systemStatus, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataSystemStatusBuilderImpl(systemStatus);
   }
 
   public static class BACnetConstructedDataSystemStatusBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetDeviceStatusTagged systemStatus;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataSystemStatusBuilderImpl(
-        BACnetDeviceStatusTagged systemStatus,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataSystemStatusBuilderImpl(BACnetDeviceStatusTagged systemStatus) {
       this.systemStatus = systemStatus;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataSystemStatus build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataSystemStatus bACnetConstructedDataSystemStatus =
           new BACnetConstructedDataSystemStatus(
-              openingTag, peekedTagHeader, closingTag, systemStatus, tagNumber, arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, systemStatus);
       return bACnetConstructedDataSystemStatus;
     }
   }

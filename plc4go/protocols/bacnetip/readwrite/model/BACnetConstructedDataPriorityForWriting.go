@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataPriorityForWriting = (*_BACnetConstructedDataPriority
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataPriorityForWriting)(nil)
 
 // NewBACnetConstructedDataPriorityForWriting factory function for _BACnetConstructedDataPriorityForWriting
-func NewBACnetConstructedDataPriorityForWriting(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, priorityForWriting BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataPriorityForWriting {
+func NewBACnetConstructedDataPriorityForWriting(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, priorityForWriting BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataPriorityForWriting {
 	if priorityForWriting == nil {
 		panic("priorityForWriting of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataPriorityForWriting must not be nil")
 	}
 	_result := &_BACnetConstructedDataPriorityForWriting{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		PriorityForWriting:            priorityForWriting,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataPriorityForWritingBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataPriorityForWritingBuilder) = (*_BACnetConstructedDataPriorityForWritingBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataPriorityForWritingBuilder) WithPriorityForWriting
 	var err error
 	b.PriorityForWriting, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataPriorityForWritingBuilder) Build() (BACnetConstructedDataPriorityForWriting, error) {
 	if b.PriorityForWriting == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'priorityForWriting' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'priorityForWriting' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataPriorityForWriting.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataPriorityForWritingBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataPriorityForWritingBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataPriorityForWritingBuilder().(*_BACnetConstructedDataPriorityForWritingBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

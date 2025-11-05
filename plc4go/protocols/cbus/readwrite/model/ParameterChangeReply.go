@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type ParameterChangeReply interface {
 	utils.Copyable
 	Reply
 	// GetParameterChange returns ParameterChange (property field)
+	// is a =
 	GetParameterChange() ParameterChange
 	// IsParameterChangeReply is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsParameterChangeReply()
@@ -58,12 +60,12 @@ var _ ParameterChangeReply = (*_ParameterChangeReply)(nil)
 var _ ReplyRequirements = (*_ParameterChangeReply)(nil)
 
 // NewParameterChangeReply factory function for _ParameterChangeReply
-func NewParameterChangeReply(peekedByte byte, parameterChange ParameterChange, cBusOptions CBusOptions, requestContext RequestContext) *_ParameterChangeReply {
+func NewParameterChangeReply(peekedByte byte, parameterChange ParameterChange) *_ParameterChangeReply {
 	if parameterChange == nil {
 		panic("parameterChange of type ParameterChange for ParameterChangeReply must not be nil")
 	}
 	_result := &_ParameterChangeReply{
-		ReplyContract:   NewReply(peekedByte, cBusOptions, requestContext),
+		ReplyContract:   NewReply(peekedByte),
 		ParameterChange: parameterChange,
 	}
 	_result.ReplyContract.(*_Reply)._SubType = _result
@@ -102,7 +104,7 @@ type _ParameterChangeReplyBuilder struct {
 
 	parentBuilder *_ReplyBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ParameterChangeReplyBuilder) = (*_ParameterChangeReplyBuilder)(nil)
@@ -126,23 +128,17 @@ func (b *_ParameterChangeReplyBuilder) WithParameterChangeBuilder(builderSupplie
 	var err error
 	b.ParameterChange, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "ParameterChangeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "ParameterChangeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_ParameterChangeReplyBuilder) Build() (ParameterChangeReply, error) {
 	if b.ParameterChange == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'parameterChange' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'parameterChange' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ParameterChangeReply.deepCopy(), nil
 }
@@ -168,8 +164,8 @@ func (b *_ParameterChangeReplyBuilder) buildForReply() (Reply, error) {
 
 func (b *_ParameterChangeReplyBuilder) DeepCopy() any {
 	_copy := b.CreateParameterChangeReplyBuilder().(*_ParameterChangeReplyBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

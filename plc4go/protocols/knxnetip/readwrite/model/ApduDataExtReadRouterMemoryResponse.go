@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtReadRouterMemoryResponse = (*_ApduDataExtReadRouterMemoryRespon
 var _ ApduDataExtRequirements = (*_ApduDataExtReadRouterMemoryResponse)(nil)
 
 // NewApduDataExtReadRouterMemoryResponse factory function for _ApduDataExtReadRouterMemoryResponse
-func NewApduDataExtReadRouterMemoryResponse(length uint8) *_ApduDataExtReadRouterMemoryResponse {
+func NewApduDataExtReadRouterMemoryResponse() *_ApduDataExtReadRouterMemoryResponse {
 	_result := &_ApduDataExtReadRouterMemoryResponse{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtReadRouterMemoryResponseBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtReadRouterMemoryResponseBuilder) = (*_ApduDataExtReadRouterMemoryResponseBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtReadRouterMemoryResponseBuilder) WithMandatoryFields() Apdu
 }
 
 func (b *_ApduDataExtReadRouterMemoryResponseBuilder) Build() (ApduDataExtReadRouterMemoryResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtReadRouterMemoryResponse.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtReadRouterMemoryResponseBuilder) buildForApduDataExt() (Apd
 
 func (b *_ApduDataExtReadRouterMemoryResponseBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtReadRouterMemoryResponseBuilder().(*_ApduDataExtReadRouterMemoryResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

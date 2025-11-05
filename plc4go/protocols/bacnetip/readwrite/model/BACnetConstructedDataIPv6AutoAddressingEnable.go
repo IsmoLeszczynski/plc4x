@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataIPv6AutoAddressingEnable = (*_BACnetConstructedDataIP
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataIPv6AutoAddressingEnable)(nil)
 
 // NewBACnetConstructedDataIPv6AutoAddressingEnable factory function for _BACnetConstructedDataIPv6AutoAddressingEnable
-func NewBACnetConstructedDataIPv6AutoAddressingEnable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, autoAddressingEnable BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataIPv6AutoAddressingEnable {
+func NewBACnetConstructedDataIPv6AutoAddressingEnable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, autoAddressingEnable BACnetApplicationTagBoolean) *_BACnetConstructedDataIPv6AutoAddressingEnable {
 	if autoAddressingEnable == nil {
 		panic("autoAddressingEnable of type BACnetApplicationTagBoolean for BACnetConstructedDataIPv6AutoAddressingEnable must not be nil")
 	}
 	_result := &_BACnetConstructedDataIPv6AutoAddressingEnable{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AutoAddressingEnable:          autoAddressingEnable,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataIPv6AutoAddressingEnableBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataIPv6AutoAddressingEnableBuilder) = (*_BACnetConstructedDataIPv6AutoAddressingEnableBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataIPv6AutoAddressingEnableBuilder) WithAutoAddressi
 	var err error
 	b.AutoAddressingEnable, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataIPv6AutoAddressingEnableBuilder) Build() (BACnetConstructedDataIPv6AutoAddressingEnable, error) {
 	if b.AutoAddressingEnable == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'autoAddressingEnable' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'autoAddressingEnable' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataIPv6AutoAddressingEnable.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataIPv6AutoAddressingEnableBuilder) buildForBACnetCo
 
 func (b *_BACnetConstructedDataIPv6AutoAddressingEnableBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataIPv6AutoAddressingEnableBuilder().(*_BACnetConstructedDataIPv6AutoAddressingEnableBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

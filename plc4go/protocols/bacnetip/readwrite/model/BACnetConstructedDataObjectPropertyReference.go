@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataObjectPropertyReference = (*_BACnetConstructedDataObj
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataObjectPropertyReference)(nil)
 
 // NewBACnetConstructedDataObjectPropertyReference factory function for _BACnetConstructedDataObjectPropertyReference
-func NewBACnetConstructedDataObjectPropertyReference(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, propertyReference BACnetDeviceObjectPropertyReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataObjectPropertyReference {
+func NewBACnetConstructedDataObjectPropertyReference(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, propertyReference BACnetDeviceObjectPropertyReference) *_BACnetConstructedDataObjectPropertyReference {
 	if propertyReference == nil {
 		panic("propertyReference of type BACnetDeviceObjectPropertyReference for BACnetConstructedDataObjectPropertyReference must not be nil")
 	}
 	_result := &_BACnetConstructedDataObjectPropertyReference{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		PropertyReference:             propertyReference,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataObjectPropertyReferenceBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataObjectPropertyReferenceBuilder) = (*_BACnetConstructedDataObjectPropertyReferenceBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataObjectPropertyReferenceBuilder) WithPropertyRefer
 	var err error
 	b.PropertyReference, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDeviceObjectPropertyReferenceBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDeviceObjectPropertyReferenceBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataObjectPropertyReferenceBuilder) Build() (BACnetConstructedDataObjectPropertyReference, error) {
 	if b.PropertyReference == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'propertyReference' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'propertyReference' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataObjectPropertyReference.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataObjectPropertyReferenceBuilder) buildForBACnetCon
 
 func (b *_BACnetConstructedDataObjectPropertyReferenceBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataObjectPropertyReferenceBuilder().(*_BACnetConstructedDataObjectPropertyReferenceBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataValueSourceArray interface {
 	// GetVtClassesSupported returns VtClassesSupported (property field)
 	GetVtClassesSupported() []BACnetValueSource
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataValueSourceArray is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataValueSourceArray()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataValueSourceArray = (*_BACnetConstructedDataValueSourc
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataValueSourceArray)(nil)
 
 // NewBACnetConstructedDataValueSourceArray factory function for _BACnetConstructedDataValueSourceArray
-func NewBACnetConstructedDataValueSourceArray(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, vtClassesSupported []BACnetValueSource, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataValueSourceArray {
+func NewBACnetConstructedDataValueSourceArray(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, vtClassesSupported []BACnetValueSource) *_BACnetConstructedDataValueSourceArray {
 	_result := &_BACnetConstructedDataValueSourceArray{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		VtClassesSupported:            vtClassesSupported,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataValueSourceArrayBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataValueSourceArrayBuilder) = (*_BACnetConstructedDataValueSourceArrayBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataValueSourceArrayBuilder) WithOptionalNumberOfData
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataValueSourceArrayBuilder) WithVtClassesSupported(v
 }
 
 func (b *_BACnetConstructedDataValueSourceArrayBuilder) Build() (BACnetConstructedDataValueSourceArray, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataValueSourceArray.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataValueSourceArrayBuilder) buildForBACnetConstructe
 
 func (b *_BACnetConstructedDataValueSourceArrayBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataValueSourceArrayBuilder().(*_BACnetConstructedDataValueSourceArrayBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

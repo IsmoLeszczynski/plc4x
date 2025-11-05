@@ -47,9 +47,6 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
   protected final Byte reservedByte;
   protected final ReplyNetwork replyNetwork;
   protected final SALData salData;
-
-  // Arguments.
-  protected final CBusOptions cBusOptions;
   // Reserved Fields
   private Byte reservedField0;
 
@@ -61,9 +58,8 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
       ApplicationIdContainer application,
       Byte reservedByte,
       ReplyNetwork replyNetwork,
-      SALData salData,
-      CBusOptions cBusOptions) {
-    super(salType, cBusOptions);
+      SALData salData) {
+    super(salType);
     this.terminatingByte = terminatingByte;
     this.unitAddress = unitAddress;
     this.bridgeAddress = bridgeAddress;
@@ -71,7 +67,6 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
     this.reservedByte = reservedByte;
     this.replyNetwork = replyNetwork;
     this.salData = salData;
-    this.cBusOptions = cBusOptions;
   }
 
   public int getTerminatingByte() {
@@ -102,6 +97,7 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
     return salData;
   }
 
+  /** TODO: this should be subSub type but mspec doesn't support that yet directly */
   public boolean getIsUnitAddress() {
     return (boolean) ((((getTerminatingByte()) & (0xff))) == (0x00));
   }
@@ -118,16 +114,15 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
         reservedField0 != null ? reservedField0 : (byte) 0x05,
         writeByte(writeBuffer, 8));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isUnitAddress = getIsUnitAddress();
     writeBuffer.writeVirtual("isUnitAddress", isUnitAddress);
 
     // Optional Field (unitAddress) (Can be skipped, if the value is null)
-    writeOptionalField("unitAddress", unitAddress, writeComplex(writeBuffer), getIsUnitAddress());
+    writeOptionalField("unitAddress", unitAddress, writeComplex(writeBuffer));
 
     // Optional Field (bridgeAddress) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "bridgeAddress", bridgeAddress, writeComplex(writeBuffer), !(getIsUnitAddress()));
+    writeOptionalField("bridgeAddress", bridgeAddress, writeComplex(writeBuffer));
 
     // Simple Field (application)
     writeSimpleEnumField(
@@ -140,11 +135,10 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
             writeUnsignedShort(writeBuffer, 8)));
 
     // Optional Field (reservedByte) (Can be skipped, if the value is null)
-    writeOptionalField("reservedByte", reservedByte, writeByte(writeBuffer, 8), getIsUnitAddress());
+    writeOptionalField("reservedByte", reservedByte, writeByte(writeBuffer, 8));
 
     // Optional Field (replyNetwork) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "replyNetwork", replyNetwork, writeComplex(writeBuffer), !(getIsUnitAddress()));
+    writeOptionalField("replyNetwork", replyNetwork, writeComplex(writeBuffer));
 
     // Optional Field (salData) (Can be skipped, if the value is null)
     writeOptionalField("salData", salData, writeComplex(writeBuffer));
@@ -260,7 +254,6 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
         reservedByte,
         replyNetwork,
         salData,
-        cBusOptions,
         reservedField0);
   }
 
@@ -273,7 +266,6 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
     private final Byte reservedByte;
     private final ReplyNetwork replyNetwork;
     private final SALData salData;
-    private final CBusOptions cBusOptions;
     private final Byte reservedField0;
 
     public MonitoredSALLongFormSmartModeBuilderImpl(
@@ -284,7 +276,6 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
         Byte reservedByte,
         ReplyNetwork replyNetwork,
         SALData salData,
-        CBusOptions cBusOptions,
         Byte reservedField0) {
       this.terminatingByte = terminatingByte;
       this.unitAddress = unitAddress;
@@ -293,11 +284,10 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
       this.reservedByte = reservedByte;
       this.replyNetwork = replyNetwork;
       this.salData = salData;
-      this.cBusOptions = cBusOptions;
       this.reservedField0 = reservedField0;
     }
 
-    public MonitoredSALLongFormSmartMode build(byte salType, CBusOptions cBusOptions) {
+    public MonitoredSALLongFormSmartMode build(byte salType) {
       MonitoredSALLongFormSmartMode monitoredSALLongFormSmartMode =
           new MonitoredSALLongFormSmartMode(
               salType,
@@ -307,8 +297,7 @@ public class MonitoredSALLongFormSmartMode extends MonitoredSAL implements Messa
               application,
               reservedByte,
               replyNetwork,
-              salData,
-              cBusOptions);
+              salData);
       monitoredSALLongFormSmartMode.reservedField0 = reservedField0;
       return monitoredSALLongFormSmartMode;
     }

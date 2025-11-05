@@ -45,14 +45,9 @@ public class BACnetContextTagReal extends BACnetContextTag implements Message {
   // Properties.
   protected final BACnetTagPayloadReal payload;
 
-  // Arguments.
-  protected final Short tagNumberArgument;
-
-  public BACnetContextTagReal(
-      BACnetTagHeader header, BACnetTagPayloadReal payload, Short tagNumberArgument) {
-    super(header, tagNumberArgument);
+  public BACnetContextTagReal(BACnetTagHeader header, BACnetTagPayloadReal payload) {
+    super(header);
     this.payload = payload;
-    this.tagNumberArgument = tagNumberArgument;
   }
 
   public BACnetTagPayloadReal getPayload() {
@@ -73,7 +68,7 @@ public class BACnetContextTagReal extends BACnetContextTag implements Message {
     // Simple Field (payload)
     writeSimpleField("payload", payload, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     float actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -113,22 +108,19 @@ public class BACnetContextTagReal extends BACnetContextTag implements Message {
 
     readBuffer.closeContext("BACnetContextTagReal");
     // Create the instance
-    return new BACnetContextTagRealBuilderImpl(payload, tagNumberArgument);
+    return new BACnetContextTagRealBuilderImpl(payload);
   }
 
   public static class BACnetContextTagRealBuilderImpl
       implements BACnetContextTag.BACnetContextTagBuilder {
     private final BACnetTagPayloadReal payload;
-    private final Short tagNumberArgument;
 
-    public BACnetContextTagRealBuilderImpl(BACnetTagPayloadReal payload, Short tagNumberArgument) {
+    public BACnetContextTagRealBuilderImpl(BACnetTagPayloadReal payload) {
       this.payload = payload;
-      this.tagNumberArgument = tagNumberArgument;
     }
 
-    public BACnetContextTagReal build(BACnetTagHeader header, Short tagNumberArgument) {
-      BACnetContextTagReal bACnetContextTagReal =
-          new BACnetContextTagReal(header, payload, tagNumberArgument);
+    public BACnetContextTagReal build(BACnetTagHeader header) {
+      BACnetContextTagReal bACnetContextTagReal = new BACnetContextTagReal(header, payload);
       return bACnetContextTagReal;
     }
   }

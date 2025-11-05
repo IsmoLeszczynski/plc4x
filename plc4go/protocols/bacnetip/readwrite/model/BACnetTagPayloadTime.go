@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -110,7 +111,7 @@ func NewBACnetTagPayloadTimeBuilder() BACnetTagPayloadTimeBuilder {
 type _BACnetTagPayloadTimeBuilder struct {
 	*_BACnetTagPayloadTime
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTagPayloadTimeBuilder) = (*_BACnetTagPayloadTimeBuilder)(nil)
@@ -140,8 +141,8 @@ func (b *_BACnetTagPayloadTimeBuilder) WithFractional(fractional uint8) BACnetTa
 }
 
 func (b *_BACnetTagPayloadTimeBuilder) Build() (BACnetTagPayloadTime, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTagPayloadTime.deepCopy(), nil
 }
@@ -156,8 +157,8 @@ func (b *_BACnetTagPayloadTimeBuilder) MustBuild() BACnetTagPayloadTime {
 
 func (b *_BACnetTagPayloadTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTagPayloadTimeBuilder().(*_BACnetTagPayloadTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -298,7 +299,7 @@ func BACnetTagPayloadTimeParseWithBufferProducer() func(ctx context.Context, rea
 }
 
 func BACnetTagPayloadTimeParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (BACnetTagPayloadTime, error) {
-	v, err := (&_BACnetTagPayloadTime{}).parse(ctx, readBuffer)
+	v, err := (new(_BACnetTagPayloadTime)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

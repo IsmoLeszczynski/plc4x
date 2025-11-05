@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -52,16 +53,13 @@ type BACnetConfirmedServiceRequestRequestKey interface {
 type _BACnetConfirmedServiceRequestRequestKey struct {
 	BACnetConfirmedServiceRequestContract
 	BytesOfRemovedService []byte
-
-	// Arguments.
-	ServiceRequestPayloadLength uint32
 }
 
 var _ BACnetConfirmedServiceRequestRequestKey = (*_BACnetConfirmedServiceRequestRequestKey)(nil)
 var _ BACnetConfirmedServiceRequestRequirements = (*_BACnetConfirmedServiceRequestRequestKey)(nil)
 
 // NewBACnetConfirmedServiceRequestRequestKey factory function for _BACnetConfirmedServiceRequestRequestKey
-func NewBACnetConfirmedServiceRequestRequestKey(bytesOfRemovedService []byte, serviceRequestPayloadLength uint32, serviceRequestLength uint32) *_BACnetConfirmedServiceRequestRequestKey {
+func NewBACnetConfirmedServiceRequestRequestKey(serviceRequestLength uint32, bytesOfRemovedService []byte) *_BACnetConfirmedServiceRequestRequestKey {
 	_result := &_BACnetConfirmedServiceRequestRequestKey{
 		BACnetConfirmedServiceRequestContract: NewBACnetConfirmedServiceRequest(serviceRequestLength),
 		BytesOfRemovedService:                 bytesOfRemovedService,
@@ -82,8 +80,6 @@ type BACnetConfirmedServiceRequestRequestKeyBuilder interface {
 	WithMandatoryFields(bytesOfRemovedService []byte) BACnetConfirmedServiceRequestRequestKeyBuilder
 	// WithBytesOfRemovedService adds BytesOfRemovedService (property field)
 	WithBytesOfRemovedService(...byte) BACnetConfirmedServiceRequestRequestKeyBuilder
-	// WithArgServiceRequestPayloadLength sets a parser argument
-	WithArgServiceRequestPayloadLength(uint32) BACnetConfirmedServiceRequestRequestKeyBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BACnetConfirmedServiceRequestBuilder
 	// Build builds the BACnetConfirmedServiceRequestRequestKey or returns an error if something is wrong
@@ -102,7 +98,7 @@ type _BACnetConfirmedServiceRequestRequestKeyBuilder struct {
 
 	parentBuilder *_BACnetConfirmedServiceRequestBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConfirmedServiceRequestRequestKeyBuilder) = (*_BACnetConfirmedServiceRequestRequestKeyBuilder)(nil)
@@ -121,14 +117,9 @@ func (b *_BACnetConfirmedServiceRequestRequestKeyBuilder) WithBytesOfRemovedServ
 	return b
 }
 
-func (b *_BACnetConfirmedServiceRequestRequestKeyBuilder) WithArgServiceRequestPayloadLength(serviceRequestPayloadLength uint32) BACnetConfirmedServiceRequestRequestKeyBuilder {
-	b.ServiceRequestPayloadLength = serviceRequestPayloadLength
-	return b
-}
-
 func (b *_BACnetConfirmedServiceRequestRequestKeyBuilder) Build() (BACnetConfirmedServiceRequestRequestKey, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConfirmedServiceRequestRequestKey.deepCopy(), nil
 }
@@ -154,8 +145,8 @@ func (b *_BACnetConfirmedServiceRequestRequestKeyBuilder) buildForBACnetConfirme
 
 func (b *_BACnetConfirmedServiceRequestRequestKeyBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConfirmedServiceRequestRequestKeyBuilder().(*_BACnetConfirmedServiceRequestRequestKeyBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -289,16 +280,6 @@ func (m *_BACnetConfirmedServiceRequestRequestKey) SerializeWithWriteBuffer(ctx 
 	return m.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetConfirmedServiceRequestRequestKey) GetServiceRequestPayloadLength() uint32 {
-	return m.ServiceRequestPayloadLength
-}
-
-//
-////
-
 func (m *_BACnetConfirmedServiceRequestRequestKey) IsBACnetConfirmedServiceRequestRequestKey() {}
 
 func (m *_BACnetConfirmedServiceRequestRequestKey) DeepCopy() any {
@@ -312,7 +293,6 @@ func (m *_BACnetConfirmedServiceRequestRequestKey) deepCopy() *_BACnetConfirmedS
 	_BACnetConfirmedServiceRequestRequestKeyCopy := &_BACnetConfirmedServiceRequestRequestKey{
 		m.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest).deepCopy(),
 		utils.DeepCopySlice[byte, byte](m.BytesOfRemovedService),
-		m.ServiceRequestPayloadLength,
 	}
 	_BACnetConfirmedServiceRequestRequestKeyCopy.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest)._SubType = m
 	return _BACnetConfirmedServiceRequestRequestKeyCopy

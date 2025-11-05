@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -70,7 +71,7 @@ var _ BACnetNotificationParametersBufferReady = (*_BACnetNotificationParametersB
 var _ BACnetNotificationParametersRequirements = (*_BACnetNotificationParametersBufferReady)(nil)
 
 // NewBACnetNotificationParametersBufferReady factory function for _BACnetNotificationParametersBufferReady
-func NewBACnetNotificationParametersBufferReady(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, innerOpeningTag BACnetOpeningTag, bufferProperty BACnetDeviceObjectPropertyReferenceEnclosed, previousNotification BACnetContextTagUnsignedInteger, currentNotification BACnetContextTagUnsignedInteger, innerClosingTag BACnetClosingTag, tagNumber uint8, objectTypeArgument BACnetObjectType) *_BACnetNotificationParametersBufferReady {
+func NewBACnetNotificationParametersBufferReady(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, innerOpeningTag BACnetOpeningTag, bufferProperty BACnetDeviceObjectPropertyReferenceEnclosed, previousNotification BACnetContextTagUnsignedInteger, currentNotification BACnetContextTagUnsignedInteger, innerClosingTag BACnetClosingTag) *_BACnetNotificationParametersBufferReady {
 	if innerOpeningTag == nil {
 		panic("innerOpeningTag of type BACnetOpeningTag for BACnetNotificationParametersBufferReady must not be nil")
 	}
@@ -87,7 +88,7 @@ func NewBACnetNotificationParametersBufferReady(openingTag BACnetOpeningTag, pee
 		panic("innerClosingTag of type BACnetClosingTag for BACnetNotificationParametersBufferReady must not be nil")
 	}
 	_result := &_BACnetNotificationParametersBufferReady{
-		BACnetNotificationParametersContract: NewBACnetNotificationParameters(openingTag, peekedTagHeader, closingTag, tagNumber, objectTypeArgument),
+		BACnetNotificationParametersContract: NewBACnetNotificationParameters(openingTag, peekedTagHeader, closingTag),
 		InnerOpeningTag:                      innerOpeningTag,
 		BufferProperty:                       bufferProperty,
 		PreviousNotification:                 previousNotification,
@@ -146,7 +147,7 @@ type _BACnetNotificationParametersBufferReadyBuilder struct {
 
 	parentBuilder *_BACnetNotificationParametersBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNotificationParametersBufferReadyBuilder) = (*_BACnetNotificationParametersBufferReadyBuilder)(nil)
@@ -170,10 +171,7 @@ func (b *_BACnetNotificationParametersBufferReadyBuilder) WithInnerOpeningTagBui
 	var err error
 	b.InnerOpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -188,10 +186,7 @@ func (b *_BACnetNotificationParametersBufferReadyBuilder) WithBufferPropertyBuil
 	var err error
 	b.BufferProperty, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDeviceObjectPropertyReferenceEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDeviceObjectPropertyReferenceEnclosedBuilder failed"))
 	}
 	return b
 }
@@ -206,10 +201,7 @@ func (b *_BACnetNotificationParametersBufferReadyBuilder) WithPreviousNotificati
 	var err error
 	b.PreviousNotification, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -224,10 +216,7 @@ func (b *_BACnetNotificationParametersBufferReadyBuilder) WithCurrentNotificatio
 	var err error
 	b.CurrentNotification, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -242,47 +231,29 @@ func (b *_BACnetNotificationParametersBufferReadyBuilder) WithInnerClosingTagBui
 	var err error
 	b.InnerClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetNotificationParametersBufferReadyBuilder) Build() (BACnetNotificationParametersBufferReady, error) {
 	if b.InnerOpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'innerOpeningTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'innerOpeningTag' not set"))
 	}
 	if b.BufferProperty == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'bufferProperty' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'bufferProperty' not set"))
 	}
 	if b.PreviousNotification == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'previousNotification' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'previousNotification' not set"))
 	}
 	if b.CurrentNotification == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'currentNotification' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'currentNotification' not set"))
 	}
 	if b.InnerClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'innerClosingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'innerClosingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNotificationParametersBufferReady.deepCopy(), nil
 }
@@ -308,8 +279,8 @@ func (b *_BACnetNotificationParametersBufferReadyBuilder) buildForBACnetNotifica
 
 func (b *_BACnetNotificationParametersBufferReadyBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetNotificationParametersBufferReadyBuilder().(*_BACnetNotificationParametersBufferReadyBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

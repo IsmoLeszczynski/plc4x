@@ -40,33 +40,32 @@ public class CALDataStatusExtended extends CALData implements Message {
   // Accessors for discriminator values.
 
   // Properties.
+  /** Reply */
   protected final StatusCoding coding;
+
   protected final ApplicationIdContainer application;
   protected final short blockStart;
   protected final List<StatusByte> statusBytes;
   protected final List<LevelInformation> levelInformation;
 
-  // Arguments.
-  protected final RequestContext requestContext;
-
   public CALDataStatusExtended(
+      RequestContext requestContext,
       CALCommandTypeContainer commandTypeContainer,
       CALData additionalData,
       StatusCoding coding,
       ApplicationIdContainer application,
       short blockStart,
       List<StatusByte> statusBytes,
-      List<LevelInformation> levelInformation,
-      RequestContext requestContext) {
-    super(commandTypeContainer, additionalData, requestContext);
+      List<LevelInformation> levelInformation) {
+    super(requestContext, commandTypeContainer, additionalData);
     this.coding = coding;
     this.application = application;
     this.blockStart = blockStart;
     this.statusBytes = statusBytes;
     this.levelInformation = levelInformation;
-    this.requestContext = requestContext;
   }
 
+  /** Reply */
   public StatusCoding getCoding() {
     return coding;
   }
@@ -129,11 +128,11 @@ public class CALDataStatusExtended extends CALData implements Message {
     // Simple Field (blockStart)
     writeSimpleField("blockStart", blockStart, writeUnsignedShort(writeBuffer, 8));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     byte numberOfStatusBytes = getNumberOfStatusBytes();
     writeBuffer.writeVirtual("numberOfStatusBytes", numberOfStatusBytes);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     byte numberOfLevelInformation = getNumberOfLevelInformation();
     writeBuffer.writeVirtual("numberOfLevelInformation", numberOfLevelInformation);
 
@@ -245,7 +244,7 @@ public class CALDataStatusExtended extends CALData implements Message {
     readBuffer.closeContext("CALDataStatusExtended");
     // Create the instance
     return new CALDataStatusExtendedBuilderImpl(
-        coding, application, blockStart, statusBytes, levelInformation, requestContext);
+        coding, application, blockStart, statusBytes, levelInformation);
   }
 
   public static class CALDataStatusExtendedBuilderImpl implements CALData.CALDataBuilder {
@@ -254,37 +253,34 @@ public class CALDataStatusExtended extends CALData implements Message {
     private final short blockStart;
     private final List<StatusByte> statusBytes;
     private final List<LevelInformation> levelInformation;
-    private final RequestContext requestContext;
 
     public CALDataStatusExtendedBuilderImpl(
         StatusCoding coding,
         ApplicationIdContainer application,
         short blockStart,
         List<StatusByte> statusBytes,
-        List<LevelInformation> levelInformation,
-        RequestContext requestContext) {
+        List<LevelInformation> levelInformation) {
       this.coding = coding;
       this.application = application;
       this.blockStart = blockStart;
       this.statusBytes = statusBytes;
       this.levelInformation = levelInformation;
-      this.requestContext = requestContext;
     }
 
     public CALDataStatusExtended build(
+        RequestContext requestContext,
         CALCommandTypeContainer commandTypeContainer,
-        CALData additionalData,
-        RequestContext requestContext) {
+        CALData additionalData) {
       CALDataStatusExtended cALDataStatusExtended =
           new CALDataStatusExtended(
+              requestContext,
               commandTypeContainer,
               additionalData,
               coding,
               application,
               blockStart,
               statusBytes,
-              levelInformation,
-              requestContext);
+              levelInformation);
       return cALDataStatusExtended;
     }
   }

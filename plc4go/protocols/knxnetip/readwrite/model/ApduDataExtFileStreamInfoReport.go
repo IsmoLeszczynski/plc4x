@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtFileStreamInfoReport = (*_ApduDataExtFileStreamInfoReport)(nil)
 var _ ApduDataExtRequirements = (*_ApduDataExtFileStreamInfoReport)(nil)
 
 // NewApduDataExtFileStreamInfoReport factory function for _ApduDataExtFileStreamInfoReport
-func NewApduDataExtFileStreamInfoReport(length uint8) *_ApduDataExtFileStreamInfoReport {
+func NewApduDataExtFileStreamInfoReport() *_ApduDataExtFileStreamInfoReport {
 	_result := &_ApduDataExtFileStreamInfoReport{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtFileStreamInfoReportBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtFileStreamInfoReportBuilder) = (*_ApduDataExtFileStreamInfoReportBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtFileStreamInfoReportBuilder) WithMandatoryFields() ApduData
 }
 
 func (b *_ApduDataExtFileStreamInfoReportBuilder) Build() (ApduDataExtFileStreamInfoReport, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtFileStreamInfoReport.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtFileStreamInfoReportBuilder) buildForApduDataExt() (ApduDat
 
 func (b *_ApduDataExtFileStreamInfoReportBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtFileStreamInfoReportBuilder().(*_ApduDataExtFileStreamInfoReportBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,15 +57,12 @@ type _BACnetHostNPortEnclosed struct {
 	OpeningTag      BACnetOpeningTag
 	BacnetHostNPort BACnetHostNPort
 	ClosingTag      BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetHostNPortEnclosed = (*_BACnetHostNPortEnclosed)(nil)
 
 // NewBACnetHostNPortEnclosed factory function for _BACnetHostNPortEnclosed
-func NewBACnetHostNPortEnclosed(openingTag BACnetOpeningTag, bacnetHostNPort BACnetHostNPort, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetHostNPortEnclosed {
+func NewBACnetHostNPortEnclosed(openingTag BACnetOpeningTag, bacnetHostNPort BACnetHostNPort, closingTag BACnetClosingTag) *_BACnetHostNPortEnclosed {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetHostNPortEnclosed must not be nil")
 	}
@@ -74,7 +72,7 @@ func NewBACnetHostNPortEnclosed(openingTag BACnetOpeningTag, bacnetHostNPort BAC
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetHostNPortEnclosed must not be nil")
 	}
-	return &_BACnetHostNPortEnclosed{OpeningTag: openingTag, BacnetHostNPort: bacnetHostNPort, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetHostNPortEnclosed{OpeningTag: openingTag, BacnetHostNPort: bacnetHostNPort, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -99,8 +97,6 @@ type BACnetHostNPortEnclosedBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetHostNPortEnclosedBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetHostNPortEnclosedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetHostNPortEnclosedBuilder
 	// Build builds the BACnetHostNPortEnclosed or returns an error if something is wrong
 	Build() (BACnetHostNPortEnclosed, error)
 	// MustBuild does the same as Build but panics on error
@@ -115,7 +111,7 @@ func NewBACnetHostNPortEnclosedBuilder() BACnetHostNPortEnclosedBuilder {
 type _BACnetHostNPortEnclosedBuilder struct {
 	*_BACnetHostNPortEnclosed
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetHostNPortEnclosedBuilder) = (*_BACnetHostNPortEnclosedBuilder)(nil)
@@ -134,10 +130,7 @@ func (b *_BACnetHostNPortEnclosedBuilder) WithOpeningTagBuilder(builderSupplier 
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,10 +145,7 @@ func (b *_BACnetHostNPortEnclosedBuilder) WithBacnetHostNPortBuilder(builderSupp
 	var err error
 	b.BacnetHostNPort, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetHostNPortBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetHostNPortBuilder failed"))
 	}
 	return b
 }
@@ -170,40 +160,23 @@ func (b *_BACnetHostNPortEnclosedBuilder) WithClosingTagBuilder(builderSupplier 
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetHostNPortEnclosedBuilder) WithArgTagNumber(tagNumber uint8) BACnetHostNPortEnclosedBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetHostNPortEnclosedBuilder) Build() (BACnetHostNPortEnclosed, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.BacnetHostNPort == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'bacnetHostNPort' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'bacnetHostNPort' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetHostNPortEnclosed.deepCopy(), nil
 }
@@ -218,8 +191,8 @@ func (b *_BACnetHostNPortEnclosedBuilder) MustBuild() BACnetHostNPortEnclosed {
 
 func (b *_BACnetHostNPortEnclosedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetHostNPortEnclosedBuilder().(*_BACnetHostNPortEnclosedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -304,7 +277,7 @@ func BACnetHostNPortEnclosedParseWithBufferProducer(tagNumber uint8) func(ctx co
 }
 
 func BACnetHostNPortEnclosedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetHostNPortEnclosed, error) {
-	v, err := (&_BACnetHostNPortEnclosed{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetHostNPortEnclosed)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -380,16 +353,6 @@ func (m *_BACnetHostNPortEnclosed) SerializeWithWriteBuffer(ctx context.Context,
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetHostNPortEnclosed) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetHostNPortEnclosed) IsBACnetHostNPortEnclosed() {}
 
 func (m *_BACnetHostNPortEnclosed) DeepCopy() any {
@@ -404,7 +367,6 @@ func (m *_BACnetHostNPortEnclosed) deepCopy() *_BACnetHostNPortEnclosed {
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopy[BACnetHostNPort](m.BacnetHostNPort),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetHostNPortEnclosedCopy
 }

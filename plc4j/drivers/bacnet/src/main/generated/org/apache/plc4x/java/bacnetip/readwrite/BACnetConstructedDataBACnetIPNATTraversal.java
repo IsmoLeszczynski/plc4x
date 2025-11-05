@@ -50,21 +50,13 @@ public class BACnetConstructedDataBACnetIPNATTraversal extends BACnetConstructed
   // Properties.
   protected final BACnetApplicationTagBoolean bacnetIPNATTraversal;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataBACnetIPNATTraversal(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagBoolean bacnetIPNATTraversal,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagBoolean bacnetIPNATTraversal) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.bacnetIPNATTraversal = bacnetIPNATTraversal;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagBoolean getBacnetIPNATTraversal() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataBACnetIPNATTraversal extends BACnetConstructed
     // Simple Field (bacnetIPNATTraversal)
     writeSimpleField("bacnetIPNATTraversal", bacnetIPNATTraversal, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagBoolean actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -133,39 +125,23 @@ public class BACnetConstructedDataBACnetIPNATTraversal extends BACnetConstructed
 
     readBuffer.closeContext("BACnetConstructedDataBACnetIPNATTraversal");
     // Create the instance
-    return new BACnetConstructedDataBACnetIPNATTraversalBuilderImpl(
-        bacnetIPNATTraversal, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataBACnetIPNATTraversalBuilderImpl(bacnetIPNATTraversal);
   }
 
   public static class BACnetConstructedDataBACnetIPNATTraversalBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagBoolean bacnetIPNATTraversal;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataBACnetIPNATTraversalBuilderImpl(
-        BACnetApplicationTagBoolean bacnetIPNATTraversal,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagBoolean bacnetIPNATTraversal) {
       this.bacnetIPNATTraversal = bacnetIPNATTraversal;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataBACnetIPNATTraversal build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataBACnetIPNATTraversal bACnetConstructedDataBACnetIPNATTraversal =
           new BACnetConstructedDataBACnetIPNATTraversal(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              bacnetIPNATTraversal,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, bacnetIPNATTraversal);
       return bACnetConstructedDataBACnetIPNATTraversal;
     }
   }

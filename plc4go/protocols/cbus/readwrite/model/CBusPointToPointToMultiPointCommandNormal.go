@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,12 +62,12 @@ var _ CBusPointToPointToMultiPointCommandNormal = (*_CBusPointToPointToMultiPoin
 var _ CBusPointToPointToMultiPointCommandRequirements = (*_CBusPointToPointToMultiPointCommandNormal)(nil)
 
 // NewCBusPointToPointToMultiPointCommandNormal factory function for _CBusPointToPointToMultiPointCommandNormal
-func NewCBusPointToPointToMultiPointCommandNormal(bridgeAddress BridgeAddress, networkRoute NetworkRoute, peekedApplication byte, application ApplicationIdContainer, salData SALData, cBusOptions CBusOptions) *_CBusPointToPointToMultiPointCommandNormal {
+func NewCBusPointToPointToMultiPointCommandNormal(bridgeAddress BridgeAddress, networkRoute NetworkRoute, peekedApplication byte, application ApplicationIdContainer, salData SALData) *_CBusPointToPointToMultiPointCommandNormal {
 	if salData == nil {
 		panic("salData of type SALData for CBusPointToPointToMultiPointCommandNormal must not be nil")
 	}
 	_result := &_CBusPointToPointToMultiPointCommandNormal{
-		CBusPointToPointToMultiPointCommandContract: NewCBusPointToPointToMultiPointCommand(bridgeAddress, networkRoute, peekedApplication, cBusOptions),
+		CBusPointToPointToMultiPointCommandContract: NewCBusPointToPointToMultiPointCommand(bridgeAddress, networkRoute, peekedApplication),
 		Application: application,
 		SalData:     salData,
 	}
@@ -108,7 +109,7 @@ type _CBusPointToPointToMultiPointCommandNormalBuilder struct {
 
 	parentBuilder *_CBusPointToPointToMultiPointCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CBusPointToPointToMultiPointCommandNormalBuilder) = (*_CBusPointToPointToMultiPointCommandNormalBuilder)(nil)
@@ -137,23 +138,17 @@ func (b *_CBusPointToPointToMultiPointCommandNormalBuilder) WithSalDataBuilder(b
 	var err error
 	b.SalData, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "SALDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "SALDataBuilder failed"))
 	}
 	return b
 }
 
 func (b *_CBusPointToPointToMultiPointCommandNormalBuilder) Build() (CBusPointToPointToMultiPointCommandNormal, error) {
 	if b.SalData == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'salData' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'salData' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CBusPointToPointToMultiPointCommandNormal.deepCopy(), nil
 }
@@ -179,8 +174,8 @@ func (b *_CBusPointToPointToMultiPointCommandNormalBuilder) buildForCBusPointToP
 
 func (b *_CBusPointToPointToMultiPointCommandNormalBuilder) DeepCopy() any {
 	_copy := b.CreateCBusPointToPointToMultiPointCommandNormalBuilder().(*_CBusPointToPointToMultiPointCommandNormalBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

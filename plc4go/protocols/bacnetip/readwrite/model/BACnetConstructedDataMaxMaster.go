@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataMaxMaster = (*_BACnetConstructedDataMaxMaster)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMaxMaster)(nil)
 
 // NewBACnetConstructedDataMaxMaster factory function for _BACnetConstructedDataMaxMaster
-func NewBACnetConstructedDataMaxMaster(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maxMaster BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMaxMaster {
+func NewBACnetConstructedDataMaxMaster(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, maxMaster BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataMaxMaster {
 	if maxMaster == nil {
 		panic("maxMaster of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataMaxMaster must not be nil")
 	}
 	_result := &_BACnetConstructedDataMaxMaster{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		MaxMaster:                     maxMaster,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataMaxMasterBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMaxMasterBuilder) = (*_BACnetConstructedDataMaxMasterBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataMaxMasterBuilder) WithMaxMasterBuilder(builderSup
 	var err error
 	b.MaxMaster, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataMaxMasterBuilder) Build() (BACnetConstructedDataMaxMaster, error) {
 	if b.MaxMaster == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'maxMaster' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'maxMaster' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMaxMaster.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataMaxMasterBuilder) buildForBACnetConstructedData()
 
 func (b *_BACnetConstructedDataMaxMasterBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMaxMasterBuilder().(*_BACnetConstructedDataMaxMasterBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

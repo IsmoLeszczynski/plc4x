@@ -40,23 +40,26 @@ public abstract class EncodedReply implements Message {
   // Abstract accessors for discriminator values.
 
   // Properties.
+  protected final RequestContext requestContext;
   protected final byte peekedByte;
 
-  // Arguments.
-  protected final CBusOptions cBusOptions;
-  protected final RequestContext requestContext;
-
-  public EncodedReply(byte peekedByte, CBusOptions cBusOptions, RequestContext requestContext) {
+  public EncodedReply(RequestContext requestContext, byte peekedByte) {
     super();
-    this.peekedByte = peekedByte;
-    this.cBusOptions = cBusOptions;
     this.requestContext = requestContext;
+    this.peekedByte = peekedByte;
+  }
+
+  public RequestContext getRequestContext() {
+    return requestContext;
   }
 
   public byte getPeekedByte() {
     return peekedByte;
   }
 
+  /**
+   * TODO: if we reliable can detect this with the mask we don't need the request context anymore
+   */
   public boolean getIsMonitoredSAL() {
     return (boolean)
         ((((((((getPeekedByte()) & (0x3F))) == (0x05)) || ((getPeekedByte()) == (0x00)))
@@ -72,7 +75,7 @@ public abstract class EncodedReply implements Message {
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("EncodedReply");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isMonitoredSAL = getIsMonitoredSAL();
     writeBuffer.writeVirtual("isMonitoredSAL", isMonitoredSAL);
 
@@ -137,12 +140,12 @@ public abstract class EncodedReply implements Message {
 
     readBuffer.closeContext("EncodedReply");
     // Create the instance
-    EncodedReply _encodedReply = builder.build(peekedByte, cBusOptions, requestContext);
+    EncodedReply _encodedReply = builder.build(requestContext, peekedByte);
     return _encodedReply;
   }
 
   public interface EncodedReplyBuilder {
-    EncodedReply build(byte peekedByte, CBusOptions cBusOptions, RequestContext requestContext);
+    EncodedReply build(RequestContext requestContext, byte peekedByte);
   }
 
   @Override
@@ -154,12 +157,14 @@ public abstract class EncodedReply implements Message {
       return false;
     }
     EncodedReply that = (EncodedReply) o;
-    return (getPeekedByte() == that.getPeekedByte()) && true;
+    return (getRequestContext() == that.getRequestContext())
+        && (getPeekedByte() == that.getPeekedByte())
+        && true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getPeekedByte());
+    return Objects.hash(getRequestContext(), getPeekedByte());
   }
 
   @Override

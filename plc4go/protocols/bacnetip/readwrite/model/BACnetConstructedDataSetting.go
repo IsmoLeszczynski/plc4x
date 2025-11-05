@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataSetting = (*_BACnetConstructedDataSetting)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataSetting)(nil)
 
 // NewBACnetConstructedDataSetting factory function for _BACnetConstructedDataSetting
-func NewBACnetConstructedDataSetting(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, setting BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataSetting {
+func NewBACnetConstructedDataSetting(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, setting BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataSetting {
 	if setting == nil {
 		panic("setting of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataSetting must not be nil")
 	}
 	_result := &_BACnetConstructedDataSetting{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Setting:                       setting,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataSettingBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataSettingBuilder) = (*_BACnetConstructedDataSettingBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataSettingBuilder) WithSettingBuilder(builderSupplie
 	var err error
 	b.Setting, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataSettingBuilder) Build() (BACnetConstructedDataSetting, error) {
 	if b.Setting == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'setting' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'setting' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataSetting.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataSettingBuilder) buildForBACnetConstructedData() (
 
 func (b *_BACnetConstructedDataSettingBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataSettingBuilder().(*_BACnetConstructedDataSettingBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

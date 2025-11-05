@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataBitMask = (*_BACnetConstructedDataBitMask)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataBitMask)(nil)
 
 // NewBACnetConstructedDataBitMask factory function for _BACnetConstructedDataBitMask
-func NewBACnetConstructedDataBitMask(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, bitString BACnetApplicationTagBitString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataBitMask {
+func NewBACnetConstructedDataBitMask(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, bitString BACnetApplicationTagBitString) *_BACnetConstructedDataBitMask {
 	if bitString == nil {
 		panic("bitString of type BACnetApplicationTagBitString for BACnetConstructedDataBitMask must not be nil")
 	}
 	_result := &_BACnetConstructedDataBitMask{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		BitString:                     bitString,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataBitMaskBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataBitMaskBuilder) = (*_BACnetConstructedDataBitMaskBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataBitMaskBuilder) WithBitStringBuilder(builderSuppl
 	var err error
 	b.BitString, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBitStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBitStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataBitMaskBuilder) Build() (BACnetConstructedDataBitMask, error) {
 	if b.BitString == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'bitString' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'bitString' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataBitMask.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataBitMaskBuilder) buildForBACnetConstructedData() (
 
 func (b *_BACnetConstructedDataBitMaskBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataBitMaskBuilder().(*_BACnetConstructedDataBitMaskBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

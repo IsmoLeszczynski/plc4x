@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataEnergyMeter = (*_BACnetConstructedDataEnergyMeter)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEnergyMeter)(nil)
 
 // NewBACnetConstructedDataEnergyMeter factory function for _BACnetConstructedDataEnergyMeter
-func NewBACnetConstructedDataEnergyMeter(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, energyMeter BACnetApplicationTagReal, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEnergyMeter {
+func NewBACnetConstructedDataEnergyMeter(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, energyMeter BACnetApplicationTagReal) *_BACnetConstructedDataEnergyMeter {
 	if energyMeter == nil {
 		panic("energyMeter of type BACnetApplicationTagReal for BACnetConstructedDataEnergyMeter must not be nil")
 	}
 	_result := &_BACnetConstructedDataEnergyMeter{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		EnergyMeter:                   energyMeter,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataEnergyMeterBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEnergyMeterBuilder) = (*_BACnetConstructedDataEnergyMeterBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataEnergyMeterBuilder) WithEnergyMeterBuilder(builde
 	var err error
 	b.EnergyMeter, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataEnergyMeterBuilder) Build() (BACnetConstructedDataEnergyMeter, error) {
 	if b.EnergyMeter == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'energyMeter' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'energyMeter' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEnergyMeter.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataEnergyMeterBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataEnergyMeterBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEnergyMeterBuilder().(*_BACnetConstructedDataEnergyMeterBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

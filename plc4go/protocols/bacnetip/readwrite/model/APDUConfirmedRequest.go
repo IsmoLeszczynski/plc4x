@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -59,6 +60,7 @@ type APDUConfirmedRequest interface {
 	// GetServiceRequest returns ServiceRequest (property field)
 	GetServiceRequest() BACnetConfirmedServiceRequest
 	// GetSegmentServiceChoice returns SegmentServiceChoice (property field)
+	// When we read the first segment we want the service choice to be part of the bytes so we only read it > 0
 	GetSegmentServiceChoice() *BACnetConfirmedServiceChoice
 	// GetSegment returns Segment (property field)
 	GetSegment() []byte
@@ -94,9 +96,9 @@ var _ APDUConfirmedRequest = (*_APDUConfirmedRequest)(nil)
 var _ APDURequirements = (*_APDUConfirmedRequest)(nil)
 
 // NewAPDUConfirmedRequest factory function for _APDUConfirmedRequest
-func NewAPDUConfirmedRequest(segmentedMessage bool, moreFollows bool, segmentedResponseAccepted bool, maxSegmentsAccepted MaxSegmentsAccepted, maxApduLengthAccepted MaxApduLengthAccepted, invokeId uint8, sequenceNumber *uint8, proposedWindowSize *uint8, serviceRequest BACnetConfirmedServiceRequest, segmentServiceChoice *BACnetConfirmedServiceChoice, segment []byte, apduLength uint16) *_APDUConfirmedRequest {
+func NewAPDUConfirmedRequest(segmentedMessage bool, moreFollows bool, segmentedResponseAccepted bool, maxSegmentsAccepted MaxSegmentsAccepted, maxApduLengthAccepted MaxApduLengthAccepted, invokeId uint8, sequenceNumber *uint8, proposedWindowSize *uint8, serviceRequest BACnetConfirmedServiceRequest, segmentServiceChoice *BACnetConfirmedServiceChoice, segment []byte) *_APDUConfirmedRequest {
 	_result := &_APDUConfirmedRequest{
-		APDUContract:              NewAPDU(apduLength),
+		APDUContract:              NewAPDU(),
 		SegmentedMessage:          segmentedMessage,
 		MoreFollows:               moreFollows,
 		SegmentedResponseAccepted: segmentedResponseAccepted,
@@ -165,7 +167,7 @@ type _APDUConfirmedRequestBuilder struct {
 
 	parentBuilder *_APDUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (APDUConfirmedRequestBuilder) = (*_APDUConfirmedRequestBuilder)(nil)
@@ -229,10 +231,7 @@ func (b *_APDUConfirmedRequestBuilder) WithOptionalServiceRequestBuilder(builder
 	var err error
 	b.ServiceRequest, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetConfirmedServiceRequestBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetConfirmedServiceRequestBuilder failed"))
 	}
 	return b
 }
@@ -248,8 +247,8 @@ func (b *_APDUConfirmedRequestBuilder) WithSegment(segment ...byte) APDUConfirme
 }
 
 func (b *_APDUConfirmedRequestBuilder) Build() (APDUConfirmedRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._APDUConfirmedRequest.deepCopy(), nil
 }
@@ -275,8 +274,8 @@ func (b *_APDUConfirmedRequestBuilder) buildForAPDU() (APDU, error) {
 
 func (b *_APDUConfirmedRequestBuilder) DeepCopy() any {
 	_copy := b.CreateAPDUConfirmedRequestBuilder().(*_APDUConfirmedRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

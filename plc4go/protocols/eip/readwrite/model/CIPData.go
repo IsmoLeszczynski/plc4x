@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,16 +54,13 @@ type CIPData interface {
 type _CIPData struct {
 	DataType CIPDataTypeCode
 	Data     []byte
-
-	// Arguments.
-	PacketLength uint16
 }
 
 var _ CIPData = (*_CIPData)(nil)
 
 // NewCIPData factory function for _CIPData
-func NewCIPData(dataType CIPDataTypeCode, data []byte, packetLength uint16) *_CIPData {
-	return &_CIPData{DataType: dataType, Data: data, PacketLength: packetLength}
+func NewCIPData(dataType CIPDataTypeCode, data []byte) *_CIPData {
+	return &_CIPData{DataType: dataType, Data: data}
 }
 
 ///////////////////////////////////////////////////////////
@@ -79,8 +77,6 @@ type CIPDataBuilder interface {
 	WithDataType(CIPDataTypeCode) CIPDataBuilder
 	// WithData adds Data (property field)
 	WithData(...byte) CIPDataBuilder
-	// WithArgPacketLength sets a parser argument
-	WithArgPacketLength(uint16) CIPDataBuilder
 	// Build builds the CIPData or returns an error if something is wrong
 	Build() (CIPData, error)
 	// MustBuild does the same as Build but panics on error
@@ -95,7 +91,7 @@ func NewCIPDataBuilder() CIPDataBuilder {
 type _CIPDataBuilder struct {
 	*_CIPData
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CIPDataBuilder) = (*_CIPDataBuilder)(nil)
@@ -114,14 +110,9 @@ func (b *_CIPDataBuilder) WithData(data ...byte) CIPDataBuilder {
 	return b
 }
 
-func (b *_CIPDataBuilder) WithArgPacketLength(packetLength uint16) CIPDataBuilder {
-	b.PacketLength = packetLength
-	return b
-}
-
 func (b *_CIPDataBuilder) Build() (CIPData, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CIPData.deepCopy(), nil
 }
@@ -136,8 +127,8 @@ func (b *_CIPDataBuilder) MustBuild() CIPData {
 
 func (b *_CIPDataBuilder) DeepCopy() any {
 	_copy := b.CreateCIPDataBuilder().(*_CIPDataBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -217,7 +208,7 @@ func CIPDataParseWithBufferProducer(packetLength uint16) func(ctx context.Contex
 }
 
 func CIPDataParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, packetLength uint16) (CIPData, error) {
-	v, err := (&_CIPData{PacketLength: packetLength}).parse(ctx, readBuffer, packetLength)
+	v, err := (new(_CIPData)).parse(ctx, readBuffer, packetLength)
 	if err != nil {
 		return nil, err
 	}
@@ -283,16 +274,6 @@ func (m *_CIPData) SerializeWithWriteBuffer(ctx context.Context, writeBuffer uti
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_CIPData) GetPacketLength() uint16 {
-	return m.PacketLength
-}
-
-//
-////
-
 func (m *_CIPData) IsCIPData() {}
 
 func (m *_CIPData) DeepCopy() any {
@@ -306,7 +287,6 @@ func (m *_CIPData) deepCopy() *_CIPData {
 	_CIPDataCopy := &_CIPData{
 		m.DataType,
 		utils.DeepCopySlice[byte, byte](m.Data),
-		m.PacketLength,
 	}
 	return _CIPDataCopy
 }

@@ -50,21 +50,13 @@ public class BACnetConstructedDataDerivativeConstant extends BACnetConstructedDa
   // Properties.
   protected final BACnetApplicationTagReal derivativeConstant;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataDerivativeConstant(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagReal derivativeConstant,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagReal derivativeConstant) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.derivativeConstant = derivativeConstant;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagReal getDerivativeConstant() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataDerivativeConstant extends BACnetConstructedDa
     // Simple Field (derivativeConstant)
     writeSimpleField("derivativeConstant", derivativeConstant, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagReal actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -133,39 +125,23 @@ public class BACnetConstructedDataDerivativeConstant extends BACnetConstructedDa
 
     readBuffer.closeContext("BACnetConstructedDataDerivativeConstant");
     // Create the instance
-    return new BACnetConstructedDataDerivativeConstantBuilderImpl(
-        derivativeConstant, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataDerivativeConstantBuilderImpl(derivativeConstant);
   }
 
   public static class BACnetConstructedDataDerivativeConstantBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagReal derivativeConstant;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataDerivativeConstantBuilderImpl(
-        BACnetApplicationTagReal derivativeConstant,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagReal derivativeConstant) {
       this.derivativeConstant = derivativeConstant;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataDerivativeConstant build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataDerivativeConstant bACnetConstructedDataDerivativeConstant =
           new BACnetConstructedDataDerivativeConstant(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              derivativeConstant,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, derivativeConstant);
       return bACnetConstructedDataDerivativeConstant;
     }
   }

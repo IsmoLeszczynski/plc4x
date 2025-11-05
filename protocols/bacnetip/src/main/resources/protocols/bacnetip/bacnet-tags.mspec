@@ -55,7 +55,7 @@
         ['0x3' *SignedInteger(BACnetTagHeader header)
             [simple BACnetTagPayloadSignedInteger('header.actualLength')
                                 payload                                                                                 ]
-            [virtual    uint 64    actualValue   'payload.actualValue'                                                  ]
+            [virtual    int 64  actualValue   'payload.actualValue'                                                     ]
         ]
         ['0x4' *Real
             [simple BACnetTagPayloadReal
@@ -134,7 +134,7 @@
         ['SIGNED_INTEGER' *SignedInteger(BACnetTagHeader header)
             [simple BACnetTagPayloadSignedInteger('header.actualLength')
                                 payload                                                                                 ]
-            [virtual    uint 64     actualValue 'payload.actualValue'                                                   ]
+            [virtual    int 64  actualValue 'payload.actualValue'                                                       ]
         ]
         ['REAL' *Real
             [simple BACnetTagPayloadReal
@@ -202,12 +202,14 @@
 ]
 
 [type BACnetTagPayloadBoolean(uint 32 actualLength)
-    [virtual bit value   'actualLength == 1'    ]
-    [virtual bit isTrue  'value'                ]
-    [virtual bit isFalse '!value'               ]
+    [state       actualLength                       ]
+    [virtual bit value          'actualLength == 1' ]
+    [virtual bit isTrue         'value'             ]
+    [virtual bit isFalse        '!value'            ]
 ]
 
 [type BACnetTagPayloadUnsignedInteger(uint 32 actualLength)
+    [state                  actualLength                         ]
     [virtual    bit         isUint8         'actualLength == 1'  ]
     [optional   uint  8     valueUint8      'isUint8'            ]
     [virtual    bit         isUint16        'actualLength == 2'  ]
@@ -229,6 +231,7 @@
 ]
 
 [type BACnetTagPayloadSignedInteger(uint 32 actualLength)
+    [state                  actualLength                         ]
     [virtual    bit         isInt8          'actualLength == 1'  ]
     [optional   int 8       valueInt8       'isInt8'             ]
     [virtual    bit         isInt16         'actualLength == 2'  ]
@@ -246,7 +249,7 @@
     [virtual    bit         isInt64         'actualLength == 8'  ]
     [optional   int 64      valueInt64      'isInt64'            ]
     [validation 'isInt8 || isInt16 || isInt24 || isInt32 || isInt40 || isInt48 || isInt56 || isInt64' "unmapped integer length"]
-    [virtual    uint 64     actualValue     'isInt8?valueInt8:(isInt16?valueInt16:(isInt24?valueInt24:(isInt32?valueInt32:(isInt40?valueInt40:(isInt48?valueInt48:(isInt56?valueInt56:valueInt64))))))']
+    [virtual    int 64      actualValue     'isInt8?valueInt8:(isInt16?valueInt16:(isInt24?valueInt24:(isInt32?valueInt32:(isInt40?valueInt40:(isInt48?valueInt48:(isInt56?valueInt56:valueInt64))))))']
 ]
 
 [type BACnetTagPayloadReal
@@ -262,11 +265,12 @@
 ]
 
 [type BACnetTagPayloadCharacterString(uint 32 actualLength)
-    [simple     BACnetCharacterEncoding      encoding]
+    [state                                   actualLength                            ]
+    [simple     BACnetCharacterEncoding      encoding                                ]
     // TODO: The reader expects int but uint32 gets mapped to long so even uint32 would easily overflow...
     [virtual    uint     16                  actualLengthInBit 'actualLength * 8 - 8']
     // TODO: call to string on encoding or add type conversion so we can use the enum above
-    [simple     vstring 'actualLengthInBit'  value encoding='"UTF-8"']
+    [simple     vstring 'actualLengthInBit'  value                 encoding='"UTF-8"']
 ]
 
 [type BACnetTagPayloadBitString(uint 32 actualLength)

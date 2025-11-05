@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLoggingRecord = (*_BACnetConstructedDataLoggingRecord
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLoggingRecord)(nil)
 
 // NewBACnetConstructedDataLoggingRecord factory function for _BACnetConstructedDataLoggingRecord
-func NewBACnetConstructedDataLoggingRecord(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, loggingRecord BACnetAccumulatorRecord, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLoggingRecord {
+func NewBACnetConstructedDataLoggingRecord(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, loggingRecord BACnetAccumulatorRecord) *_BACnetConstructedDataLoggingRecord {
 	if loggingRecord == nil {
 		panic("loggingRecord of type BACnetAccumulatorRecord for BACnetConstructedDataLoggingRecord must not be nil")
 	}
 	_result := &_BACnetConstructedDataLoggingRecord{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LoggingRecord:                 loggingRecord,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLoggingRecordBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLoggingRecordBuilder) = (*_BACnetConstructedDataLoggingRecordBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLoggingRecordBuilder) WithLoggingRecordBuilder(bu
 	var err error
 	b.LoggingRecord, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetAccumulatorRecordBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetAccumulatorRecordBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLoggingRecordBuilder) Build() (BACnetConstructedDataLoggingRecord, error) {
 	if b.LoggingRecord == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'loggingRecord' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'loggingRecord' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLoggingRecord.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLoggingRecordBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataLoggingRecordBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLoggingRecordBuilder().(*_BACnetConstructedDataLoggingRecordBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

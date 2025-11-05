@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetProtocolLevelTagged interface {
 type _BACnetProtocolLevelTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetProtocolLevel
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetProtocolLevelTagged = (*_BACnetProtocolLevelTagged)(nil)
 
 // NewBACnetProtocolLevelTagged factory function for _BACnetProtocolLevelTagged
-func NewBACnetProtocolLevelTagged(header BACnetTagHeader, value BACnetProtocolLevel, tagNumber uint8, tagClass TagClass) *_BACnetProtocolLevelTagged {
+func NewBACnetProtocolLevelTagged(header BACnetTagHeader, value BACnetProtocolLevel) *_BACnetProtocolLevelTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetProtocolLevelTagged must not be nil")
 	}
-	return &_BACnetProtocolLevelTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetProtocolLevelTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetProtocolLevelTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetProtocolLevelTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetProtocolLevel) BACnetProtocolLevelTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetProtocolLevelTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetProtocolLevelTaggedBuilder
 	// Build builds the BACnetProtocolLevelTagged or returns an error if something is wrong
 	Build() (BACnetProtocolLevelTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetProtocolLevelTaggedBuilder() BACnetProtocolLevelTaggedBuilder {
 type _BACnetProtocolLevelTaggedBuilder struct {
 	*_BACnetProtocolLevelTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetProtocolLevelTaggedBuilder) = (*_BACnetProtocolLevelTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetProtocolLevelTaggedBuilder) WithHeaderBuilder(builderSupplier fu
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetProtocolLevelTaggedBuilder) WithValue(value BACnetProtocolLevel)
 	return b
 }
 
-func (b *_BACnetProtocolLevelTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetProtocolLevelTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetProtocolLevelTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetProtocolLevelTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetProtocolLevelTaggedBuilder) Build() (BACnetProtocolLevelTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetProtocolLevelTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetProtocolLevelTaggedBuilder) MustBuild() BACnetProtocolLevelTagge
 
 func (b *_BACnetProtocolLevelTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetProtocolLevelTaggedBuilder().(*_BACnetProtocolLevelTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetProtocolLevelTaggedParseWithBufferProducer(tagNumber uint8, tagClass 
 }
 
 func BACnetProtocolLevelTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetProtocolLevelTagged, error) {
-	v, err := (&_BACnetProtocolLevelTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetProtocolLevelTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetProtocolLevelTagged) SerializeWithWriteBuffer(ctx context.Contex
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetProtocolLevelTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetProtocolLevelTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetProtocolLevelTagged) IsBACnetProtocolLevelTagged() {}
 
 func (m *_BACnetProtocolLevelTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetProtocolLevelTagged) deepCopy() *_BACnetProtocolLevelTagged {
 	_BACnetProtocolLevelTaggedCopy := &_BACnetProtocolLevelTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetProtocolLevelTaggedCopy
 }

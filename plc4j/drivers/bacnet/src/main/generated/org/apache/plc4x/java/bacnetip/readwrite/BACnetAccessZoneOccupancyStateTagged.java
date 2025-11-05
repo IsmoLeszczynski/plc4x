@@ -42,22 +42,12 @@ public class BACnetAccessZoneOccupancyStateTagged implements Message {
   protected final BACnetAccessZoneOccupancyState value;
   protected final long proprietaryValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
   public BACnetAccessZoneOccupancyStateTagged(
-      BACnetTagHeader header,
-      BACnetAccessZoneOccupancyState value,
-      long proprietaryValue,
-      Short tagNumber,
-      TagClass tagClass) {
+      BACnetTagHeader header, BACnetAccessZoneOccupancyState value, long proprietaryValue) {
     super();
     this.header = header;
     this.value = value;
     this.proprietaryValue = proprietaryValue;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -92,7 +82,7 @@ public class BACnetAccessZoneOccupancyStateTagged implements Message {
                 writeBuffer, value),
         writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isProprietary = getIsProprietary();
     writeBuffer.writeVirtual("isProprietary", isProprietary);
 
@@ -181,8 +171,7 @@ public class BACnetAccessZoneOccupancyStateTagged implements Message {
     // Create the instance
     BACnetAccessZoneOccupancyStateTagged _bACnetAccessZoneOccupancyStateTagged;
     _bACnetAccessZoneOccupancyStateTagged =
-        new BACnetAccessZoneOccupancyStateTagged(
-            header, value, proprietaryValue, tagNumber, tagClass);
+        new BACnetAccessZoneOccupancyStateTagged(header, value, proprietaryValue);
     return _bACnetAccessZoneOccupancyStateTagged;
   }
 

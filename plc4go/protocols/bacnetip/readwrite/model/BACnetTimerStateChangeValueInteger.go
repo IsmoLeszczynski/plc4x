@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetTimerStateChangeValueInteger = (*_BACnetTimerStateChangeValueInteger
 var _ BACnetTimerStateChangeValueRequirements = (*_BACnetTimerStateChangeValueInteger)(nil)
 
 // NewBACnetTimerStateChangeValueInteger factory function for _BACnetTimerStateChangeValueInteger
-func NewBACnetTimerStateChangeValueInteger(peekedTagHeader BACnetTagHeader, integerValue BACnetApplicationTagSignedInteger, objectTypeArgument BACnetObjectType) *_BACnetTimerStateChangeValueInteger {
+func NewBACnetTimerStateChangeValueInteger(peekedTagHeader BACnetTagHeader, integerValue BACnetApplicationTagSignedInteger) *_BACnetTimerStateChangeValueInteger {
 	if integerValue == nil {
 		panic("integerValue of type BACnetApplicationTagSignedInteger for BACnetTimerStateChangeValueInteger must not be nil")
 	}
 	_result := &_BACnetTimerStateChangeValueInteger{
-		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader, objectTypeArgument),
+		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader),
 		IntegerValue:                        integerValue,
 	}
 	_result.BACnetTimerStateChangeValueContract.(*_BACnetTimerStateChangeValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetTimerStateChangeValueIntegerBuilder struct {
 
 	parentBuilder *_BACnetTimerStateChangeValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTimerStateChangeValueIntegerBuilder) = (*_BACnetTimerStateChangeValueIntegerBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetTimerStateChangeValueIntegerBuilder) WithIntegerValueBuilder(bui
 	var err error
 	b.IntegerValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagSignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagSignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetTimerStateChangeValueIntegerBuilder) Build() (BACnetTimerStateChangeValueInteger, error) {
 	if b.IntegerValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'integerValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'integerValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTimerStateChangeValueInteger.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetTimerStateChangeValueIntegerBuilder) buildForBACnetTimerStateCha
 
 func (b *_BACnetTimerStateChangeValueIntegerBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTimerStateChangeValueIntegerBuilder().(*_BACnetTimerStateChangeValueIntegerBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

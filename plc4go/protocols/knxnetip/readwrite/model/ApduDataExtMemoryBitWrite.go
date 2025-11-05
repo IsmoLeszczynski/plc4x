@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtMemoryBitWrite = (*_ApduDataExtMemoryBitWrite)(nil)
 var _ ApduDataExtRequirements = (*_ApduDataExtMemoryBitWrite)(nil)
 
 // NewApduDataExtMemoryBitWrite factory function for _ApduDataExtMemoryBitWrite
-func NewApduDataExtMemoryBitWrite(length uint8) *_ApduDataExtMemoryBitWrite {
+func NewApduDataExtMemoryBitWrite() *_ApduDataExtMemoryBitWrite {
 	_result := &_ApduDataExtMemoryBitWrite{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtMemoryBitWriteBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtMemoryBitWriteBuilder) = (*_ApduDataExtMemoryBitWriteBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtMemoryBitWriteBuilder) WithMandatoryFields() ApduDataExtMem
 }
 
 func (b *_ApduDataExtMemoryBitWriteBuilder) Build() (ApduDataExtMemoryBitWrite, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtMemoryBitWrite.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtMemoryBitWriteBuilder) buildForApduDataExt() (ApduDataExt, 
 
 func (b *_ApduDataExtMemoryBitWriteBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtMemoryBitWriteBuilder().(*_ApduDataExtMemoryBitWriteBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

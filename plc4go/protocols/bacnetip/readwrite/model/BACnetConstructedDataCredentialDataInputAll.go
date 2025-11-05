@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataCredentialDataInputAll = (*_BACnetConstructedDataCred
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataCredentialDataInputAll)(nil)
 
 // NewBACnetConstructedDataCredentialDataInputAll factory function for _BACnetConstructedDataCredentialDataInputAll
-func NewBACnetConstructedDataCredentialDataInputAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataCredentialDataInputAll {
+func NewBACnetConstructedDataCredentialDataInputAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataCredentialDataInputAll {
 	_result := &_BACnetConstructedDataCredentialDataInputAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataCredentialDataInputAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataCredentialDataInputAllBuilder) = (*_BACnetConstructedDataCredentialDataInputAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataCredentialDataInputAllBuilder) WithMandatoryField
 }
 
 func (b *_BACnetConstructedDataCredentialDataInputAllBuilder) Build() (BACnetConstructedDataCredentialDataInputAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataCredentialDataInputAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataCredentialDataInputAllBuilder) buildForBACnetCons
 
 func (b *_BACnetConstructedDataCredentialDataInputAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataCredentialDataInputAllBuilder().(*_BACnetConstructedDataCredentialDataInputAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

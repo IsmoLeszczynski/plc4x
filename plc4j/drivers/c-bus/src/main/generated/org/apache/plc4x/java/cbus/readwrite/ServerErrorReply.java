@@ -40,18 +40,14 @@ public class ServerErrorReply extends ReplyOrConfirmation implements Message {
   // Accessors for discriminator values.
 
   // Constant values.
+  /** is a ! */
   public static final Byte ERRORMARKER = 0x21;
 
-  // Arguments.
-  protected final CBusOptions cBusOptions;
-  protected final RequestContext requestContext;
-
-  public ServerErrorReply(byte peekedByte, CBusOptions cBusOptions, RequestContext requestContext) {
-    super(peekedByte, cBusOptions, requestContext);
-    this.cBusOptions = cBusOptions;
-    this.requestContext = requestContext;
+  public ServerErrorReply(byte peekedByte) {
+    super(peekedByte);
   }
 
+  /** is a ! */
   public byte getErrorMarker() {
     return ERRORMARKER;
   }
@@ -98,23 +94,16 @@ public class ServerErrorReply extends ReplyOrConfirmation implements Message {
 
     readBuffer.closeContext("ServerErrorReply");
     // Create the instance
-    return new ServerErrorReplyBuilderImpl(cBusOptions, requestContext);
+    return new ServerErrorReplyBuilderImpl();
   }
 
   public static class ServerErrorReplyBuilderImpl
       implements ReplyOrConfirmation.ReplyOrConfirmationBuilder {
-    private final CBusOptions cBusOptions;
-    private final RequestContext requestContext;
 
-    public ServerErrorReplyBuilderImpl(CBusOptions cBusOptions, RequestContext requestContext) {
-      this.cBusOptions = cBusOptions;
-      this.requestContext = requestContext;
-    }
+    public ServerErrorReplyBuilderImpl() {}
 
-    public ServerErrorReply build(
-        byte peekedByte, CBusOptions cBusOptions, RequestContext requestContext) {
-      ServerErrorReply serverErrorReply =
-          new ServerErrorReply(peekedByte, cBusOptions, requestContext);
+    public ServerErrorReply build(byte peekedByte) {
+      ServerErrorReply serverErrorReply = new ServerErrorReply(peekedByte);
       return serverErrorReply;
     }
   }

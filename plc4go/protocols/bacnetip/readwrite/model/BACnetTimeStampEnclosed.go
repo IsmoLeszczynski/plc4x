@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,15 +57,12 @@ type _BACnetTimeStampEnclosed struct {
 	OpeningTag BACnetOpeningTag
 	Timestamp  BACnetTimeStamp
 	ClosingTag BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetTimeStampEnclosed = (*_BACnetTimeStampEnclosed)(nil)
 
 // NewBACnetTimeStampEnclosed factory function for _BACnetTimeStampEnclosed
-func NewBACnetTimeStampEnclosed(openingTag BACnetOpeningTag, timestamp BACnetTimeStamp, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetTimeStampEnclosed {
+func NewBACnetTimeStampEnclosed(openingTag BACnetOpeningTag, timestamp BACnetTimeStamp, closingTag BACnetClosingTag) *_BACnetTimeStampEnclosed {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetTimeStampEnclosed must not be nil")
 	}
@@ -74,7 +72,7 @@ func NewBACnetTimeStampEnclosed(openingTag BACnetOpeningTag, timestamp BACnetTim
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetTimeStampEnclosed must not be nil")
 	}
-	return &_BACnetTimeStampEnclosed{OpeningTag: openingTag, Timestamp: timestamp, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetTimeStampEnclosed{OpeningTag: openingTag, Timestamp: timestamp, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -99,8 +97,6 @@ type BACnetTimeStampEnclosedBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetTimeStampEnclosedBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetTimeStampEnclosedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetTimeStampEnclosedBuilder
 	// Build builds the BACnetTimeStampEnclosed or returns an error if something is wrong
 	Build() (BACnetTimeStampEnclosed, error)
 	// MustBuild does the same as Build but panics on error
@@ -115,7 +111,7 @@ func NewBACnetTimeStampEnclosedBuilder() BACnetTimeStampEnclosedBuilder {
 type _BACnetTimeStampEnclosedBuilder struct {
 	*_BACnetTimeStampEnclosed
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTimeStampEnclosedBuilder) = (*_BACnetTimeStampEnclosedBuilder)(nil)
@@ -134,10 +130,7 @@ func (b *_BACnetTimeStampEnclosedBuilder) WithOpeningTagBuilder(builderSupplier 
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,10 +145,7 @@ func (b *_BACnetTimeStampEnclosedBuilder) WithTimestampBuilder(builderSupplier f
 	var err error
 	b.Timestamp, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTimeStampBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTimeStampBuilder failed"))
 	}
 	return b
 }
@@ -170,40 +160,23 @@ func (b *_BACnetTimeStampEnclosedBuilder) WithClosingTagBuilder(builderSupplier 
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetTimeStampEnclosedBuilder) WithArgTagNumber(tagNumber uint8) BACnetTimeStampEnclosedBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetTimeStampEnclosedBuilder) Build() (BACnetTimeStampEnclosed, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.Timestamp == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'timestamp' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'timestamp' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTimeStampEnclosed.deepCopy(), nil
 }
@@ -218,8 +191,8 @@ func (b *_BACnetTimeStampEnclosedBuilder) MustBuild() BACnetTimeStampEnclosed {
 
 func (b *_BACnetTimeStampEnclosedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTimeStampEnclosedBuilder().(*_BACnetTimeStampEnclosedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -304,7 +277,7 @@ func BACnetTimeStampEnclosedParseWithBufferProducer(tagNumber uint8) func(ctx co
 }
 
 func BACnetTimeStampEnclosedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetTimeStampEnclosed, error) {
-	v, err := (&_BACnetTimeStampEnclosed{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetTimeStampEnclosed)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -380,16 +353,6 @@ func (m *_BACnetTimeStampEnclosed) SerializeWithWriteBuffer(ctx context.Context,
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetTimeStampEnclosed) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetTimeStampEnclosed) IsBACnetTimeStampEnclosed() {}
 
 func (m *_BACnetTimeStampEnclosed) DeepCopy() any {
@@ -404,7 +367,6 @@ func (m *_BACnetTimeStampEnclosed) deepCopy() *_BACnetTimeStampEnclosed {
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopy[BACnetTimeStamp](m.Timestamp),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetTimeStampEnclosedCopy
 }

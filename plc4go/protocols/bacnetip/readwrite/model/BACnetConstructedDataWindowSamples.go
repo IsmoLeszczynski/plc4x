@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataWindowSamples = (*_BACnetConstructedDataWindowSamples
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataWindowSamples)(nil)
 
 // NewBACnetConstructedDataWindowSamples factory function for _BACnetConstructedDataWindowSamples
-func NewBACnetConstructedDataWindowSamples(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, windowSamples BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataWindowSamples {
+func NewBACnetConstructedDataWindowSamples(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, windowSamples BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataWindowSamples {
 	if windowSamples == nil {
 		panic("windowSamples of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataWindowSamples must not be nil")
 	}
 	_result := &_BACnetConstructedDataWindowSamples{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		WindowSamples:                 windowSamples,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataWindowSamplesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataWindowSamplesBuilder) = (*_BACnetConstructedDataWindowSamplesBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataWindowSamplesBuilder) WithWindowSamplesBuilder(bu
 	var err error
 	b.WindowSamples, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataWindowSamplesBuilder) Build() (BACnetConstructedDataWindowSamples, error) {
 	if b.WindowSamples == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'windowSamples' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'windowSamples' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataWindowSamples.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataWindowSamplesBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataWindowSamplesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataWindowSamplesBuilder().(*_BACnetConstructedDataWindowSamplesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

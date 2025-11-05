@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,9 +62,9 @@ var _ NLMVendorProprietaryMessage = (*_NLMVendorProprietaryMessage)(nil)
 var _ NLMRequirements = (*_NLMVendorProprietaryMessage)(nil)
 
 // NewNLMVendorProprietaryMessage factory function for _NLMVendorProprietaryMessage
-func NewNLMVendorProprietaryMessage(vendorId BACnetVendorId, proprietaryMessage []byte, apduLength uint16) *_NLMVendorProprietaryMessage {
+func NewNLMVendorProprietaryMessage(vendorId BACnetVendorId, proprietaryMessage []byte) *_NLMVendorProprietaryMessage {
 	_result := &_NLMVendorProprietaryMessage{
-		NLMContract:        NewNLM(apduLength),
+		NLMContract:        NewNLM(),
 		VendorId:           vendorId,
 		ProprietaryMessage: proprietaryMessage,
 	}
@@ -103,7 +104,7 @@ type _NLMVendorProprietaryMessageBuilder struct {
 
 	parentBuilder *_NLMBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NLMVendorProprietaryMessageBuilder) = (*_NLMVendorProprietaryMessageBuilder)(nil)
@@ -128,8 +129,8 @@ func (b *_NLMVendorProprietaryMessageBuilder) WithProprietaryMessage(proprietary
 }
 
 func (b *_NLMVendorProprietaryMessageBuilder) Build() (NLMVendorProprietaryMessage, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NLMVendorProprietaryMessage.deepCopy(), nil
 }
@@ -155,8 +156,8 @@ func (b *_NLMVendorProprietaryMessageBuilder) buildForNLM() (NLM, error) {
 
 func (b *_NLMVendorProprietaryMessageBuilder) DeepCopy() any {
 	_copy := b.CreateNLMVendorProprietaryMessageBuilder().(*_NLMVendorProprietaryMessageBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ S7PayloadUserData = (*_S7PayloadUserData)(nil)
 var _ S7PayloadRequirements = (*_S7PayloadUserData)(nil)
 
 // NewS7PayloadUserData factory function for _S7PayloadUserData
-func NewS7PayloadUserData(items []S7PayloadUserDataItem, parameter S7Parameter) *_S7PayloadUserData {
+func NewS7PayloadUserData(items []S7PayloadUserDataItem) *_S7PayloadUserData {
 	_result := &_S7PayloadUserData{
-		S7PayloadContract: NewS7Payload(parameter),
+		S7PayloadContract: NewS7Payload(),
 		Items:             items,
 	}
 	_result.S7PayloadContract.(*_S7Payload)._SubType = _result
@@ -97,7 +98,7 @@ type _S7PayloadUserDataBuilder struct {
 
 	parentBuilder *_S7PayloadBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (S7PayloadUserDataBuilder) = (*_S7PayloadUserDataBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_S7PayloadUserDataBuilder) WithItems(items ...S7PayloadUserDataItem) S7
 }
 
 func (b *_S7PayloadUserDataBuilder) Build() (S7PayloadUserData, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._S7PayloadUserData.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_S7PayloadUserDataBuilder) buildForS7Payload() (S7Payload, error) {
 
 func (b *_S7PayloadUserDataBuilder) DeepCopy() any {
 	_copy := b.CreateS7PayloadUserDataBuilder().(*_S7PayloadUserDataBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

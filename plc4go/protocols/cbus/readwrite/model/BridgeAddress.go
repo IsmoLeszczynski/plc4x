@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -85,7 +86,7 @@ func NewBridgeAddressBuilder() BridgeAddressBuilder {
 type _BridgeAddressBuilder struct {
 	*_BridgeAddress
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BridgeAddressBuilder) = (*_BridgeAddressBuilder)(nil)
@@ -100,8 +101,8 @@ func (b *_BridgeAddressBuilder) WithAddress(address byte) BridgeAddressBuilder {
 }
 
 func (b *_BridgeAddressBuilder) Build() (BridgeAddress, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BridgeAddress.deepCopy(), nil
 }
@@ -116,8 +117,8 @@ func (b *_BridgeAddressBuilder) MustBuild() BridgeAddress {
 
 func (b *_BridgeAddressBuilder) DeepCopy() any {
 	_copy := b.CreateBridgeAddressBuilder().(*_BridgeAddressBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -188,7 +189,7 @@ func BridgeAddressParseWithBufferProducer() func(ctx context.Context, readBuffer
 }
 
 func BridgeAddressParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (BridgeAddress, error) {
-	v, err := (&_BridgeAddress{}).parse(ctx, readBuffer)
+	v, err := (new(_BridgeAddress)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

@@ -50,21 +50,13 @@ public class BACnetConstructedDataFirmwareRevision extends BACnetConstructedData
   // Properties.
   protected final BACnetApplicationTagCharacterString firmwareRevision;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataFirmwareRevision(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagCharacterString firmwareRevision,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagCharacterString firmwareRevision) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.firmwareRevision = firmwareRevision;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagCharacterString getFirmwareRevision() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataFirmwareRevision extends BACnetConstructedData
     // Simple Field (firmwareRevision)
     writeSimpleField("firmwareRevision", firmwareRevision, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagCharacterString actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataFirmwareRevision extends BACnetConstructedData
 
     readBuffer.closeContext("BACnetConstructedDataFirmwareRevision");
     // Create the instance
-    return new BACnetConstructedDataFirmwareRevisionBuilderImpl(
-        firmwareRevision, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataFirmwareRevisionBuilderImpl(firmwareRevision);
   }
 
   public static class BACnetConstructedDataFirmwareRevisionBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagCharacterString firmwareRevision;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataFirmwareRevisionBuilderImpl(
-        BACnetApplicationTagCharacterString firmwareRevision,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagCharacterString firmwareRevision) {
       this.firmwareRevision = firmwareRevision;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataFirmwareRevision build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataFirmwareRevision bACnetConstructedDataFirmwareRevision =
           new BACnetConstructedDataFirmwareRevision(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              firmwareRevision,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, firmwareRevision);
       return bACnetConstructedDataFirmwareRevision;
     }
   }

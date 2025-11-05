@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataIPv6DefaultGateway = (*_BACnetConstructedDataIPv6Defa
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataIPv6DefaultGateway)(nil)
 
 // NewBACnetConstructedDataIPv6DefaultGateway factory function for _BACnetConstructedDataIPv6DefaultGateway
-func NewBACnetConstructedDataIPv6DefaultGateway(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ipv6DefaultGateway BACnetApplicationTagOctetString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataIPv6DefaultGateway {
+func NewBACnetConstructedDataIPv6DefaultGateway(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ipv6DefaultGateway BACnetApplicationTagOctetString) *_BACnetConstructedDataIPv6DefaultGateway {
 	if ipv6DefaultGateway == nil {
 		panic("ipv6DefaultGateway of type BACnetApplicationTagOctetString for BACnetConstructedDataIPv6DefaultGateway must not be nil")
 	}
 	_result := &_BACnetConstructedDataIPv6DefaultGateway{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Ipv6DefaultGateway:            ipv6DefaultGateway,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataIPv6DefaultGatewayBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataIPv6DefaultGatewayBuilder) = (*_BACnetConstructedDataIPv6DefaultGatewayBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataIPv6DefaultGatewayBuilder) WithIpv6DefaultGateway
 	var err error
 	b.Ipv6DefaultGateway, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataIPv6DefaultGatewayBuilder) Build() (BACnetConstructedDataIPv6DefaultGateway, error) {
 	if b.Ipv6DefaultGateway == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'ipv6DefaultGateway' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'ipv6DefaultGateway' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataIPv6DefaultGateway.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataIPv6DefaultGatewayBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataIPv6DefaultGatewayBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataIPv6DefaultGatewayBuilder().(*_BACnetConstructedDataIPv6DefaultGatewayBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

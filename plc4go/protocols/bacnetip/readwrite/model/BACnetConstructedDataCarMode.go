@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataCarMode = (*_BACnetConstructedDataCarMode)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataCarMode)(nil)
 
 // NewBACnetConstructedDataCarMode factory function for _BACnetConstructedDataCarMode
-func NewBACnetConstructedDataCarMode(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, carMode BACnetLiftCarModeTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataCarMode {
+func NewBACnetConstructedDataCarMode(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, carMode BACnetLiftCarModeTagged) *_BACnetConstructedDataCarMode {
 	if carMode == nil {
 		panic("carMode of type BACnetLiftCarModeTagged for BACnetConstructedDataCarMode must not be nil")
 	}
 	_result := &_BACnetConstructedDataCarMode{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		CarMode:                       carMode,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataCarModeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataCarModeBuilder) = (*_BACnetConstructedDataCarModeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataCarModeBuilder) WithCarModeBuilder(builderSupplie
 	var err error
 	b.CarMode, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetLiftCarModeTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetLiftCarModeTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataCarModeBuilder) Build() (BACnetConstructedDataCarMode, error) {
 	if b.CarMode == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'carMode' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'carMode' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataCarMode.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataCarModeBuilder) buildForBACnetConstructedData() (
 
 func (b *_BACnetConstructedDataCarModeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataCarModeBuilder().(*_BACnetConstructedDataCarModeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

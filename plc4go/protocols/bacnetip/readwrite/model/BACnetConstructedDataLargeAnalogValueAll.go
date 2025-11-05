@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataLargeAnalogValueAll = (*_BACnetConstructedDataLargeAn
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLargeAnalogValueAll)(nil)
 
 // NewBACnetConstructedDataLargeAnalogValueAll factory function for _BACnetConstructedDataLargeAnalogValueAll
-func NewBACnetConstructedDataLargeAnalogValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLargeAnalogValueAll {
+func NewBACnetConstructedDataLargeAnalogValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataLargeAnalogValueAll {
 	_result := &_BACnetConstructedDataLargeAnalogValueAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataLargeAnalogValueAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLargeAnalogValueAllBuilder) = (*_BACnetConstructedDataLargeAnalogValueAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataLargeAnalogValueAllBuilder) WithMandatoryFields()
 }
 
 func (b *_BACnetConstructedDataLargeAnalogValueAllBuilder) Build() (BACnetConstructedDataLargeAnalogValueAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLargeAnalogValueAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataLargeAnalogValueAllBuilder) buildForBACnetConstru
 
 func (b *_BACnetConstructedDataLargeAnalogValueAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLargeAnalogValueAllBuilder().(*_BACnetConstructedDataLargeAnalogValueAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

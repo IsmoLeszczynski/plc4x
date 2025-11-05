@@ -40,26 +40,31 @@ public abstract class CALData implements Message {
   // Abstract accessors for discriminator values.
 
   // Properties.
+  protected final RequestContext requestContext;
   protected final CALCommandTypeContainer commandTypeContainer;
+
+  /** Note: we omit the request context as it is only useful for the first element */
   protected final CALData additionalData;
 
-  // Arguments.
-  protected final RequestContext requestContext;
-
   public CALData(
+      RequestContext requestContext,
       CALCommandTypeContainer commandTypeContainer,
-      CALData additionalData,
-      RequestContext requestContext) {
+      CALData additionalData) {
     super();
+    this.requestContext = requestContext;
     this.commandTypeContainer = commandTypeContainer;
     this.additionalData = additionalData;
-    this.requestContext = requestContext;
+  }
+
+  public RequestContext getRequestContext() {
+    return requestContext;
   }
 
   public CALCommandTypeContainer getCommandTypeContainer() {
     return commandTypeContainer;
   }
 
+  /** Note: we omit the request context as it is only useful for the first element */
   public CALData getAdditionalData() {
     return additionalData;
   }
@@ -91,11 +96,11 @@ public abstract class CALData implements Message {
             CALCommandTypeContainer::name,
             writeUnsignedShort(writeBuffer, 8)));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     CALCommandType commandType = getCommandType();
     writeBuffer.writeVirtual("commandType", commandType);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean sendIdentifyRequestBefore = getSendIdentifyRequestBefore();
     writeBuffer.writeVirtual("sendIdentifyRequestBefore", sendIdentifyRequestBefore);
 
@@ -212,15 +217,15 @@ public abstract class CALData implements Message {
 
     readBuffer.closeContext("CALData");
     // Create the instance
-    CALData _cALData = builder.build(commandTypeContainer, additionalData, requestContext);
+    CALData _cALData = builder.build(requestContext, commandTypeContainer, additionalData);
     return _cALData;
   }
 
   public interface CALDataBuilder {
     CALData build(
+        RequestContext requestContext,
         CALCommandTypeContainer commandTypeContainer,
-        CALData additionalData,
-        RequestContext requestContext);
+        CALData additionalData);
   }
 
   @Override
@@ -232,14 +237,15 @@ public abstract class CALData implements Message {
       return false;
     }
     CALData that = (CALData) o;
-    return (getCommandTypeContainer() == that.getCommandTypeContainer())
+    return (getRequestContext() == that.getRequestContext())
+        && (getCommandTypeContainer() == that.getCommandTypeContainer())
         && (getAdditionalData() == that.getAdditionalData())
         && true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getCommandTypeContainer(), getAdditionalData());
+    return Objects.hash(getRequestContext(), getCommandTypeContainer(), getAdditionalData());
   }
 
   @Override

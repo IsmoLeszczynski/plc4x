@@ -22,6 +22,7 @@ package model
 import (
 	"context"
 	"encoding/binary"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -51,8 +52,6 @@ type FirmataMessage interface {
 
 // FirmataMessageContract provides a set of functions which can be overwritten by a sub struct
 type FirmataMessageContract interface {
-	// GetResponse() returns a parser argument
-	GetResponse() bool
 	// IsFirmataMessage is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsFirmataMessage()
 	// CreateBuilder creates a FirmataMessageBuilder
@@ -73,16 +72,13 @@ type _FirmataMessage struct {
 		FirmataMessageContract
 		FirmataMessageRequirements
 	}
-
-	// Arguments.
-	Response bool
 }
 
 var _ FirmataMessageContract = (*_FirmataMessage)(nil)
 
 // NewFirmataMessage factory function for _FirmataMessage
-func NewFirmataMessage(response bool) *_FirmataMessage {
-	return &_FirmataMessage{Response: response}
+func NewFirmataMessage() *_FirmataMessage {
+	return &_FirmataMessage{}
 }
 
 ///////////////////////////////////////////////////////////
@@ -95,8 +91,6 @@ type FirmataMessageBuilder interface {
 	utils.Copyable
 	// WithMandatoryFields adds all mandatory fields (convenience for using multiple builder calls)
 	WithMandatoryFields() FirmataMessageBuilder
-	// WithArgResponse sets a parser argument
-	WithArgResponse(bool) FirmataMessageBuilder
 	// AsFirmataMessageAnalogIO converts this build to a subType of FirmataMessage. It is always possible to return to current builder using Done()
 	AsFirmataMessageAnalogIO() FirmataMessageAnalogIOBuilder
 	// AsFirmataMessageDigitalIO converts this build to a subType of FirmataMessage. It is always possible to return to current builder using Done()
@@ -133,7 +127,7 @@ type _FirmataMessageBuilder struct {
 
 	childBuilder _FirmataMessageChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (FirmataMessageBuilder) = (*_FirmataMessageBuilder)(nil)
@@ -142,14 +136,9 @@ func (b *_FirmataMessageBuilder) WithMandatoryFields() FirmataMessageBuilder {
 	return b
 }
 
-func (b *_FirmataMessageBuilder) WithArgResponse(response bool) FirmataMessageBuilder {
-	b.Response = response
-	return b
-}
-
 func (b *_FirmataMessageBuilder) PartialBuild() (FirmataMessageContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._FirmataMessage.deepCopy(), nil
 }
@@ -236,8 +225,8 @@ func (b *_FirmataMessageBuilder) DeepCopy() any {
 	_copy := b.CreateFirmataMessageBuilder().(*_FirmataMessageBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_FirmataMessageChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -302,7 +291,7 @@ func FirmataMessageParseWithBufferProducer[T FirmataMessage](response bool) func
 }
 
 func FirmataMessageParseWithBuffer[T FirmataMessage](ctx context.Context, readBuffer utils.ReadBuffer, response bool) (T, error) {
-	v, err := (&_FirmataMessage{Response: response}).parse(ctx, readBuffer, response)
+	v, err := (new(_FirmataMessage)).parse(ctx, readBuffer, response)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -390,16 +379,6 @@ func (pm *_FirmataMessage) serializeParent(ctx context.Context, writeBuffer util
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_FirmataMessage) GetResponse() bool {
-	return m.Response
-}
-
-//
-////
-
 func (m *_FirmataMessage) IsFirmataMessage() {}
 
 func (m *_FirmataMessage) DeepCopy() any {
@@ -412,7 +391,6 @@ func (m *_FirmataMessage) deepCopy() *_FirmataMessage {
 	}
 	_FirmataMessageCopy := &_FirmataMessage{
 		nil, // will be set by child
-		m.Response,
 	}
 	return _FirmataMessageCopy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -43,7 +44,7 @@ type BACnetContextTagSignedInteger interface {
 	// GetPayload returns Payload (property field)
 	GetPayload() BACnetTagPayloadSignedInteger
 	// GetActualValue returns ActualValue (virtual field)
-	GetActualValue() uint64
+	GetActualValue() int64
 	// IsBACnetContextTagSignedInteger is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetContextTagSignedInteger()
 	// CreateBuilder creates a BACnetContextTagSignedIntegerBuilder
@@ -60,12 +61,12 @@ var _ BACnetContextTagSignedInteger = (*_BACnetContextTagSignedInteger)(nil)
 var _ BACnetContextTagRequirements = (*_BACnetContextTagSignedInteger)(nil)
 
 // NewBACnetContextTagSignedInteger factory function for _BACnetContextTagSignedInteger
-func NewBACnetContextTagSignedInteger(header BACnetTagHeader, payload BACnetTagPayloadSignedInteger, tagNumberArgument uint8) *_BACnetContextTagSignedInteger {
+func NewBACnetContextTagSignedInteger(header BACnetTagHeader, payload BACnetTagPayloadSignedInteger) *_BACnetContextTagSignedInteger {
 	if payload == nil {
 		panic("payload of type BACnetTagPayloadSignedInteger for BACnetContextTagSignedInteger must not be nil")
 	}
 	_result := &_BACnetContextTagSignedInteger{
-		BACnetContextTagContract: NewBACnetContextTag(header, tagNumberArgument),
+		BACnetContextTagContract: NewBACnetContextTag(header),
 		Payload:                  payload,
 	}
 	_result.BACnetContextTagContract.(*_BACnetContextTag)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetContextTagSignedIntegerBuilder struct {
 
 	parentBuilder *_BACnetContextTagBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetContextTagSignedIntegerBuilder) = (*_BACnetContextTagSignedIntegerBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetContextTagSignedIntegerBuilder) WithPayloadBuilder(builderSuppli
 	var err error
 	b.Payload, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagPayloadSignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagPayloadSignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetContextTagSignedIntegerBuilder) Build() (BACnetContextTagSignedInteger, error) {
 	if b.Payload == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'payload' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'payload' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetContextTagSignedInteger.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetContextTagSignedIntegerBuilder) buildForBACnetContextTag() (BACn
 
 func (b *_BACnetContextTagSignedIntegerBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetContextTagSignedIntegerBuilder().(*_BACnetContextTagSignedIntegerBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -225,10 +220,10 @@ func (m *_BACnetContextTagSignedInteger) GetPayload() BACnetTagPayloadSignedInte
 /////////////////////// Accessors for virtual fields.
 ///////////////////////
 
-func (m *_BACnetContextTagSignedInteger) GetActualValue() uint64 {
+func (m *_BACnetContextTagSignedInteger) GetActualValue() int64 {
 	ctx := context.Background()
 	_ = ctx
-	return uint64(m.GetPayload().GetActualValue())
+	return int64(m.GetPayload().GetActualValue())
 }
 
 ///////////////////////
@@ -283,7 +278,7 @@ func (m *_BACnetContextTagSignedInteger) parse(ctx context.Context, readBuffer u
 	}
 	m.Payload = payload
 
-	actualValue, err := ReadVirtualField[uint64](ctx, "actualValue", (*uint64)(nil), payload.GetActualValue())
+	actualValue, err := ReadVirtualField[int64](ctx, "actualValue", (*int64)(nil), payload.GetActualValue())
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Error parsing 'actualValue' field"))
 	}

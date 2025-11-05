@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtGroupPropertyValueRead = (*_ApduDataExtGroupPropertyValueRead)(
 var _ ApduDataExtRequirements = (*_ApduDataExtGroupPropertyValueRead)(nil)
 
 // NewApduDataExtGroupPropertyValueRead factory function for _ApduDataExtGroupPropertyValueRead
-func NewApduDataExtGroupPropertyValueRead(length uint8) *_ApduDataExtGroupPropertyValueRead {
+func NewApduDataExtGroupPropertyValueRead() *_ApduDataExtGroupPropertyValueRead {
 	_result := &_ApduDataExtGroupPropertyValueRead{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtGroupPropertyValueReadBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtGroupPropertyValueReadBuilder) = (*_ApduDataExtGroupPropertyValueReadBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtGroupPropertyValueReadBuilder) WithMandatoryFields() ApduDa
 }
 
 func (b *_ApduDataExtGroupPropertyValueReadBuilder) Build() (ApduDataExtGroupPropertyValueRead, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtGroupPropertyValueRead.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtGroupPropertyValueReadBuilder) buildForApduDataExt() (ApduD
 
 func (b *_ApduDataExtGroupPropertyValueReadBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtGroupPropertyValueReadBuilder().(*_ApduDataExtGroupPropertyValueReadBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

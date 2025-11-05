@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -59,22 +60,19 @@ type _ListOfCovNotificationsValue struct {
 	ArrayIndex         BACnetContextTagUnsignedInteger
 	PropertyValue      BACnetConstructedData
 	TimeOfChange       BACnetContextTagTime
-
-	// Arguments.
-	ObjectTypeArgument BACnetObjectType
 }
 
 var _ ListOfCovNotificationsValue = (*_ListOfCovNotificationsValue)(nil)
 
 // NewListOfCovNotificationsValue factory function for _ListOfCovNotificationsValue
-func NewListOfCovNotificationsValue(propertyIdentifier BACnetPropertyIdentifierTagged, arrayIndex BACnetContextTagUnsignedInteger, propertyValue BACnetConstructedData, timeOfChange BACnetContextTagTime, objectTypeArgument BACnetObjectType) *_ListOfCovNotificationsValue {
+func NewListOfCovNotificationsValue(propertyIdentifier BACnetPropertyIdentifierTagged, arrayIndex BACnetContextTagUnsignedInteger, propertyValue BACnetConstructedData, timeOfChange BACnetContextTagTime) *_ListOfCovNotificationsValue {
 	if propertyIdentifier == nil {
 		panic("propertyIdentifier of type BACnetPropertyIdentifierTagged for ListOfCovNotificationsValue must not be nil")
 	}
 	if propertyValue == nil {
 		panic("propertyValue of type BACnetConstructedData for ListOfCovNotificationsValue must not be nil")
 	}
-	return &_ListOfCovNotificationsValue{PropertyIdentifier: propertyIdentifier, ArrayIndex: arrayIndex, PropertyValue: propertyValue, TimeOfChange: timeOfChange, ObjectTypeArgument: objectTypeArgument}
+	return &_ListOfCovNotificationsValue{PropertyIdentifier: propertyIdentifier, ArrayIndex: arrayIndex, PropertyValue: propertyValue, TimeOfChange: timeOfChange}
 }
 
 ///////////////////////////////////////////////////////////
@@ -103,8 +101,6 @@ type ListOfCovNotificationsValueBuilder interface {
 	WithOptionalTimeOfChange(BACnetContextTagTime) ListOfCovNotificationsValueBuilder
 	// WithOptionalTimeOfChangeBuilder adds TimeOfChange (property field) which is build by the builder
 	WithOptionalTimeOfChangeBuilder(func(BACnetContextTagTimeBuilder) BACnetContextTagTimeBuilder) ListOfCovNotificationsValueBuilder
-	// WithArgObjectTypeArgument sets a parser argument
-	WithArgObjectTypeArgument(BACnetObjectType) ListOfCovNotificationsValueBuilder
 	// Build builds the ListOfCovNotificationsValue or returns an error if something is wrong
 	Build() (ListOfCovNotificationsValue, error)
 	// MustBuild does the same as Build but panics on error
@@ -119,7 +115,7 @@ func NewListOfCovNotificationsValueBuilder() ListOfCovNotificationsValueBuilder 
 type _ListOfCovNotificationsValueBuilder struct {
 	*_ListOfCovNotificationsValue
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ListOfCovNotificationsValueBuilder) = (*_ListOfCovNotificationsValueBuilder)(nil)
@@ -138,10 +134,7 @@ func (b *_ListOfCovNotificationsValueBuilder) WithPropertyIdentifierBuilder(buil
 	var err error
 	b.PropertyIdentifier, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetPropertyIdentifierTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetPropertyIdentifierTaggedBuilder failed"))
 	}
 	return b
 }
@@ -156,10 +149,7 @@ func (b *_ListOfCovNotificationsValueBuilder) WithOptionalArrayIndexBuilder(buil
 	var err error
 	b.ArrayIndex, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetContextTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -174,10 +164,7 @@ func (b *_ListOfCovNotificationsValueBuilder) WithPropertyValueBuilder(builderSu
 	var err error
 	b.PropertyValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetConstructedDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetConstructedDataBuilder failed"))
 	}
 	return b
 }
@@ -192,34 +179,20 @@ func (b *_ListOfCovNotificationsValueBuilder) WithOptionalTimeOfChangeBuilder(bu
 	var err error
 	b.TimeOfChange, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetContextTagTimeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetContextTagTimeBuilder failed"))
 	}
-	return b
-}
-
-func (b *_ListOfCovNotificationsValueBuilder) WithArgObjectTypeArgument(objectTypeArgument BACnetObjectType) ListOfCovNotificationsValueBuilder {
-	b.ObjectTypeArgument = objectTypeArgument
 	return b
 }
 
 func (b *_ListOfCovNotificationsValueBuilder) Build() (ListOfCovNotificationsValue, error) {
 	if b.PropertyIdentifier == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'propertyIdentifier' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'propertyIdentifier' not set"))
 	}
 	if b.PropertyValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'propertyValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'propertyValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ListOfCovNotificationsValue.deepCopy(), nil
 }
@@ -234,8 +207,8 @@ func (b *_ListOfCovNotificationsValueBuilder) MustBuild() ListOfCovNotifications
 
 func (b *_ListOfCovNotificationsValueBuilder) DeepCopy() any {
 	_copy := b.CreateListOfCovNotificationsValueBuilder().(*_ListOfCovNotificationsValueBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -331,7 +304,7 @@ func ListOfCovNotificationsValueParseWithBufferProducer(objectTypeArgument BACne
 }
 
 func ListOfCovNotificationsValueParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, objectTypeArgument BACnetObjectType) (ListOfCovNotificationsValue, error) {
-	v, err := (&_ListOfCovNotificationsValue{ObjectTypeArgument: objectTypeArgument}).parse(ctx, readBuffer, objectTypeArgument)
+	v, err := (new(_ListOfCovNotificationsValue)).parse(ctx, readBuffer, objectTypeArgument)
 	if err != nil {
 		return nil, err
 	}
@@ -425,16 +398,6 @@ func (m *_ListOfCovNotificationsValue) SerializeWithWriteBuffer(ctx context.Cont
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_ListOfCovNotificationsValue) GetObjectTypeArgument() BACnetObjectType {
-	return m.ObjectTypeArgument
-}
-
-//
-////
-
 func (m *_ListOfCovNotificationsValue) IsListOfCovNotificationsValue() {}
 
 func (m *_ListOfCovNotificationsValue) DeepCopy() any {
@@ -450,7 +413,6 @@ func (m *_ListOfCovNotificationsValue) deepCopy() *_ListOfCovNotificationsValue 
 		utils.DeepCopy[BACnetContextTagUnsignedInteger](m.ArrayIndex),
 		utils.DeepCopy[BACnetConstructedData](m.PropertyValue),
 		utils.DeepCopy[BACnetContextTagTime](m.TimeOfChange),
-		m.ObjectTypeArgument,
 	}
 	return _ListOfCovNotificationsValueCopy
 }

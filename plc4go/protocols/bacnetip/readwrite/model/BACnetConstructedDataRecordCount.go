@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataRecordCount = (*_BACnetConstructedDataRecordCount)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataRecordCount)(nil)
 
 // NewBACnetConstructedDataRecordCount factory function for _BACnetConstructedDataRecordCount
-func NewBACnetConstructedDataRecordCount(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, recordCount BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataRecordCount {
+func NewBACnetConstructedDataRecordCount(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, recordCount BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataRecordCount {
 	if recordCount == nil {
 		panic("recordCount of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataRecordCount must not be nil")
 	}
 	_result := &_BACnetConstructedDataRecordCount{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		RecordCount:                   recordCount,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataRecordCountBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataRecordCountBuilder) = (*_BACnetConstructedDataRecordCountBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataRecordCountBuilder) WithRecordCountBuilder(builde
 	var err error
 	b.RecordCount, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataRecordCountBuilder) Build() (BACnetConstructedDataRecordCount, error) {
 	if b.RecordCount == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'recordCount' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'recordCount' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataRecordCount.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataRecordCountBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataRecordCountBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataRecordCountBuilder().(*_BACnetConstructedDataRecordCountBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

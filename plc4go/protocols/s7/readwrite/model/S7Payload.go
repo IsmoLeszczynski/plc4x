@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -47,8 +48,6 @@ type S7Payload interface {
 
 // S7PayloadContract provides a set of functions which can be overwritten by a sub struct
 type S7PayloadContract interface {
-	// GetParameter() returns a parser argument
-	GetParameter() S7Parameter
 	// IsS7Payload is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsS7Payload()
 	// CreateBuilder creates a S7PayloadBuilder
@@ -71,16 +70,13 @@ type _S7Payload struct {
 		S7PayloadContract
 		S7PayloadRequirements
 	}
-
-	// Arguments.
-	Parameter S7Parameter
 }
 
 var _ S7PayloadContract = (*_S7Payload)(nil)
 
 // NewS7Payload factory function for _S7Payload
-func NewS7Payload(parameter S7Parameter) *_S7Payload {
-	return &_S7Payload{Parameter: parameter}
+func NewS7Payload() *_S7Payload {
+	return &_S7Payload{}
 }
 
 ///////////////////////////////////////////////////////////
@@ -93,8 +89,6 @@ type S7PayloadBuilder interface {
 	utils.Copyable
 	// WithMandatoryFields adds all mandatory fields (convenience for using multiple builder calls)
 	WithMandatoryFields() S7PayloadBuilder
-	// WithArgParameter sets a parser argument
-	WithArgParameter(S7Parameter) S7PayloadBuilder
 	// AsS7PayloadReadVarResponse converts this build to a subType of S7Payload. It is always possible to return to current builder using Done()
 	AsS7PayloadReadVarResponse() S7PayloadReadVarResponseBuilder
 	// AsS7PayloadWriteVarRequest converts this build to a subType of S7Payload. It is always possible to return to current builder using Done()
@@ -129,7 +123,7 @@ type _S7PayloadBuilder struct {
 
 	childBuilder _S7PayloadChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (S7PayloadBuilder) = (*_S7PayloadBuilder)(nil)
@@ -138,14 +132,9 @@ func (b *_S7PayloadBuilder) WithMandatoryFields() S7PayloadBuilder {
 	return b
 }
 
-func (b *_S7PayloadBuilder) WithArgParameter(parameter S7Parameter) S7PayloadBuilder {
-	b.Parameter = parameter
-	return b
-}
-
 func (b *_S7PayloadBuilder) PartialBuild() (S7PayloadContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._S7Payload.deepCopy(), nil
 }
@@ -222,8 +211,8 @@ func (b *_S7PayloadBuilder) DeepCopy() any {
 	_copy := b.CreateS7PayloadBuilder().(*_S7PayloadBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_S7PayloadChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -286,7 +275,7 @@ func S7PayloadParseWithBufferProducer[T S7Payload](messageType uint8, parameter 
 }
 
 func S7PayloadParseWithBuffer[T S7Payload](ctx context.Context, readBuffer utils.ReadBuffer, messageType uint8, parameter S7Parameter) (T, error) {
-	v, err := (&_S7Payload{Parameter: parameter}).parse(ctx, readBuffer, messageType, parameter)
+	v, err := (new(_S7Payload)).parse(ctx, readBuffer, messageType, parameter)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -361,16 +350,6 @@ func (pm *_S7Payload) serializeParent(ctx context.Context, writeBuffer utils.Wri
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_S7Payload) GetParameter() S7Parameter {
-	return m.Parameter
-}
-
-//
-////
-
 func (m *_S7Payload) IsS7Payload() {}
 
 func (m *_S7Payload) DeepCopy() any {
@@ -383,7 +362,6 @@ func (m *_S7Payload) deepCopy() *_S7Payload {
 	}
 	_S7PayloadCopy := &_S7Payload{
 		nil, // will be set by child
-		m.Parameter,
 	}
 	return _S7PayloadCopy
 }

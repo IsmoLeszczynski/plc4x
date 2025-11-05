@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataDeviceAll = (*_BACnetConstructedDataDeviceAll)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataDeviceAll)(nil)
 
 // NewBACnetConstructedDataDeviceAll factory function for _BACnetConstructedDataDeviceAll
-func NewBACnetConstructedDataDeviceAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataDeviceAll {
+func NewBACnetConstructedDataDeviceAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataDeviceAll {
 	_result := &_BACnetConstructedDataDeviceAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataDeviceAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataDeviceAllBuilder) = (*_BACnetConstructedDataDeviceAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataDeviceAllBuilder) WithMandatoryFields() BACnetCon
 }
 
 func (b *_BACnetConstructedDataDeviceAllBuilder) Build() (BACnetConstructedDataDeviceAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataDeviceAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataDeviceAllBuilder) buildForBACnetConstructedData()
 
 func (b *_BACnetConstructedDataDeviceAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataDeviceAllBuilder().(*_BACnetConstructedDataDeviceAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

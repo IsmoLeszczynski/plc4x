@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataChangesPending = (*_BACnetConstructedDataChangesPendi
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataChangesPending)(nil)
 
 // NewBACnetConstructedDataChangesPending factory function for _BACnetConstructedDataChangesPending
-func NewBACnetConstructedDataChangesPending(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, changesPending BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataChangesPending {
+func NewBACnetConstructedDataChangesPending(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, changesPending BACnetApplicationTagBoolean) *_BACnetConstructedDataChangesPending {
 	if changesPending == nil {
 		panic("changesPending of type BACnetApplicationTagBoolean for BACnetConstructedDataChangesPending must not be nil")
 	}
 	_result := &_BACnetConstructedDataChangesPending{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ChangesPending:                changesPending,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataChangesPendingBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataChangesPendingBuilder) = (*_BACnetConstructedDataChangesPendingBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataChangesPendingBuilder) WithChangesPendingBuilder(
 	var err error
 	b.ChangesPending, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataChangesPendingBuilder) Build() (BACnetConstructedDataChangesPending, error) {
 	if b.ChangesPending == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'changesPending' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'changesPending' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataChangesPending.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataChangesPendingBuilder) buildForBACnetConstructedD
 
 func (b *_BACnetConstructedDataChangesPendingBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataChangesPendingBuilder().(*_BACnetConstructedDataChangesPendingBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

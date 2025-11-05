@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -63,12 +64,12 @@ var _ APDUReject = (*_APDUReject)(nil)
 var _ APDURequirements = (*_APDUReject)(nil)
 
 // NewAPDUReject factory function for _APDUReject
-func NewAPDUReject(originalInvokeId uint8, rejectReason BACnetRejectReasonTagged, apduLength uint16) *_APDUReject {
+func NewAPDUReject(originalInvokeId uint8, rejectReason BACnetRejectReasonTagged) *_APDUReject {
 	if rejectReason == nil {
 		panic("rejectReason of type BACnetRejectReasonTagged for APDUReject must not be nil")
 	}
 	_result := &_APDUReject{
-		APDUContract:     NewAPDU(apduLength),
+		APDUContract:     NewAPDU(),
 		OriginalInvokeId: originalInvokeId,
 		RejectReason:     rejectReason,
 	}
@@ -110,7 +111,7 @@ type _APDURejectBuilder struct {
 
 	parentBuilder *_APDUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (APDURejectBuilder) = (*_APDURejectBuilder)(nil)
@@ -139,23 +140,17 @@ func (b *_APDURejectBuilder) WithRejectReasonBuilder(builderSupplier func(BACnet
 	var err error
 	b.RejectReason, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetRejectReasonTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetRejectReasonTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_APDURejectBuilder) Build() (APDUReject, error) {
 	if b.RejectReason == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'rejectReason' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'rejectReason' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._APDUReject.deepCopy(), nil
 }
@@ -181,8 +176,8 @@ func (b *_APDURejectBuilder) buildForAPDU() (APDU, error) {
 
 func (b *_APDURejectBuilder) DeepCopy() any {
 	_copy := b.CreateAPDURejectBuilder().(*_APDURejectBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

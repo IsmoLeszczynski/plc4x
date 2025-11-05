@@ -49,21 +49,13 @@ public class BACnetConstructedDataLowerDeck extends BACnetConstructedData implem
   // Properties.
   protected final BACnetApplicationTagObjectIdentifier lowerDeck;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataLowerDeck(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagObjectIdentifier lowerDeck,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagObjectIdentifier lowerDeck) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.lowerDeck = lowerDeck;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagObjectIdentifier getLowerDeck() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataLowerDeck extends BACnetConstructedData implem
     // Simple Field (lowerDeck)
     writeSimpleField("lowerDeck", lowerDeck, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagObjectIdentifier actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,33 +126,22 @@ public class BACnetConstructedDataLowerDeck extends BACnetConstructedData implem
 
     readBuffer.closeContext("BACnetConstructedDataLowerDeck");
     // Create the instance
-    return new BACnetConstructedDataLowerDeckBuilderImpl(lowerDeck, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataLowerDeckBuilderImpl(lowerDeck);
   }
 
   public static class BACnetConstructedDataLowerDeckBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagObjectIdentifier lowerDeck;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataLowerDeckBuilderImpl(
-        BACnetApplicationTagObjectIdentifier lowerDeck,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagObjectIdentifier lowerDeck) {
       this.lowerDeck = lowerDeck;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataLowerDeck build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataLowerDeck bACnetConstructedDataLowerDeck =
-          new BACnetConstructedDataLowerDeck(
-              openingTag, peekedTagHeader, closingTag, lowerDeck, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataLowerDeck(openingTag, peekedTagHeader, closingTag, lowerDeck);
       return bACnetConstructedDataLowerDeck;
     }
   }

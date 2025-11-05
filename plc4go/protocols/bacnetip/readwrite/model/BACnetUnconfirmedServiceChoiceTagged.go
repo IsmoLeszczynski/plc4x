@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetUnconfirmedServiceChoiceTagged interface {
 type _BACnetUnconfirmedServiceChoiceTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetUnconfirmedServiceChoice
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetUnconfirmedServiceChoiceTagged = (*_BACnetUnconfirmedServiceChoiceTagged)(nil)
 
 // NewBACnetUnconfirmedServiceChoiceTagged factory function for _BACnetUnconfirmedServiceChoiceTagged
-func NewBACnetUnconfirmedServiceChoiceTagged(header BACnetTagHeader, value BACnetUnconfirmedServiceChoice, tagNumber uint8, tagClass TagClass) *_BACnetUnconfirmedServiceChoiceTagged {
+func NewBACnetUnconfirmedServiceChoiceTagged(header BACnetTagHeader, value BACnetUnconfirmedServiceChoice) *_BACnetUnconfirmedServiceChoiceTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetUnconfirmedServiceChoiceTagged must not be nil")
 	}
-	return &_BACnetUnconfirmedServiceChoiceTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetUnconfirmedServiceChoiceTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetUnconfirmedServiceChoiceTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetUnconfirmedServiceChoiceTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetUnconfirmedServiceChoice) BACnetUnconfirmedServiceChoiceTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetUnconfirmedServiceChoiceTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetUnconfirmedServiceChoiceTaggedBuilder
 	// Build builds the BACnetUnconfirmedServiceChoiceTagged or returns an error if something is wrong
 	Build() (BACnetUnconfirmedServiceChoiceTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetUnconfirmedServiceChoiceTaggedBuilder() BACnetUnconfirmedServiceCh
 type _BACnetUnconfirmedServiceChoiceTaggedBuilder struct {
 	*_BACnetUnconfirmedServiceChoiceTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetUnconfirmedServiceChoiceTaggedBuilder) = (*_BACnetUnconfirmedServiceChoiceTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetUnconfirmedServiceChoiceTaggedBuilder) WithHeaderBuilder(builder
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetUnconfirmedServiceChoiceTaggedBuilder) WithValue(value BACnetUnc
 	return b
 }
 
-func (b *_BACnetUnconfirmedServiceChoiceTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetUnconfirmedServiceChoiceTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetUnconfirmedServiceChoiceTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetUnconfirmedServiceChoiceTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetUnconfirmedServiceChoiceTaggedBuilder) Build() (BACnetUnconfirmedServiceChoiceTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetUnconfirmedServiceChoiceTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetUnconfirmedServiceChoiceTaggedBuilder) MustBuild() BACnetUnconfi
 
 func (b *_BACnetUnconfirmedServiceChoiceTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetUnconfirmedServiceChoiceTaggedBuilder().(*_BACnetUnconfirmedServiceChoiceTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetUnconfirmedServiceChoiceTaggedParseWithBufferProducer(tagNumber uint8
 }
 
 func BACnetUnconfirmedServiceChoiceTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetUnconfirmedServiceChoiceTagged, error) {
-	v, err := (&_BACnetUnconfirmedServiceChoiceTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetUnconfirmedServiceChoiceTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetUnconfirmedServiceChoiceTagged) SerializeWithWriteBuffer(ctx con
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetUnconfirmedServiceChoiceTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetUnconfirmedServiceChoiceTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetUnconfirmedServiceChoiceTagged) IsBACnetUnconfirmedServiceChoiceTagged() {}
 
 func (m *_BACnetUnconfirmedServiceChoiceTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetUnconfirmedServiceChoiceTagged) deepCopy() *_BACnetUnconfirmedSe
 	_BACnetUnconfirmedServiceChoiceTaggedCopy := &_BACnetUnconfirmedServiceChoiceTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetUnconfirmedServiceChoiceTaggedCopy
 }

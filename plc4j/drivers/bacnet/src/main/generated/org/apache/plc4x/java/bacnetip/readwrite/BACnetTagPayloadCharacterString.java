@@ -38,28 +38,37 @@ import org.apache.plc4x.java.spi.generation.*;
 public class BACnetTagPayloadCharacterString implements Message {
 
   // Properties.
+  protected final long actualLength;
   protected final BACnetCharacterEncoding encoding;
+
+  /** TODO: call to string on encoding or add type conversion so we can use the enum above */
   protected final String value;
 
-  // Arguments.
-  protected final Long actualLength;
-
   public BACnetTagPayloadCharacterString(
-      BACnetCharacterEncoding encoding, String value, Long actualLength) {
+      long actualLength, BACnetCharacterEncoding encoding, String value) {
     super();
+    this.actualLength = actualLength;
     this.encoding = encoding;
     this.value = value;
-    this.actualLength = actualLength;
+  }
+
+  public long getActualLength() {
+    return actualLength;
   }
 
   public BACnetCharacterEncoding getEncoding() {
     return encoding;
   }
 
+  /** TODO: call to string on encoding or add type conversion so we can use the enum above */
   public String getValue() {
     return value;
   }
 
+  /**
+   * TODO: The reader expects int but uint32 gets mapped to long so even uint32 would easily
+   * overflow...
+   */
   public int getActualLengthInBit() {
     return (int) (((actualLength) * (8)) - (8));
   }
@@ -79,7 +88,7 @@ public class BACnetTagPayloadCharacterString implements Message {
             BACnetCharacterEncoding::name,
             writeByte(writeBuffer, 8)));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     int actualLengthInBit = getActualLengthInBit();
     writeBuffer.writeVirtual("actualLengthInBit", actualLengthInBit);
 
@@ -137,7 +146,7 @@ public class BACnetTagPayloadCharacterString implements Message {
     // Create the instance
     BACnetTagPayloadCharacterString _bACnetTagPayloadCharacterString;
     _bACnetTagPayloadCharacterString =
-        new BACnetTagPayloadCharacterString(encoding, value, actualLength);
+        new BACnetTagPayloadCharacterString(actualLength, encoding, value);
     return _bACnetTagPayloadCharacterString;
   }
 
@@ -150,12 +159,15 @@ public class BACnetTagPayloadCharacterString implements Message {
       return false;
     }
     BACnetTagPayloadCharacterString that = (BACnetTagPayloadCharacterString) o;
-    return (getEncoding() == that.getEncoding()) && (getValue() == that.getValue()) && true;
+    return (getActualLength() == that.getActualLength())
+        && (getEncoding() == that.getEncoding())
+        && (getValue() == that.getValue())
+        && true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getEncoding(), getValue());
+    return Objects.hash(getActualLength(), getEncoding(), getValue());
   }
 
   @Override

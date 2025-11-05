@@ -22,6 +22,7 @@ package model
 import (
 	"context"
 	"encoding/binary"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -46,10 +47,17 @@ type ModbusTcpADU interface {
 	utils.Copyable
 	ModbusADU
 	// GetTransactionIdentifier returns TransactionIdentifier (property field)
+	// It is used for transaction pairing, the MODBUS server copies in the response the transaction
+	// identifier of the request.
 	GetTransactionIdentifier() uint16
 	// GetUnitIdentifier returns UnitIdentifier (property field)
+	// This field is used for intra-system routing purpose. It is typically used to communicate to
+	// a MODBUS+ or a MODBUS serial line slave through a gateway between an Ethernet TCP-IP network
+	// and a MODBUS serial line. This field is set by the MODBUS Client in the request and must be
+	// returned with the same value in the response by the server.
 	GetUnitIdentifier() uint8
 	// GetPdu returns Pdu (property field)
+	// The actual modbus payload
 	GetPdu() ModbusPDU
 	// IsModbusTcpADU is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsModbusTcpADU()
@@ -69,12 +77,12 @@ var _ ModbusTcpADU = (*_ModbusTcpADU)(nil)
 var _ ModbusADURequirements = (*_ModbusTcpADU)(nil)
 
 // NewModbusTcpADU factory function for _ModbusTcpADU
-func NewModbusTcpADU(transactionIdentifier uint16, unitIdentifier uint8, pdu ModbusPDU, response bool) *_ModbusTcpADU {
+func NewModbusTcpADU(transactionIdentifier uint16, unitIdentifier uint8, pdu ModbusPDU) *_ModbusTcpADU {
 	if pdu == nil {
 		panic("pdu of type ModbusPDU for ModbusTcpADU must not be nil")
 	}
 	_result := &_ModbusTcpADU{
-		ModbusADUContract:     NewModbusADU(response),
+		ModbusADUContract:     NewModbusADU(),
 		TransactionIdentifier: transactionIdentifier,
 		UnitIdentifier:        unitIdentifier,
 		Pdu:                   pdu,
@@ -119,7 +127,7 @@ type _ModbusTcpADUBuilder struct {
 
 	parentBuilder *_ModbusADUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ModbusTcpADUBuilder) = (*_ModbusTcpADUBuilder)(nil)
@@ -153,23 +161,17 @@ func (b *_ModbusTcpADUBuilder) WithPduBuilder(builderSupplier func(ModbusPDUBuil
 	var err error
 	b.Pdu, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "ModbusPDUBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "ModbusPDUBuilder failed"))
 	}
 	return b
 }
 
 func (b *_ModbusTcpADUBuilder) Build() (ModbusTcpADU, error) {
 	if b.Pdu == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'pdu' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'pdu' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ModbusTcpADU.deepCopy(), nil
 }
@@ -195,8 +197,8 @@ func (b *_ModbusTcpADUBuilder) buildForModbusADU() (ModbusADU, error) {
 
 func (b *_ModbusTcpADUBuilder) DeepCopy() any {
 	_copy := b.CreateModbusTcpADUBuilder().(*_ModbusTcpADUBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

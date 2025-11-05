@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataArchive = (*_BACnetConstructedDataArchive)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataArchive)(nil)
 
 // NewBACnetConstructedDataArchive factory function for _BACnetConstructedDataArchive
-func NewBACnetConstructedDataArchive(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, archive BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataArchive {
+func NewBACnetConstructedDataArchive(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, archive BACnetApplicationTagBoolean) *_BACnetConstructedDataArchive {
 	if archive == nil {
 		panic("archive of type BACnetApplicationTagBoolean for BACnetConstructedDataArchive must not be nil")
 	}
 	_result := &_BACnetConstructedDataArchive{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Archive:                       archive,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataArchiveBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataArchiveBuilder) = (*_BACnetConstructedDataArchiveBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataArchiveBuilder) WithArchiveBuilder(builderSupplie
 	var err error
 	b.Archive, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataArchiveBuilder) Build() (BACnetConstructedDataArchive, error) {
 	if b.Archive == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'archive' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'archive' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataArchive.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataArchiveBuilder) buildForBACnetConstructedData() (
 
 func (b *_BACnetConstructedDataArchiveBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataArchiveBuilder().(*_BACnetConstructedDataArchiveBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

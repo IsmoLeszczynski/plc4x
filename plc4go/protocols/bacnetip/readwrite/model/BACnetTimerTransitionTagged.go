@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetTimerTransitionTagged interface {
 type _BACnetTimerTransitionTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetTimerTransition
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetTimerTransitionTagged = (*_BACnetTimerTransitionTagged)(nil)
 
 // NewBACnetTimerTransitionTagged factory function for _BACnetTimerTransitionTagged
-func NewBACnetTimerTransitionTagged(header BACnetTagHeader, value BACnetTimerTransition, tagNumber uint8, tagClass TagClass) *_BACnetTimerTransitionTagged {
+func NewBACnetTimerTransitionTagged(header BACnetTagHeader, value BACnetTimerTransition) *_BACnetTimerTransitionTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetTimerTransitionTagged must not be nil")
 	}
-	return &_BACnetTimerTransitionTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetTimerTransitionTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetTimerTransitionTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetTimerTransitionTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetTimerTransition) BACnetTimerTransitionTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetTimerTransitionTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetTimerTransitionTaggedBuilder
 	// Build builds the BACnetTimerTransitionTagged or returns an error if something is wrong
 	Build() (BACnetTimerTransitionTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetTimerTransitionTaggedBuilder() BACnetTimerTransitionTaggedBuilder 
 type _BACnetTimerTransitionTaggedBuilder struct {
 	*_BACnetTimerTransitionTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTimerTransitionTaggedBuilder) = (*_BACnetTimerTransitionTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetTimerTransitionTaggedBuilder) WithHeaderBuilder(builderSupplier 
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetTimerTransitionTaggedBuilder) WithValue(value BACnetTimerTransit
 	return b
 }
 
-func (b *_BACnetTimerTransitionTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetTimerTransitionTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetTimerTransitionTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetTimerTransitionTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetTimerTransitionTaggedBuilder) Build() (BACnetTimerTransitionTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTimerTransitionTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetTimerTransitionTaggedBuilder) MustBuild() BACnetTimerTransitionT
 
 func (b *_BACnetTimerTransitionTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTimerTransitionTaggedBuilder().(*_BACnetTimerTransitionTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetTimerTransitionTaggedParseWithBufferProducer(tagNumber uint8, tagClas
 }
 
 func BACnetTimerTransitionTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetTimerTransitionTagged, error) {
-	v, err := (&_BACnetTimerTransitionTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetTimerTransitionTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetTimerTransitionTagged) SerializeWithWriteBuffer(ctx context.Cont
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetTimerTransitionTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetTimerTransitionTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetTimerTransitionTagged) IsBACnetTimerTransitionTagged() {}
 
 func (m *_BACnetTimerTransitionTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetTimerTransitionTagged) deepCopy() *_BACnetTimerTransitionTagged 
 	_BACnetTimerTransitionTaggedCopy := &_BACnetTimerTransitionTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetTimerTransitionTaggedCopy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataLifeSafetyPointAll = (*_BACnetConstructedDataLifeSafe
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLifeSafetyPointAll)(nil)
 
 // NewBACnetConstructedDataLifeSafetyPointAll factory function for _BACnetConstructedDataLifeSafetyPointAll
-func NewBACnetConstructedDataLifeSafetyPointAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLifeSafetyPointAll {
+func NewBACnetConstructedDataLifeSafetyPointAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataLifeSafetyPointAll {
 	_result := &_BACnetConstructedDataLifeSafetyPointAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataLifeSafetyPointAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLifeSafetyPointAllBuilder) = (*_BACnetConstructedDataLifeSafetyPointAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataLifeSafetyPointAllBuilder) WithMandatoryFields() 
 }
 
 func (b *_BACnetConstructedDataLifeSafetyPointAllBuilder) Build() (BACnetConstructedDataLifeSafetyPointAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLifeSafetyPointAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataLifeSafetyPointAllBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataLifeSafetyPointAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLifeSafetyPointAllBuilder().(*_BACnetConstructedDataLifeSafetyPointAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

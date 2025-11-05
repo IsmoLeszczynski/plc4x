@@ -50,21 +50,13 @@ public class BACnetConstructedDataLargeAnalogValueMinPresValue extends BACnetCon
   // Properties.
   protected final BACnetApplicationTagDouble minPresValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataLargeAnalogValueMinPresValue(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagDouble minPresValue,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagDouble minPresValue) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.minPresValue = minPresValue;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagDouble getMinPresValue() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataLargeAnalogValueMinPresValue extends BACnetCon
     // Simple Field (minPresValue)
     writeSimpleField("minPresValue", minPresValue, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagDouble actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -133,40 +125,24 @@ public class BACnetConstructedDataLargeAnalogValueMinPresValue extends BACnetCon
 
     readBuffer.closeContext("BACnetConstructedDataLargeAnalogValueMinPresValue");
     // Create the instance
-    return new BACnetConstructedDataLargeAnalogValueMinPresValueBuilderImpl(
-        minPresValue, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataLargeAnalogValueMinPresValueBuilderImpl(minPresValue);
   }
 
   public static class BACnetConstructedDataLargeAnalogValueMinPresValueBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagDouble minPresValue;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataLargeAnalogValueMinPresValueBuilderImpl(
-        BACnetApplicationTagDouble minPresValue,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagDouble minPresValue) {
       this.minPresValue = minPresValue;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataLargeAnalogValueMinPresValue build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataLargeAnalogValueMinPresValue
           bACnetConstructedDataLargeAnalogValueMinPresValue =
               new BACnetConstructedDataLargeAnalogValueMinPresValue(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  minPresValue,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, minPresValue);
       return bACnetConstructedDataLargeAnalogValueMinPresValue;
     }
   }

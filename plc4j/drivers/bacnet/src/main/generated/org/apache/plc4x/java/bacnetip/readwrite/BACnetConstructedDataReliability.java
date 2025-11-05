@@ -49,21 +49,13 @@ public class BACnetConstructedDataReliability extends BACnetConstructedData impl
   // Properties.
   protected final BACnetReliabilityTagged reliability;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataReliability(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetReliabilityTagged reliability,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetReliabilityTagged reliability) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.reliability = reliability;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetReliabilityTagged getReliability() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataReliability extends BACnetConstructedData impl
     // Simple Field (reliability)
     writeSimpleField("reliability", reliability, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetReliabilityTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,22 @@ public class BACnetConstructedDataReliability extends BACnetConstructedData impl
 
     readBuffer.closeContext("BACnetConstructedDataReliability");
     // Create the instance
-    return new BACnetConstructedDataReliabilityBuilderImpl(
-        reliability, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataReliabilityBuilderImpl(reliability);
   }
 
   public static class BACnetConstructedDataReliabilityBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetReliabilityTagged reliability;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataReliabilityBuilderImpl(
-        BACnetReliabilityTagged reliability,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataReliabilityBuilderImpl(BACnetReliabilityTagged reliability) {
       this.reliability = reliability;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataReliability build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataReliability bACnetConstructedDataReliability =
           new BACnetConstructedDataReliability(
-              openingTag, peekedTagHeader, closingTag, reliability, tagNumber, arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, reliability);
       return bACnetConstructedDataReliability;
     }
   }

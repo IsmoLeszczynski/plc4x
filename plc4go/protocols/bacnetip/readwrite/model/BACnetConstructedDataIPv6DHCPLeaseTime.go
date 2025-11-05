@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataIPv6DHCPLeaseTime = (*_BACnetConstructedDataIPv6DHCPL
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataIPv6DHCPLeaseTime)(nil)
 
 // NewBACnetConstructedDataIPv6DHCPLeaseTime factory function for _BACnetConstructedDataIPv6DHCPLeaseTime
-func NewBACnetConstructedDataIPv6DHCPLeaseTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ipv6DhcpLeaseTime BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataIPv6DHCPLeaseTime {
+func NewBACnetConstructedDataIPv6DHCPLeaseTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ipv6DhcpLeaseTime BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataIPv6DHCPLeaseTime {
 	if ipv6DhcpLeaseTime == nil {
 		panic("ipv6DhcpLeaseTime of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataIPv6DHCPLeaseTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataIPv6DHCPLeaseTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Ipv6DhcpLeaseTime:             ipv6DhcpLeaseTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataIPv6DHCPLeaseTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataIPv6DHCPLeaseTimeBuilder) = (*_BACnetConstructedDataIPv6DHCPLeaseTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataIPv6DHCPLeaseTimeBuilder) WithIpv6DhcpLeaseTimeBu
 	var err error
 	b.Ipv6DhcpLeaseTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataIPv6DHCPLeaseTimeBuilder) Build() (BACnetConstructedDataIPv6DHCPLeaseTime, error) {
 	if b.Ipv6DhcpLeaseTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'ipv6DhcpLeaseTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'ipv6DhcpLeaseTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataIPv6DHCPLeaseTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataIPv6DHCPLeaseTimeBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataIPv6DHCPLeaseTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataIPv6DHCPLeaseTimeBuilder().(*_BACnetConstructedDataIPv6DHCPLeaseTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble = (*_BACnetFaultPa
 var _ BACnetFaultParameterFaultOutOfRangeMaxNormalValueRequirements = (*_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble)(nil)
 
 // NewBACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble factory function for _BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble
-func NewBACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, doubleValue BACnetApplicationTagDouble, tagNumber uint8) *_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble {
+func NewBACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, doubleValue BACnetApplicationTagDouble) *_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble {
 	if doubleValue == nil {
 		panic("doubleValue of type BACnetApplicationTagDouble for BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble must not be nil")
 	}
 	_result := &_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble{
-		BACnetFaultParameterFaultOutOfRangeMaxNormalValueContract: NewBACnetFaultParameterFaultOutOfRangeMaxNormalValue(openingTag, peekedTagHeader, closingTag, tagNumber),
+		BACnetFaultParameterFaultOutOfRangeMaxNormalValueContract: NewBACnetFaultParameterFaultOutOfRangeMaxNormalValue(openingTag, peekedTagHeader, closingTag),
 		DoubleValue: doubleValue,
 	}
 	_result.BACnetFaultParameterFaultOutOfRangeMaxNormalValueContract.(*_BACnetFaultParameterFaultOutOfRangeMaxNormalValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder struct {
 
 	parentBuilder *_BACnetFaultParameterFaultOutOfRangeMaxNormalValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder) = (*_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder) WithDo
 	var err error
 	b.DoubleValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagDoubleBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagDoubleBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder) Build() (BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble, error) {
 	if b.DoubleValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'doubleValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'doubleValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetFaultParameterFaultOutOfRangeMaxNormalValueDouble.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder) buildF
 
 func (b *_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder().(*_BACnetFaultParameterFaultOutOfRangeMaxNormalValueDoubleBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

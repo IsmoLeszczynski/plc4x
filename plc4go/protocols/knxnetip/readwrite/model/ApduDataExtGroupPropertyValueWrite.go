@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtGroupPropertyValueWrite = (*_ApduDataExtGroupPropertyValueWrite
 var _ ApduDataExtRequirements = (*_ApduDataExtGroupPropertyValueWrite)(nil)
 
 // NewApduDataExtGroupPropertyValueWrite factory function for _ApduDataExtGroupPropertyValueWrite
-func NewApduDataExtGroupPropertyValueWrite(length uint8) *_ApduDataExtGroupPropertyValueWrite {
+func NewApduDataExtGroupPropertyValueWrite() *_ApduDataExtGroupPropertyValueWrite {
 	_result := &_ApduDataExtGroupPropertyValueWrite{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtGroupPropertyValueWriteBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtGroupPropertyValueWriteBuilder) = (*_ApduDataExtGroupPropertyValueWriteBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtGroupPropertyValueWriteBuilder) WithMandatoryFields() ApduD
 }
 
 func (b *_ApduDataExtGroupPropertyValueWriteBuilder) Build() (ApduDataExtGroupPropertyValueWrite, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtGroupPropertyValueWrite.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtGroupPropertyValueWriteBuilder) buildForApduDataExt() (Apdu
 
 func (b *_ApduDataExtGroupPropertyValueWriteBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtGroupPropertyValueWriteBuilder().(*_ApduDataExtGroupPropertyValueWriteBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

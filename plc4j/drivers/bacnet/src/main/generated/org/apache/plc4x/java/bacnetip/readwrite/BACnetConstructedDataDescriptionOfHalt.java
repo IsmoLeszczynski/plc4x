@@ -50,21 +50,13 @@ public class BACnetConstructedDataDescriptionOfHalt extends BACnetConstructedDat
   // Properties.
   protected final BACnetApplicationTagCharacterString descriptionForHalt;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataDescriptionOfHalt(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagCharacterString descriptionForHalt,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagCharacterString descriptionForHalt) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.descriptionForHalt = descriptionForHalt;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagCharacterString getDescriptionForHalt() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataDescriptionOfHalt extends BACnetConstructedDat
     // Simple Field (descriptionForHalt)
     writeSimpleField("descriptionForHalt", descriptionForHalt, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagCharacterString actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataDescriptionOfHalt extends BACnetConstructedDat
 
     readBuffer.closeContext("BACnetConstructedDataDescriptionOfHalt");
     // Create the instance
-    return new BACnetConstructedDataDescriptionOfHaltBuilderImpl(
-        descriptionForHalt, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataDescriptionOfHaltBuilderImpl(descriptionForHalt);
   }
 
   public static class BACnetConstructedDataDescriptionOfHaltBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagCharacterString descriptionForHalt;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataDescriptionOfHaltBuilderImpl(
-        BACnetApplicationTagCharacterString descriptionForHalt,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagCharacterString descriptionForHalt) {
       this.descriptionForHalt = descriptionForHalt;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataDescriptionOfHalt build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataDescriptionOfHalt bACnetConstructedDataDescriptionOfHalt =
           new BACnetConstructedDataDescriptionOfHalt(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              descriptionForHalt,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, descriptionForHalt);
       return bACnetConstructedDataDescriptionOfHalt;
     }
   }

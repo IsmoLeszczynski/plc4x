@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataProgramAll = (*_BACnetConstructedDataProgramAll)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataProgramAll)(nil)
 
 // NewBACnetConstructedDataProgramAll factory function for _BACnetConstructedDataProgramAll
-func NewBACnetConstructedDataProgramAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataProgramAll {
+func NewBACnetConstructedDataProgramAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataProgramAll {
 	_result := &_BACnetConstructedDataProgramAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataProgramAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataProgramAllBuilder) = (*_BACnetConstructedDataProgramAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataProgramAllBuilder) WithMandatoryFields() BACnetCo
 }
 
 func (b *_BACnetConstructedDataProgramAllBuilder) Build() (BACnetConstructedDataProgramAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataProgramAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataProgramAllBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataProgramAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataProgramAllBuilder().(*_BACnetConstructedDataProgramAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataPositiveIntegerValueFaultLowLimit = (*_BACnetConstruc
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataPositiveIntegerValueFaultLowLimit)(nil)
 
 // NewBACnetConstructedDataPositiveIntegerValueFaultLowLimit factory function for _BACnetConstructedDataPositiveIntegerValueFaultLowLimit
-func NewBACnetConstructedDataPositiveIntegerValueFaultLowLimit(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, faultLowLimit BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataPositiveIntegerValueFaultLowLimit {
+func NewBACnetConstructedDataPositiveIntegerValueFaultLowLimit(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, faultLowLimit BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataPositiveIntegerValueFaultLowLimit {
 	if faultLowLimit == nil {
 		panic("faultLowLimit of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataPositiveIntegerValueFaultLowLimit must not be nil")
 	}
 	_result := &_BACnetConstructedDataPositiveIntegerValueFaultLowLimit{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FaultLowLimit:                 faultLowLimit,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder) = (*_BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder) WithFau
 	var err error
 	b.FaultLowLimit, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder) Build() (BACnetConstructedDataPositiveIntegerValueFaultLowLimit, error) {
 	if b.FaultLowLimit == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'faultLowLimit' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'faultLowLimit' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataPositiveIntegerValueFaultLowLimit.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder) buildFo
 
 func (b *_BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder().(*_BACnetConstructedDataPositiveIntegerValueFaultLowLimitBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

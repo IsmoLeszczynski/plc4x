@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,16 +42,23 @@ type AdsAddDeviceNotificationRequest interface {
 	utils.Copyable
 	AmsPacket
 	// GetIndexGroup returns IndexGroup (property field)
+	// 4 bytes	Index Group of the data, which should be sent per notification.
 	GetIndexGroup() uint32
 	// GetIndexOffset returns IndexOffset (property field)
+	// 4 bytes	Index Offset of the data, which should be sent per notification.
 	GetIndexOffset() uint32
 	// GetLength returns Length (property field)
+	// 4 bytes	Index Offset of the data, which should be sent per notification.
+	// 4 bytes	Length of data in bytes, which should be sent per notification.
 	GetLength() uint32
 	// GetTransmissionMode returns TransmissionMode (property field)
+	// 4 bytes	The type of subscription.
 	GetTransmissionMode() AdsTransMode
 	// GetMaxDelayInMs returns MaxDelayInMs (property field)
+	// 4 bytes	At the latest after this time, the ADS Device Notification is called. The unit is 1ms.
 	GetMaxDelayInMs() uint32
 	// GetCycleTimeInMs returns CycleTimeInMs (property field)
+	// 4 bytes	The ADS server checks if the value changes in this time slice. The unit is 1ms
 	GetCycleTimeInMs() uint32
 	// IsAdsAddDeviceNotificationRequest is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsAddDeviceNotificationRequest()
@@ -130,7 +138,7 @@ type _AdsAddDeviceNotificationRequestBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsAddDeviceNotificationRequestBuilder) = (*_AdsAddDeviceNotificationRequestBuilder)(nil)
@@ -175,8 +183,8 @@ func (b *_AdsAddDeviceNotificationRequestBuilder) WithCycleTimeInMs(cycleTimeInM
 }
 
 func (b *_AdsAddDeviceNotificationRequestBuilder) Build() (AdsAddDeviceNotificationRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsAddDeviceNotificationRequest.deepCopy(), nil
 }
@@ -202,8 +210,8 @@ func (b *_AdsAddDeviceNotificationRequestBuilder) buildForAmsPacket() (AmsPacket
 
 func (b *_AdsAddDeviceNotificationRequestBuilder) DeepCopy() any {
 	_copy := b.CreateAdsAddDeviceNotificationRequestBuilder().(*_AdsAddDeviceNotificationRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

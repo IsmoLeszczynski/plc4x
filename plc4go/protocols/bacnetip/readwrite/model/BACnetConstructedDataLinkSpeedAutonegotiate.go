@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLinkSpeedAutonegotiate = (*_BACnetConstructedDataLink
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLinkSpeedAutonegotiate)(nil)
 
 // NewBACnetConstructedDataLinkSpeedAutonegotiate factory function for _BACnetConstructedDataLinkSpeedAutonegotiate
-func NewBACnetConstructedDataLinkSpeedAutonegotiate(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, linkSpeedAutonegotiate BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLinkSpeedAutonegotiate {
+func NewBACnetConstructedDataLinkSpeedAutonegotiate(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, linkSpeedAutonegotiate BACnetApplicationTagBoolean) *_BACnetConstructedDataLinkSpeedAutonegotiate {
 	if linkSpeedAutonegotiate == nil {
 		panic("linkSpeedAutonegotiate of type BACnetApplicationTagBoolean for BACnetConstructedDataLinkSpeedAutonegotiate must not be nil")
 	}
 	_result := &_BACnetConstructedDataLinkSpeedAutonegotiate{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LinkSpeedAutonegotiate:        linkSpeedAutonegotiate,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLinkSpeedAutonegotiateBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLinkSpeedAutonegotiateBuilder) = (*_BACnetConstructedDataLinkSpeedAutonegotiateBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLinkSpeedAutonegotiateBuilder) WithLinkSpeedAuton
 	var err error
 	b.LinkSpeedAutonegotiate, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLinkSpeedAutonegotiateBuilder) Build() (BACnetConstructedDataLinkSpeedAutonegotiate, error) {
 	if b.LinkSpeedAutonegotiate == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'linkSpeedAutonegotiate' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'linkSpeedAutonegotiate' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLinkSpeedAutonegotiate.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLinkSpeedAutonegotiateBuilder) buildForBACnetCons
 
 func (b *_BACnetConstructedDataLinkSpeedAutonegotiateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLinkSpeedAutonegotiateBuilder().(*_BACnetConstructedDataLinkSpeedAutonegotiateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

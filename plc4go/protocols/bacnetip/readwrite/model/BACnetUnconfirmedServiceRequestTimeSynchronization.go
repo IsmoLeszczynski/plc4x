@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,7 +62,7 @@ var _ BACnetUnconfirmedServiceRequestTimeSynchronization = (*_BACnetUnconfirmedS
 var _ BACnetUnconfirmedServiceRequestRequirements = (*_BACnetUnconfirmedServiceRequestTimeSynchronization)(nil)
 
 // NewBACnetUnconfirmedServiceRequestTimeSynchronization factory function for _BACnetUnconfirmedServiceRequestTimeSynchronization
-func NewBACnetUnconfirmedServiceRequestTimeSynchronization(synchronizedDate BACnetApplicationTagDate, synchronizedTime BACnetApplicationTagTime, serviceRequestLength uint16) *_BACnetUnconfirmedServiceRequestTimeSynchronization {
+func NewBACnetUnconfirmedServiceRequestTimeSynchronization(synchronizedDate BACnetApplicationTagDate, synchronizedTime BACnetApplicationTagTime) *_BACnetUnconfirmedServiceRequestTimeSynchronization {
 	if synchronizedDate == nil {
 		panic("synchronizedDate of type BACnetApplicationTagDate for BACnetUnconfirmedServiceRequestTimeSynchronization must not be nil")
 	}
@@ -69,7 +70,7 @@ func NewBACnetUnconfirmedServiceRequestTimeSynchronization(synchronizedDate BACn
 		panic("synchronizedTime of type BACnetApplicationTagTime for BACnetUnconfirmedServiceRequestTimeSynchronization must not be nil")
 	}
 	_result := &_BACnetUnconfirmedServiceRequestTimeSynchronization{
-		BACnetUnconfirmedServiceRequestContract: NewBACnetUnconfirmedServiceRequest(serviceRequestLength),
+		BACnetUnconfirmedServiceRequestContract: NewBACnetUnconfirmedServiceRequest(),
 		SynchronizedDate:                        synchronizedDate,
 		SynchronizedTime:                        synchronizedTime,
 	}
@@ -113,7 +114,7 @@ type _BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder struct {
 
 	parentBuilder *_BACnetUnconfirmedServiceRequestBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder) = (*_BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder)(nil)
@@ -137,10 +138,7 @@ func (b *_BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder) WithSynchro
 	var err error
 	b.SynchronizedDate, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagDateBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagDateBuilder failed"))
 	}
 	return b
 }
@@ -155,29 +153,20 @@ func (b *_BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder) WithSynchro
 	var err error
 	b.SynchronizedTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagTimeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagTimeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder) Build() (BACnetUnconfirmedServiceRequestTimeSynchronization, error) {
 	if b.SynchronizedDate == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'synchronizedDate' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'synchronizedDate' not set"))
 	}
 	if b.SynchronizedTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'synchronizedTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'synchronizedTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetUnconfirmedServiceRequestTimeSynchronization.deepCopy(), nil
 }
@@ -203,8 +192,8 @@ func (b *_BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder) buildForBAC
 
 func (b *_BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetUnconfirmedServiceRequestTimeSynchronizationBuilder().(*_BACnetUnconfirmedServiceRequestTimeSynchronizationBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -55,8 +56,6 @@ type BACnetPriorityValueContract interface {
 	GetPeekedTagNumber() uint8
 	// GetPeekedIsContextTag returns PeekedIsContextTag (virtual field)
 	GetPeekedIsContextTag() bool
-	// GetObjectTypeArgument() returns a parser argument
-	GetObjectTypeArgument() BACnetObjectType
 	// IsBACnetPriorityValue is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetPriorityValue()
 	// CreateBuilder creates a BACnetPriorityValueBuilder
@@ -80,19 +79,16 @@ type _BACnetPriorityValue struct {
 		BACnetPriorityValueRequirements
 	}
 	PeekedTagHeader BACnetTagHeader
-
-	// Arguments.
-	ObjectTypeArgument BACnetObjectType
 }
 
 var _ BACnetPriorityValueContract = (*_BACnetPriorityValue)(nil)
 
 // NewBACnetPriorityValue factory function for _BACnetPriorityValue
-func NewBACnetPriorityValue(peekedTagHeader BACnetTagHeader, objectTypeArgument BACnetObjectType) *_BACnetPriorityValue {
+func NewBACnetPriorityValue(peekedTagHeader BACnetTagHeader) *_BACnetPriorityValue {
 	if peekedTagHeader == nil {
 		panic("peekedTagHeader of type BACnetTagHeader for BACnetPriorityValue must not be nil")
 	}
-	return &_BACnetPriorityValue{PeekedTagHeader: peekedTagHeader, ObjectTypeArgument: objectTypeArgument}
+	return &_BACnetPriorityValue{PeekedTagHeader: peekedTagHeader}
 }
 
 ///////////////////////////////////////////////////////////
@@ -109,8 +105,6 @@ type BACnetPriorityValueBuilder interface {
 	WithPeekedTagHeader(BACnetTagHeader) BACnetPriorityValueBuilder
 	// WithPeekedTagHeaderBuilder adds PeekedTagHeader (property field) which is build by the builder
 	WithPeekedTagHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetPriorityValueBuilder
-	// WithArgObjectTypeArgument sets a parser argument
-	WithArgObjectTypeArgument(BACnetObjectType) BACnetPriorityValueBuilder
 	// AsBACnetPriorityValueNull converts this build to a subType of BACnetPriorityValue. It is always possible to return to current builder using Done()
 	AsBACnetPriorityValueNull() BACnetPriorityValueNullBuilder
 	// AsBACnetPriorityValueReal converts this build to a subType of BACnetPriorityValue. It is always possible to return to current builder using Done()
@@ -167,7 +161,7 @@ type _BACnetPriorityValueBuilder struct {
 
 	childBuilder _BACnetPriorityValueChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetPriorityValueBuilder) = (*_BACnetPriorityValueBuilder)(nil)
@@ -186,28 +180,17 @@ func (b *_BACnetPriorityValueBuilder) WithPeekedTagHeaderBuilder(builderSupplier
 	var err error
 	b.PeekedTagHeader, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetPriorityValueBuilder) WithArgObjectTypeArgument(objectTypeArgument BACnetObjectType) BACnetPriorityValueBuilder {
-	b.ObjectTypeArgument = objectTypeArgument
 	return b
 }
 
 func (b *_BACnetPriorityValueBuilder) PartialBuild() (BACnetPriorityValueContract, error) {
 	if b.PeekedTagHeader == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'peekedTagHeader' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'peekedTagHeader' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetPriorityValue.deepCopy(), nil
 }
@@ -394,8 +377,8 @@ func (b *_BACnetPriorityValueBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetPriorityValueBuilder().(*_BACnetPriorityValueBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_BACnetPriorityValueChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -499,7 +482,7 @@ func BACnetPriorityValueParseWithBufferProducer[T BACnetPriorityValue](objectTyp
 }
 
 func BACnetPriorityValueParseWithBuffer[T BACnetPriorityValue](ctx context.Context, readBuffer utils.ReadBuffer, objectTypeArgument BACnetObjectType) (T, error) {
-	v, err := (&_BACnetPriorityValue{ObjectTypeArgument: objectTypeArgument}).parse(ctx, readBuffer, objectTypeArgument)
+	v, err := (new(_BACnetPriorityValue)).parse(ctx, readBuffer, objectTypeArgument)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -653,16 +636,6 @@ func (pm *_BACnetPriorityValue) serializeParent(ctx context.Context, writeBuffer
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetPriorityValue) GetObjectTypeArgument() BACnetObjectType {
-	return m.ObjectTypeArgument
-}
-
-//
-////
-
 func (m *_BACnetPriorityValue) IsBACnetPriorityValue() {}
 
 func (m *_BACnetPriorityValue) DeepCopy() any {
@@ -676,7 +649,6 @@ func (m *_BACnetPriorityValue) deepCopy() *_BACnetPriorityValue {
 	_BACnetPriorityValueCopy := &_BACnetPriorityValue{
 		nil, // will be set by child
 		utils.DeepCopy[BACnetTagHeader](m.PeekedTagHeader),
-		m.ObjectTypeArgument,
 	}
 	return _BACnetPriorityValueCopy
 }

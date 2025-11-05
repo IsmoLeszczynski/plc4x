@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAbsenteeLimit = (*_BACnetConstructedDataAbsenteeLimit
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAbsenteeLimit)(nil)
 
 // NewBACnetConstructedDataAbsenteeLimit factory function for _BACnetConstructedDataAbsenteeLimit
-func NewBACnetConstructedDataAbsenteeLimit(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, absenteeLimit BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAbsenteeLimit {
+func NewBACnetConstructedDataAbsenteeLimit(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, absenteeLimit BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataAbsenteeLimit {
 	if absenteeLimit == nil {
 		panic("absenteeLimit of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataAbsenteeLimit must not be nil")
 	}
 	_result := &_BACnetConstructedDataAbsenteeLimit{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AbsenteeLimit:                 absenteeLimit,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAbsenteeLimitBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAbsenteeLimitBuilder) = (*_BACnetConstructedDataAbsenteeLimitBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAbsenteeLimitBuilder) WithAbsenteeLimitBuilder(bu
 	var err error
 	b.AbsenteeLimit, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAbsenteeLimitBuilder) Build() (BACnetConstructedDataAbsenteeLimit, error) {
 	if b.AbsenteeLimit == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'absenteeLimit' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'absenteeLimit' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAbsenteeLimit.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAbsenteeLimitBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataAbsenteeLimitBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAbsenteeLimitBuilder().(*_BACnetConstructedDataAbsenteeLimitBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

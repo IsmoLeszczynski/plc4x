@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetPriorityValueTime = (*_BACnetPriorityValueTime)(nil)
 var _ BACnetPriorityValueRequirements = (*_BACnetPriorityValueTime)(nil)
 
 // NewBACnetPriorityValueTime factory function for _BACnetPriorityValueTime
-func NewBACnetPriorityValueTime(peekedTagHeader BACnetTagHeader, timeValue BACnetApplicationTagTime, objectTypeArgument BACnetObjectType) *_BACnetPriorityValueTime {
+func NewBACnetPriorityValueTime(peekedTagHeader BACnetTagHeader, timeValue BACnetApplicationTagTime) *_BACnetPriorityValueTime {
 	if timeValue == nil {
 		panic("timeValue of type BACnetApplicationTagTime for BACnetPriorityValueTime must not be nil")
 	}
 	_result := &_BACnetPriorityValueTime{
-		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader, objectTypeArgument),
+		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader),
 		TimeValue:                   timeValue,
 	}
 	_result.BACnetPriorityValueContract.(*_BACnetPriorityValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetPriorityValueTimeBuilder struct {
 
 	parentBuilder *_BACnetPriorityValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetPriorityValueTimeBuilder) = (*_BACnetPriorityValueTimeBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetPriorityValueTimeBuilder) WithTimeValueBuilder(builderSupplier f
 	var err error
 	b.TimeValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagTimeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagTimeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetPriorityValueTimeBuilder) Build() (BACnetPriorityValueTime, error) {
 	if b.TimeValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'timeValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'timeValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetPriorityValueTime.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetPriorityValueTimeBuilder) buildForBACnetPriorityValue() (BACnetP
 
 func (b *_BACnetPriorityValueTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetPriorityValueTimeBuilder().(*_BACnetPriorityValueTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

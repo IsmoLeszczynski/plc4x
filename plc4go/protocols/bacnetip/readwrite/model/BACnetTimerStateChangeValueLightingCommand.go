@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetTimerStateChangeValueLightingCommand = (*_BACnetTimerStateChangeValu
 var _ BACnetTimerStateChangeValueRequirements = (*_BACnetTimerStateChangeValueLightingCommand)(nil)
 
 // NewBACnetTimerStateChangeValueLightingCommand factory function for _BACnetTimerStateChangeValueLightingCommand
-func NewBACnetTimerStateChangeValueLightingCommand(peekedTagHeader BACnetTagHeader, ligthingCommandValue BACnetLightingCommandEnclosed, objectTypeArgument BACnetObjectType) *_BACnetTimerStateChangeValueLightingCommand {
+func NewBACnetTimerStateChangeValueLightingCommand(peekedTagHeader BACnetTagHeader, ligthingCommandValue BACnetLightingCommandEnclosed) *_BACnetTimerStateChangeValueLightingCommand {
 	if ligthingCommandValue == nil {
 		panic("ligthingCommandValue of type BACnetLightingCommandEnclosed for BACnetTimerStateChangeValueLightingCommand must not be nil")
 	}
 	_result := &_BACnetTimerStateChangeValueLightingCommand{
-		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader, objectTypeArgument),
+		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader),
 		LigthingCommandValue:                ligthingCommandValue,
 	}
 	_result.BACnetTimerStateChangeValueContract.(*_BACnetTimerStateChangeValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetTimerStateChangeValueLightingCommandBuilder struct {
 
 	parentBuilder *_BACnetTimerStateChangeValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTimerStateChangeValueLightingCommandBuilder) = (*_BACnetTimerStateChangeValueLightingCommandBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetTimerStateChangeValueLightingCommandBuilder) WithLigthingCommand
 	var err error
 	b.LigthingCommandValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetLightingCommandEnclosedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetLightingCommandEnclosedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetTimerStateChangeValueLightingCommandBuilder) Build() (BACnetTimerStateChangeValueLightingCommand, error) {
 	if b.LigthingCommandValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'ligthingCommandValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'ligthingCommandValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTimerStateChangeValueLightingCommand.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetTimerStateChangeValueLightingCommandBuilder) buildForBACnetTimer
 
 func (b *_BACnetTimerStateChangeValueLightingCommandBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTimerStateChangeValueLightingCommandBuilder().(*_BACnetTimerStateChangeValueLightingCommandBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

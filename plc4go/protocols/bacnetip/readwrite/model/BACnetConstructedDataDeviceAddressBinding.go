@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataDeviceAddressBinding = (*_BACnetConstructedDataDevice
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataDeviceAddressBinding)(nil)
 
 // NewBACnetConstructedDataDeviceAddressBinding factory function for _BACnetConstructedDataDeviceAddressBinding
-func NewBACnetConstructedDataDeviceAddressBinding(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, deviceAddressBinding []BACnetAddressBinding, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataDeviceAddressBinding {
+func NewBACnetConstructedDataDeviceAddressBinding(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, deviceAddressBinding []BACnetAddressBinding) *_BACnetConstructedDataDeviceAddressBinding {
 	_result := &_BACnetConstructedDataDeviceAddressBinding{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		DeviceAddressBinding:          deviceAddressBinding,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataDeviceAddressBindingBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataDeviceAddressBindingBuilder) = (*_BACnetConstructedDataDeviceAddressBindingBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataDeviceAddressBindingBuilder) WithDeviceAddressBin
 }
 
 func (b *_BACnetConstructedDataDeviceAddressBindingBuilder) Build() (BACnetConstructedDataDeviceAddressBinding, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataDeviceAddressBinding.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataDeviceAddressBindingBuilder) buildForBACnetConstr
 
 func (b *_BACnetConstructedDataDeviceAddressBindingBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataDeviceAddressBindingBuilder().(*_BACnetConstructedDataDeviceAddressBindingBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

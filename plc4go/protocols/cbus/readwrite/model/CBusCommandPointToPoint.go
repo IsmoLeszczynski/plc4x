@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ CBusCommandPointToPoint = (*_CBusCommandPointToPoint)(nil)
 var _ CBusCommandRequirements = (*_CBusCommandPointToPoint)(nil)
 
 // NewCBusCommandPointToPoint factory function for _CBusCommandPointToPoint
-func NewCBusCommandPointToPoint(header CBusHeader, command CBusPointToPointCommand, cBusOptions CBusOptions) *_CBusCommandPointToPoint {
+func NewCBusCommandPointToPoint(header CBusHeader, command CBusPointToPointCommand) *_CBusCommandPointToPoint {
 	if command == nil {
 		panic("command of type CBusPointToPointCommand for CBusCommandPointToPoint must not be nil")
 	}
 	_result := &_CBusCommandPointToPoint{
-		CBusCommandContract: NewCBusCommand(header, cBusOptions),
+		CBusCommandContract: NewCBusCommand(header),
 		Command:             command,
 	}
 	_result.CBusCommandContract.(*_CBusCommand)._SubType = _result
@@ -102,7 +103,7 @@ type _CBusCommandPointToPointBuilder struct {
 
 	parentBuilder *_CBusCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CBusCommandPointToPointBuilder) = (*_CBusCommandPointToPointBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_CBusCommandPointToPointBuilder) WithCommandBuilder(builderSupplier fun
 	var err error
 	b.Command, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "CBusPointToPointCommandBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "CBusPointToPointCommandBuilder failed"))
 	}
 	return b
 }
 
 func (b *_CBusCommandPointToPointBuilder) Build() (CBusCommandPointToPoint, error) {
 	if b.Command == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'command' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'command' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CBusCommandPointToPoint.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_CBusCommandPointToPointBuilder) buildForCBusCommand() (CBusCommand, er
 
 func (b *_CBusCommandPointToPointBuilder) DeepCopy() any {
 	_copy := b.CreateCBusCommandPointToPointBuilder().(*_CBusCommandPointToPointBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

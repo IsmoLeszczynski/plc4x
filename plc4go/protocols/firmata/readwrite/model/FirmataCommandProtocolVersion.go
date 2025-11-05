@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,9 +62,9 @@ var _ FirmataCommandProtocolVersion = (*_FirmataCommandProtocolVersion)(nil)
 var _ FirmataCommandRequirements = (*_FirmataCommandProtocolVersion)(nil)
 
 // NewFirmataCommandProtocolVersion factory function for _FirmataCommandProtocolVersion
-func NewFirmataCommandProtocolVersion(majorVersion uint8, minorVersion uint8, response bool) *_FirmataCommandProtocolVersion {
+func NewFirmataCommandProtocolVersion(majorVersion uint8, minorVersion uint8) *_FirmataCommandProtocolVersion {
 	_result := &_FirmataCommandProtocolVersion{
-		FirmataCommandContract: NewFirmataCommand(response),
+		FirmataCommandContract: NewFirmataCommand(),
 		MajorVersion:           majorVersion,
 		MinorVersion:           minorVersion,
 	}
@@ -103,7 +104,7 @@ type _FirmataCommandProtocolVersionBuilder struct {
 
 	parentBuilder *_FirmataCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (FirmataCommandProtocolVersionBuilder) = (*_FirmataCommandProtocolVersionBuilder)(nil)
@@ -128,8 +129,8 @@ func (b *_FirmataCommandProtocolVersionBuilder) WithMinorVersion(minorVersion ui
 }
 
 func (b *_FirmataCommandProtocolVersionBuilder) Build() (FirmataCommandProtocolVersion, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._FirmataCommandProtocolVersion.deepCopy(), nil
 }
@@ -155,8 +156,8 @@ func (b *_FirmataCommandProtocolVersionBuilder) buildForFirmataCommand() (Firmat
 
 func (b *_FirmataCommandProtocolVersionBuilder) DeepCopy() any {
 	_copy := b.CreateFirmataCommandProtocolVersionBuilder().(*_FirmataCommandProtocolVersionBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

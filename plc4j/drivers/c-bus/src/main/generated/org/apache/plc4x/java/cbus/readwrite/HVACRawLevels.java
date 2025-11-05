@@ -38,6 +38,7 @@ import org.apache.plc4x.java.spi.generation.*;
 public class HVACRawLevels implements Message {
 
   // Properties.
+  /** TODO: check values from Air Conditioning Application 25.5.3 */
   protected final short rawValue;
 
   public HVACRawLevels(short rawValue) {
@@ -45,6 +46,7 @@ public class HVACRawLevels implements Message {
     this.rawValue = rawValue;
   }
 
+  /** TODO: check values from Air Conditioning Application 25.5.3 */
   public short getRawValue() {
     return rawValue;
   }
@@ -61,7 +63,7 @@ public class HVACRawLevels implements Message {
     // Simple Field (rawValue)
     writeSimpleField("rawValue", rawValue, writeSignedShort(writeBuffer, 16));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     float valueInPercent = getValueInPercent();
     writeBuffer.writeVirtual("valueInPercent", valueInPercent);
 

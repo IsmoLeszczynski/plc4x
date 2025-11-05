@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -49,6 +50,7 @@ type MonitoredSALShortFormBasicMode interface {
 	// GetNoCounts returns NoCounts (property field)
 	GetNoCounts() *byte
 	// GetApplication returns Application (property field)
+	// TODO: add validation that this is 0x00 when no bridge and network number are set
 	GetApplication() ApplicationIdContainer
 	// GetSalData returns SalData (property field)
 	GetSalData() SALData
@@ -73,9 +75,9 @@ var _ MonitoredSALShortFormBasicMode = (*_MonitoredSALShortFormBasicMode)(nil)
 var _ MonitoredSALRequirements = (*_MonitoredSALShortFormBasicMode)(nil)
 
 // NewMonitoredSALShortFormBasicMode factory function for _MonitoredSALShortFormBasicMode
-func NewMonitoredSALShortFormBasicMode(salType byte, counts byte, bridgeCount *uint8, networkNumber *uint8, noCounts *byte, application ApplicationIdContainer, salData SALData, cBusOptions CBusOptions) *_MonitoredSALShortFormBasicMode {
+func NewMonitoredSALShortFormBasicMode(salType byte, counts byte, bridgeCount *uint8, networkNumber *uint8, noCounts *byte, application ApplicationIdContainer, salData SALData) *_MonitoredSALShortFormBasicMode {
 	_result := &_MonitoredSALShortFormBasicMode{
-		MonitoredSALContract: NewMonitoredSAL(salType, cBusOptions),
+		MonitoredSALContract: NewMonitoredSAL(salType),
 		Counts:               counts,
 		BridgeCount:          bridgeCount,
 		NetworkNumber:        networkNumber,
@@ -129,7 +131,7 @@ type _MonitoredSALShortFormBasicModeBuilder struct {
 
 	parentBuilder *_MonitoredSALBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (MonitoredSALShortFormBasicModeBuilder) = (*_MonitoredSALShortFormBasicModeBuilder)(nil)
@@ -178,17 +180,14 @@ func (b *_MonitoredSALShortFormBasicModeBuilder) WithOptionalSalDataBuilder(buil
 	var err error
 	b.SalData, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "SALDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "SALDataBuilder failed"))
 	}
 	return b
 }
 
 func (b *_MonitoredSALShortFormBasicModeBuilder) Build() (MonitoredSALShortFormBasicMode, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._MonitoredSALShortFormBasicMode.deepCopy(), nil
 }
@@ -214,8 +213,8 @@ func (b *_MonitoredSALShortFormBasicModeBuilder) buildForMonitoredSAL() (Monitor
 
 func (b *_MonitoredSALShortFormBasicModeBuilder) DeepCopy() any {
 	_copy := b.CreateMonitoredSALShortFormBasicModeBuilder().(*_MonitoredSALShortFormBasicModeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

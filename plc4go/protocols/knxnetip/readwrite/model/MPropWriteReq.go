@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ MPropWriteReq = (*_MPropWriteReq)(nil)
 var _ CEMIRequirements = (*_MPropWriteReq)(nil)
 
 // NewMPropWriteReq factory function for _MPropWriteReq
-func NewMPropWriteReq(size uint16) *_MPropWriteReq {
+func NewMPropWriteReq() *_MPropWriteReq {
 	_result := &_MPropWriteReq{
-		CEMIContract: NewCEMI(size),
+		CEMIContract: NewCEMI(),
 	}
 	_result.CEMIContract.(*_CEMI)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _MPropWriteReqBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (MPropWriteReqBuilder) = (*_MPropWriteReqBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_MPropWriteReqBuilder) WithMandatoryFields() MPropWriteReqBuilder {
 }
 
 func (b *_MPropWriteReqBuilder) Build() (MPropWriteReq, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._MPropWriteReq.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_MPropWriteReqBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_MPropWriteReqBuilder) DeepCopy() any {
 	_copy := b.CreateMPropWriteReqBuilder().(*_MPropWriteReqBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

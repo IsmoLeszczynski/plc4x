@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetPriorityValueOctetString = (*_BACnetPriorityValueOctetString)(nil)
 var _ BACnetPriorityValueRequirements = (*_BACnetPriorityValueOctetString)(nil)
 
 // NewBACnetPriorityValueOctetString factory function for _BACnetPriorityValueOctetString
-func NewBACnetPriorityValueOctetString(peekedTagHeader BACnetTagHeader, octetStringValue BACnetApplicationTagOctetString, objectTypeArgument BACnetObjectType) *_BACnetPriorityValueOctetString {
+func NewBACnetPriorityValueOctetString(peekedTagHeader BACnetTagHeader, octetStringValue BACnetApplicationTagOctetString) *_BACnetPriorityValueOctetString {
 	if octetStringValue == nil {
 		panic("octetStringValue of type BACnetApplicationTagOctetString for BACnetPriorityValueOctetString must not be nil")
 	}
 	_result := &_BACnetPriorityValueOctetString{
-		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader, objectTypeArgument),
+		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader),
 		OctetStringValue:            octetStringValue,
 	}
 	_result.BACnetPriorityValueContract.(*_BACnetPriorityValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetPriorityValueOctetStringBuilder struct {
 
 	parentBuilder *_BACnetPriorityValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetPriorityValueOctetStringBuilder) = (*_BACnetPriorityValueOctetStringBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetPriorityValueOctetStringBuilder) WithOctetStringValueBuilder(bui
 	var err error
 	b.OctetStringValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetPriorityValueOctetStringBuilder) Build() (BACnetPriorityValueOctetString, error) {
 	if b.OctetStringValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'octetStringValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'octetStringValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetPriorityValueOctetString.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetPriorityValueOctetStringBuilder) buildForBACnetPriorityValue() (
 
 func (b *_BACnetPriorityValueOctetStringBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetPriorityValueOctetStringBuilder().(*_BACnetPriorityValueOctetStringBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

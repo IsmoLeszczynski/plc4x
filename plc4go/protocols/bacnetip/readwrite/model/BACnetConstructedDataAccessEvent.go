@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAccessEvent = (*_BACnetConstructedDataAccessEvent)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessEvent)(nil)
 
 // NewBACnetConstructedDataAccessEvent factory function for _BACnetConstructedDataAccessEvent
-func NewBACnetConstructedDataAccessEvent(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, accessEvent BACnetAccessEventTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessEvent {
+func NewBACnetConstructedDataAccessEvent(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, accessEvent BACnetAccessEventTagged) *_BACnetConstructedDataAccessEvent {
 	if accessEvent == nil {
 		panic("accessEvent of type BACnetAccessEventTagged for BACnetConstructedDataAccessEvent must not be nil")
 	}
 	_result := &_BACnetConstructedDataAccessEvent{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AccessEvent:                   accessEvent,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAccessEventBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessEventBuilder) = (*_BACnetConstructedDataAccessEventBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAccessEventBuilder) WithAccessEventBuilder(builde
 	var err error
 	b.AccessEvent, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetAccessEventTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetAccessEventTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAccessEventBuilder) Build() (BACnetConstructedDataAccessEvent, error) {
 	if b.AccessEvent == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'accessEvent' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'accessEvent' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessEvent.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAccessEventBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataAccessEventBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessEventBuilder().(*_BACnetConstructedDataAccessEventBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

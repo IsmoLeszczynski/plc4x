@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetAccessRuleTimeRangeSpecifierTagged interface {
 type _BACnetAccessRuleTimeRangeSpecifierTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetAccessRuleTimeRangeSpecifier
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetAccessRuleTimeRangeSpecifierTagged = (*_BACnetAccessRuleTimeRangeSpecifierTagged)(nil)
 
 // NewBACnetAccessRuleTimeRangeSpecifierTagged factory function for _BACnetAccessRuleTimeRangeSpecifierTagged
-func NewBACnetAccessRuleTimeRangeSpecifierTagged(header BACnetTagHeader, value BACnetAccessRuleTimeRangeSpecifier, tagNumber uint8, tagClass TagClass) *_BACnetAccessRuleTimeRangeSpecifierTagged {
+func NewBACnetAccessRuleTimeRangeSpecifierTagged(header BACnetTagHeader, value BACnetAccessRuleTimeRangeSpecifier) *_BACnetAccessRuleTimeRangeSpecifierTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetAccessRuleTimeRangeSpecifierTagged must not be nil")
 	}
-	return &_BACnetAccessRuleTimeRangeSpecifierTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetAccessRuleTimeRangeSpecifierTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetAccessRuleTimeRangeSpecifierTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetAccessRuleTimeRangeSpecifierTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetAccessRuleTimeRangeSpecifier) BACnetAccessRuleTimeRangeSpecifierTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetAccessRuleTimeRangeSpecifierTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetAccessRuleTimeRangeSpecifierTaggedBuilder
 	// Build builds the BACnetAccessRuleTimeRangeSpecifierTagged or returns an error if something is wrong
 	Build() (BACnetAccessRuleTimeRangeSpecifierTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetAccessRuleTimeRangeSpecifierTaggedBuilder() BACnetAccessRuleTimeRa
 type _BACnetAccessRuleTimeRangeSpecifierTaggedBuilder struct {
 	*_BACnetAccessRuleTimeRangeSpecifierTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) = (*_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) WithHeaderBuilder(bui
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) WithValue(value BACne
 	return b
 }
 
-func (b *_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetAccessRuleTimeRangeSpecifierTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetAccessRuleTimeRangeSpecifierTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) Build() (BACnetAccessRuleTimeRangeSpecifierTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetAccessRuleTimeRangeSpecifierTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) MustBuild() BACnetAcc
 
 func (b *_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetAccessRuleTimeRangeSpecifierTaggedBuilder().(*_BACnetAccessRuleTimeRangeSpecifierTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetAccessRuleTimeRangeSpecifierTaggedParseWithBufferProducer(tagNumber u
 }
 
 func BACnetAccessRuleTimeRangeSpecifierTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetAccessRuleTimeRangeSpecifierTagged, error) {
-	v, err := (&_BACnetAccessRuleTimeRangeSpecifierTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetAccessRuleTimeRangeSpecifierTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetAccessRuleTimeRangeSpecifierTagged) SerializeWithWriteBuffer(ctx
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetAccessRuleTimeRangeSpecifierTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetAccessRuleTimeRangeSpecifierTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetAccessRuleTimeRangeSpecifierTagged) IsBACnetAccessRuleTimeRangeSpecifierTagged() {}
 
 func (m *_BACnetAccessRuleTimeRangeSpecifierTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetAccessRuleTimeRangeSpecifierTagged) deepCopy() *_BACnetAccessRul
 	_BACnetAccessRuleTimeRangeSpecifierTaggedCopy := &_BACnetAccessRuleTimeRangeSpecifierTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetAccessRuleTimeRangeSpecifierTaggedCopy
 }

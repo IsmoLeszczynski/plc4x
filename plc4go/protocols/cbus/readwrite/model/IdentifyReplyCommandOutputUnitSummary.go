@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -67,12 +68,12 @@ var _ IdentifyReplyCommandOutputUnitSummary = (*_IdentifyReplyCommandOutputUnitS
 var _ IdentifyReplyCommandRequirements = (*_IdentifyReplyCommandOutputUnitSummary)(nil)
 
 // NewIdentifyReplyCommandOutputUnitSummary factory function for _IdentifyReplyCommandOutputUnitSummary
-func NewIdentifyReplyCommandOutputUnitSummary(unitFlags IdentifyReplyCommandUnitSummary, gavStoreEnabledByte1 *byte, gavStoreEnabledByte2 *byte, timeFromLastRecoverOfMainsInSeconds uint8, numBytes uint8) *_IdentifyReplyCommandOutputUnitSummary {
+func NewIdentifyReplyCommandOutputUnitSummary(unitFlags IdentifyReplyCommandUnitSummary, gavStoreEnabledByte1 *byte, gavStoreEnabledByte2 *byte, timeFromLastRecoverOfMainsInSeconds uint8) *_IdentifyReplyCommandOutputUnitSummary {
 	if unitFlags == nil {
 		panic("unitFlags of type IdentifyReplyCommandUnitSummary for IdentifyReplyCommandOutputUnitSummary must not be nil")
 	}
 	_result := &_IdentifyReplyCommandOutputUnitSummary{
-		IdentifyReplyCommandContract:        NewIdentifyReplyCommand(numBytes),
+		IdentifyReplyCommandContract:        NewIdentifyReplyCommand(),
 		UnitFlags:                           unitFlags,
 		GavStoreEnabledByte1:                gavStoreEnabledByte1,
 		GavStoreEnabledByte2:                gavStoreEnabledByte2,
@@ -120,7 +121,7 @@ type _IdentifyReplyCommandOutputUnitSummaryBuilder struct {
 
 	parentBuilder *_IdentifyReplyCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (IdentifyReplyCommandOutputUnitSummaryBuilder) = (*_IdentifyReplyCommandOutputUnitSummaryBuilder)(nil)
@@ -144,10 +145,7 @@ func (b *_IdentifyReplyCommandOutputUnitSummaryBuilder) WithUnitFlagsBuilder(bui
 	var err error
 	b.UnitFlags, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "IdentifyReplyCommandUnitSummaryBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "IdentifyReplyCommandUnitSummaryBuilder failed"))
 	}
 	return b
 }
@@ -169,13 +167,10 @@ func (b *_IdentifyReplyCommandOutputUnitSummaryBuilder) WithTimeFromLastRecoverO
 
 func (b *_IdentifyReplyCommandOutputUnitSummaryBuilder) Build() (IdentifyReplyCommandOutputUnitSummary, error) {
 	if b.UnitFlags == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'unitFlags' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'unitFlags' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._IdentifyReplyCommandOutputUnitSummary.deepCopy(), nil
 }
@@ -201,8 +196,8 @@ func (b *_IdentifyReplyCommandOutputUnitSummaryBuilder) buildForIdentifyReplyCom
 
 func (b *_IdentifyReplyCommandOutputUnitSummaryBuilder) DeepCopy() any {
 	_copy := b.CreateIdentifyReplyCommandOutputUnitSummaryBuilder().(*_IdentifyReplyCommandOutputUnitSummaryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

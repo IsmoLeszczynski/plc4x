@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type AdsWriteControlResponse interface {
 	utils.Copyable
 	AmsPacket
 	// GetResult returns Result (property field)
+	// 4 bytes	ADS error number
 	GetResult() ReturnCode
 	// IsAdsWriteControlResponse is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsWriteControlResponse()
@@ -97,7 +99,7 @@ type _AdsWriteControlResponseBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsWriteControlResponseBuilder) = (*_AdsWriteControlResponseBuilder)(nil)
@@ -117,8 +119,8 @@ func (b *_AdsWriteControlResponseBuilder) WithResult(result ReturnCode) AdsWrite
 }
 
 func (b *_AdsWriteControlResponseBuilder) Build() (AdsWriteControlResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsWriteControlResponse.deepCopy(), nil
 }
@@ -144,8 +146,8 @@ func (b *_AdsWriteControlResponseBuilder) buildForAmsPacket() (AmsPacket, error)
 
 func (b *_AdsWriteControlResponseBuilder) DeepCopy() any {
 	_copy := b.CreateAdsWriteControlResponseBuilder().(*_AdsWriteControlResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

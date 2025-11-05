@@ -38,7 +38,9 @@ import org.apache.plc4x.java.spi.generation.*;
 public class CANOpenTime implements Message {
 
   // Properties.
+  /** CiA 301 - section 7.1.6.5 and 7.1.6.6 */
   protected final long millis;
+
   protected final int days;
 
   public CANOpenTime(long millis, int days) {
@@ -47,6 +49,7 @@ public class CANOpenTime implements Message {
     this.days = days;
   }
 
+  /** CiA 301 - section 7.1.6.5 and 7.1.6.6 */
   public long getMillis() {
     return millis;
   }
@@ -67,7 +70,7 @@ public class CANOpenTime implements Message {
     // Simple Field (millis)
     writeSimpleField("millis", millis, writeUnsignedLong(writeBuffer, 32));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     int cleanMillis = getCleanMillis();
     writeBuffer.writeVirtual("cleanMillis", cleanMillis);
 

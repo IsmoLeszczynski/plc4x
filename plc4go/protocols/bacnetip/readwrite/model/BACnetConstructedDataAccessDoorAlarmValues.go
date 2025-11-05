@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataAccessDoorAlarmValues = (*_BACnetConstructedDataAcces
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessDoorAlarmValues)(nil)
 
 // NewBACnetConstructedDataAccessDoorAlarmValues factory function for _BACnetConstructedDataAccessDoorAlarmValues
-func NewBACnetConstructedDataAccessDoorAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, alarmValues []BACnetDoorAlarmStateTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessDoorAlarmValues {
+func NewBACnetConstructedDataAccessDoorAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, alarmValues []BACnetDoorAlarmStateTagged) *_BACnetConstructedDataAccessDoorAlarmValues {
 	_result := &_BACnetConstructedDataAccessDoorAlarmValues{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AlarmValues:                   alarmValues,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataAccessDoorAlarmValuesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessDoorAlarmValuesBuilder) = (*_BACnetConstructedDataAccessDoorAlarmValuesBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataAccessDoorAlarmValuesBuilder) WithAlarmValues(ala
 }
 
 func (b *_BACnetConstructedDataAccessDoorAlarmValuesBuilder) Build() (BACnetConstructedDataAccessDoorAlarmValues, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessDoorAlarmValues.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataAccessDoorAlarmValuesBuilder) buildForBACnetConst
 
 func (b *_BACnetConstructedDataAccessDoorAlarmValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessDoorAlarmValuesBuilder().(*_BACnetConstructedDataAccessDoorAlarmValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

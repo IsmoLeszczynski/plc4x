@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataDefaultFadeTime = (*_BACnetConstructedDataDefaultFade
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataDefaultFadeTime)(nil)
 
 // NewBACnetConstructedDataDefaultFadeTime factory function for _BACnetConstructedDataDefaultFadeTime
-func NewBACnetConstructedDataDefaultFadeTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, defaultFadeTime BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataDefaultFadeTime {
+func NewBACnetConstructedDataDefaultFadeTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, defaultFadeTime BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataDefaultFadeTime {
 	if defaultFadeTime == nil {
 		panic("defaultFadeTime of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataDefaultFadeTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataDefaultFadeTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		DefaultFadeTime:               defaultFadeTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataDefaultFadeTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataDefaultFadeTimeBuilder) = (*_BACnetConstructedDataDefaultFadeTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataDefaultFadeTimeBuilder) WithDefaultFadeTimeBuilde
 	var err error
 	b.DefaultFadeTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataDefaultFadeTimeBuilder) Build() (BACnetConstructedDataDefaultFadeTime, error) {
 	if b.DefaultFadeTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'defaultFadeTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'defaultFadeTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataDefaultFadeTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataDefaultFadeTimeBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataDefaultFadeTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataDefaultFadeTimeBuilder().(*_BACnetConstructedDataDefaultFadeTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

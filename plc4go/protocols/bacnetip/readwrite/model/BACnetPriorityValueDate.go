@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetPriorityValueDate = (*_BACnetPriorityValueDate)(nil)
 var _ BACnetPriorityValueRequirements = (*_BACnetPriorityValueDate)(nil)
 
 // NewBACnetPriorityValueDate factory function for _BACnetPriorityValueDate
-func NewBACnetPriorityValueDate(peekedTagHeader BACnetTagHeader, dateValue BACnetApplicationTagDate, objectTypeArgument BACnetObjectType) *_BACnetPriorityValueDate {
+func NewBACnetPriorityValueDate(peekedTagHeader BACnetTagHeader, dateValue BACnetApplicationTagDate) *_BACnetPriorityValueDate {
 	if dateValue == nil {
 		panic("dateValue of type BACnetApplicationTagDate for BACnetPriorityValueDate must not be nil")
 	}
 	_result := &_BACnetPriorityValueDate{
-		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader, objectTypeArgument),
+		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader),
 		DateValue:                   dateValue,
 	}
 	_result.BACnetPriorityValueContract.(*_BACnetPriorityValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetPriorityValueDateBuilder struct {
 
 	parentBuilder *_BACnetPriorityValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetPriorityValueDateBuilder) = (*_BACnetPriorityValueDateBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetPriorityValueDateBuilder) WithDateValueBuilder(builderSupplier f
 	var err error
 	b.DateValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagDateBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagDateBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetPriorityValueDateBuilder) Build() (BACnetPriorityValueDate, error) {
 	if b.DateValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'dateValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'dateValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetPriorityValueDate.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetPriorityValueDateBuilder) buildForBACnetPriorityValue() (BACnetP
 
 func (b *_BACnetPriorityValueDateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetPriorityValueDateBuilder().(*_BACnetPriorityValueDateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

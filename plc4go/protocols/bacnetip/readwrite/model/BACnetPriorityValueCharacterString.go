@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetPriorityValueCharacterString = (*_BACnetPriorityValueCharacterString
 var _ BACnetPriorityValueRequirements = (*_BACnetPriorityValueCharacterString)(nil)
 
 // NewBACnetPriorityValueCharacterString factory function for _BACnetPriorityValueCharacterString
-func NewBACnetPriorityValueCharacterString(peekedTagHeader BACnetTagHeader, characterStringValue BACnetApplicationTagCharacterString, objectTypeArgument BACnetObjectType) *_BACnetPriorityValueCharacterString {
+func NewBACnetPriorityValueCharacterString(peekedTagHeader BACnetTagHeader, characterStringValue BACnetApplicationTagCharacterString) *_BACnetPriorityValueCharacterString {
 	if characterStringValue == nil {
 		panic("characterStringValue of type BACnetApplicationTagCharacterString for BACnetPriorityValueCharacterString must not be nil")
 	}
 	_result := &_BACnetPriorityValueCharacterString{
-		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader, objectTypeArgument),
+		BACnetPriorityValueContract: NewBACnetPriorityValue(peekedTagHeader),
 		CharacterStringValue:        characterStringValue,
 	}
 	_result.BACnetPriorityValueContract.(*_BACnetPriorityValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetPriorityValueCharacterStringBuilder struct {
 
 	parentBuilder *_BACnetPriorityValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetPriorityValueCharacterStringBuilder) = (*_BACnetPriorityValueCharacterStringBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetPriorityValueCharacterStringBuilder) WithCharacterStringValueBui
 	var err error
 	b.CharacterStringValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetPriorityValueCharacterStringBuilder) Build() (BACnetPriorityValueCharacterString, error) {
 	if b.CharacterStringValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'characterStringValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'characterStringValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetPriorityValueCharacterString.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetPriorityValueCharacterStringBuilder) buildForBACnetPriorityValue
 
 func (b *_BACnetPriorityValueCharacterStringBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetPriorityValueCharacterStringBuilder().(*_BACnetPriorityValueCharacterStringBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

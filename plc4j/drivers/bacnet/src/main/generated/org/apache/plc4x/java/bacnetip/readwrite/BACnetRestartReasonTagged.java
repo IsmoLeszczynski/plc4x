@@ -42,22 +42,12 @@ public class BACnetRestartReasonTagged implements Message {
   protected final BACnetRestartReason value;
   protected final long proprietaryValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
   public BACnetRestartReasonTagged(
-      BACnetTagHeader header,
-      BACnetRestartReason value,
-      long proprietaryValue,
-      Short tagNumber,
-      TagClass tagClass) {
+      BACnetTagHeader header, BACnetRestartReason value, long proprietaryValue) {
     super();
     this.header = header;
     this.value = value;
     this.proprietaryValue = proprietaryValue;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -92,7 +82,7 @@ public class BACnetRestartReasonTagged implements Message {
                 writeBuffer, value),
         writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isProprietary = getIsProprietary();
     writeBuffer.writeVirtual("isProprietary", isProprietary);
 
@@ -180,8 +170,7 @@ public class BACnetRestartReasonTagged implements Message {
     readBuffer.closeContext("BACnetRestartReasonTagged");
     // Create the instance
     BACnetRestartReasonTagged _bACnetRestartReasonTagged;
-    _bACnetRestartReasonTagged =
-        new BACnetRestartReasonTagged(header, value, proprietaryValue, tagNumber, tagClass);
+    _bACnetRestartReasonTagged = new BACnetRestartReasonTagged(header, value, proprietaryValue);
     return _bACnetRestartReasonTagged;
   }
 

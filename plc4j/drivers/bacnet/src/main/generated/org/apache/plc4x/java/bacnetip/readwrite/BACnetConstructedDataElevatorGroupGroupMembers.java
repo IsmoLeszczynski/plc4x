@@ -52,23 +52,15 @@ public class BACnetConstructedDataElevatorGroupGroupMembers extends BACnetConstr
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetApplicationTagObjectIdentifier> groupMembers;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataElevatorGroupGroupMembers(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetApplicationTagObjectIdentifier> groupMembers,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetApplicationTagObjectIdentifier> groupMembers) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.groupMembers = groupMembers;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataElevatorGroupGroupMembers extends BACnetConstr
     return groupMembers;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -92,16 +85,12 @@ public class BACnetConstructedDataElevatorGroupGroupMembers extends BACnetConstr
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataElevatorGroupGroupMembers");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (groupMembers)
     writeComplexTypeArrayField("groupMembers", groupMembers, writeBuffer);
@@ -175,43 +164,27 @@ public class BACnetConstructedDataElevatorGroupGroupMembers extends BACnetConstr
     readBuffer.closeContext("BACnetConstructedDataElevatorGroupGroupMembers");
     // Create the instance
     return new BACnetConstructedDataElevatorGroupGroupMembersBuilderImpl(
-        numberOfDataElements, groupMembers, tagNumber, arrayIndexArgument);
+        numberOfDataElements, groupMembers);
   }
 
   public static class BACnetConstructedDataElevatorGroupGroupMembersBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetApplicationTagObjectIdentifier> groupMembers;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataElevatorGroupGroupMembersBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetApplicationTagObjectIdentifier> groupMembers,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetApplicationTagObjectIdentifier> groupMembers) {
       this.numberOfDataElements = numberOfDataElements;
       this.groupMembers = groupMembers;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataElevatorGroupGroupMembers build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataElevatorGroupGroupMembers
           bACnetConstructedDataElevatorGroupGroupMembers =
               new BACnetConstructedDataElevatorGroupGroupMembers(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  numberOfDataElements,
-                  groupMembers,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, numberOfDataElements, groupMembers);
       return bACnetConstructedDataElevatorGroupGroupMembers;
     }
   }

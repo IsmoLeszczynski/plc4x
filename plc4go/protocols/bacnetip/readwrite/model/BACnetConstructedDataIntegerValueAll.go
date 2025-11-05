@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataIntegerValueAll = (*_BACnetConstructedDataIntegerValu
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataIntegerValueAll)(nil)
 
 // NewBACnetConstructedDataIntegerValueAll factory function for _BACnetConstructedDataIntegerValueAll
-func NewBACnetConstructedDataIntegerValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataIntegerValueAll {
+func NewBACnetConstructedDataIntegerValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataIntegerValueAll {
 	_result := &_BACnetConstructedDataIntegerValueAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataIntegerValueAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataIntegerValueAllBuilder) = (*_BACnetConstructedDataIntegerValueAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataIntegerValueAllBuilder) WithMandatoryFields() BAC
 }
 
 func (b *_BACnetConstructedDataIntegerValueAllBuilder) Build() (BACnetConstructedDataIntegerValueAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataIntegerValueAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataIntegerValueAllBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataIntegerValueAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataIntegerValueAllBuilder().(*_BACnetConstructedDataIntegerValueAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

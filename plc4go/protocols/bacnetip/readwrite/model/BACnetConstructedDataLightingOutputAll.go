@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataLightingOutputAll = (*_BACnetConstructedDataLightingO
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLightingOutputAll)(nil)
 
 // NewBACnetConstructedDataLightingOutputAll factory function for _BACnetConstructedDataLightingOutputAll
-func NewBACnetConstructedDataLightingOutputAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLightingOutputAll {
+func NewBACnetConstructedDataLightingOutputAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataLightingOutputAll {
 	_result := &_BACnetConstructedDataLightingOutputAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataLightingOutputAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLightingOutputAllBuilder) = (*_BACnetConstructedDataLightingOutputAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataLightingOutputAllBuilder) WithMandatoryFields() B
 }
 
 func (b *_BACnetConstructedDataLightingOutputAllBuilder) Build() (BACnetConstructedDataLightingOutputAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLightingOutputAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataLightingOutputAllBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataLightingOutputAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLightingOutputAllBuilder().(*_BACnetConstructedDataLightingOutputAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

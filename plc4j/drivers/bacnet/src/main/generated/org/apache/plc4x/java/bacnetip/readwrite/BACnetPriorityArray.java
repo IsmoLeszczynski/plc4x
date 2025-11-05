@@ -42,23 +42,11 @@ public class BACnetPriorityArray implements Message {
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetPriorityValue> data;
 
-  // Arguments.
-  protected final BACnetObjectType objectTypeArgument;
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetPriorityArray(
-      BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetPriorityValue> data,
-      BACnetObjectType objectTypeArgument,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+      BACnetApplicationTagUnsignedInteger numberOfDataElements, List<BACnetPriorityValue> data) {
     super();
     this.numberOfDataElements = numberOfDataElements;
     this.data = data;
-    this.objectTypeArgument = objectTypeArgument;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -69,6 +57,7 @@ public class BACnetPriorityArray implements Message {
     return data;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -152,89 +141,85 @@ public class BACnetPriorityArray implements Message {
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetPriorityArray");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (data)
     writeComplexTypeArrayField("data", data, writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue01 = getPriorityValue01();
     writeBuffer.writeVirtual("priorityValue01", priorityValue01);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue02 = getPriorityValue02();
     writeBuffer.writeVirtual("priorityValue02", priorityValue02);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue03 = getPriorityValue03();
     writeBuffer.writeVirtual("priorityValue03", priorityValue03);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue04 = getPriorityValue04();
     writeBuffer.writeVirtual("priorityValue04", priorityValue04);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue05 = getPriorityValue05();
     writeBuffer.writeVirtual("priorityValue05", priorityValue05);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue06 = getPriorityValue06();
     writeBuffer.writeVirtual("priorityValue06", priorityValue06);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue07 = getPriorityValue07();
     writeBuffer.writeVirtual("priorityValue07", priorityValue07);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue08 = getPriorityValue08();
     writeBuffer.writeVirtual("priorityValue08", priorityValue08);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue09 = getPriorityValue09();
     writeBuffer.writeVirtual("priorityValue09", priorityValue09);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue10 = getPriorityValue10();
     writeBuffer.writeVirtual("priorityValue10", priorityValue10);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue11 = getPriorityValue11();
     writeBuffer.writeVirtual("priorityValue11", priorityValue11);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue12 = getPriorityValue12();
     writeBuffer.writeVirtual("priorityValue12", priorityValue12);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue13 = getPriorityValue13();
     writeBuffer.writeVirtual("priorityValue13", priorityValue13);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue14 = getPriorityValue14();
     writeBuffer.writeVirtual("priorityValue14", priorityValue14);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue15 = getPriorityValue15();
     writeBuffer.writeVirtual("priorityValue15", priorityValue15);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue priorityValue16 = getPriorityValue16();
     writeBuffer.writeVirtual("priorityValue16", priorityValue16);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isIndexedAccess = getIsIndexedAccess();
     writeBuffer.writeVirtual("isIndexedAccess", isIndexedAccess);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetPriorityValue indexEntry = getIndexEntry();
     writeBuffer.writeVirtual("indexEntry", indexEntry);
 
@@ -430,9 +415,7 @@ public class BACnetPriorityArray implements Message {
     readBuffer.closeContext("BACnetPriorityArray");
     // Create the instance
     BACnetPriorityArray _bACnetPriorityArray;
-    _bACnetPriorityArray =
-        new BACnetPriorityArray(
-            numberOfDataElements, data, objectTypeArgument, tagNumber, arrayIndexArgument);
+    _bACnetPriorityArray = new BACnetPriorityArray(numberOfDataElements, data);
     return _bACnetPriorityArray;
   }
 

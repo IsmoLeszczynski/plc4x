@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -95,7 +96,7 @@ func NewNLMUpdateKeyUpdateKeyEntryBuilder() NLMUpdateKeyUpdateKeyEntryBuilder {
 type _NLMUpdateKeyUpdateKeyEntryBuilder struct {
 	*_NLMUpdateKeyUpdateKeyEntry
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NLMUpdateKeyUpdateKeyEntryBuilder) = (*_NLMUpdateKeyUpdateKeyEntryBuilder)(nil)
@@ -120,8 +121,8 @@ func (b *_NLMUpdateKeyUpdateKeyEntryBuilder) WithKey(key ...byte) NLMUpdateKeyUp
 }
 
 func (b *_NLMUpdateKeyUpdateKeyEntryBuilder) Build() (NLMUpdateKeyUpdateKeyEntry, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NLMUpdateKeyUpdateKeyEntry.deepCopy(), nil
 }
@@ -136,8 +137,8 @@ func (b *_NLMUpdateKeyUpdateKeyEntryBuilder) MustBuild() NLMUpdateKeyUpdateKeyEn
 
 func (b *_NLMUpdateKeyUpdateKeyEntryBuilder) DeepCopy() any {
 	_copy := b.CreateNLMUpdateKeyUpdateKeyEntryBuilder().(*_NLMUpdateKeyUpdateKeyEntryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -224,7 +225,7 @@ func NLMUpdateKeyUpdateKeyEntryParseWithBufferProducer() func(ctx context.Contex
 }
 
 func NLMUpdateKeyUpdateKeyEntryParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (NLMUpdateKeyUpdateKeyEntry, error) {
-	v, err := (&_NLMUpdateKeyUpdateKeyEntry{}).parse(ctx, readBuffer)
+	v, err := (new(_NLMUpdateKeyUpdateKeyEntry)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,9 +62,9 @@ var _ ApduDataMemoryRead = (*_ApduDataMemoryRead)(nil)
 var _ ApduDataRequirements = (*_ApduDataMemoryRead)(nil)
 
 // NewApduDataMemoryRead factory function for _ApduDataMemoryRead
-func NewApduDataMemoryRead(numBytes uint8, address uint16, dataLength uint8) *_ApduDataMemoryRead {
+func NewApduDataMemoryRead(numBytes uint8, address uint16) *_ApduDataMemoryRead {
 	_result := &_ApduDataMemoryRead{
-		ApduDataContract: NewApduData(dataLength),
+		ApduDataContract: NewApduData(),
 		NumBytes:         numBytes,
 		Address:          address,
 	}
@@ -103,7 +104,7 @@ type _ApduDataMemoryReadBuilder struct {
 
 	parentBuilder *_ApduDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataMemoryReadBuilder) = (*_ApduDataMemoryReadBuilder)(nil)
@@ -128,8 +129,8 @@ func (b *_ApduDataMemoryReadBuilder) WithAddress(address uint16) ApduDataMemoryR
 }
 
 func (b *_ApduDataMemoryReadBuilder) Build() (ApduDataMemoryRead, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataMemoryRead.deepCopy(), nil
 }
@@ -155,8 +156,8 @@ func (b *_ApduDataMemoryReadBuilder) buildForApduData() (ApduData, error) {
 
 func (b *_ApduDataMemoryReadBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataMemoryReadBuilder().(*_ApduDataMemoryReadBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

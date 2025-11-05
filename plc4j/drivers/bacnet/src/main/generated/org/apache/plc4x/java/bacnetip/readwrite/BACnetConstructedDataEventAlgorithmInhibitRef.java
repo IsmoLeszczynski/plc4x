@@ -50,21 +50,13 @@ public class BACnetConstructedDataEventAlgorithmInhibitRef extends BACnetConstru
   // Properties.
   protected final BACnetObjectPropertyReference eventAlgorithmInhibitRef;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataEventAlgorithmInhibitRef(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetObjectPropertyReference eventAlgorithmInhibitRef,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetObjectPropertyReference eventAlgorithmInhibitRef) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.eventAlgorithmInhibitRef = eventAlgorithmInhibitRef;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetObjectPropertyReference getEventAlgorithmInhibitRef() {
@@ -86,7 +78,7 @@ public class BACnetConstructedDataEventAlgorithmInhibitRef extends BACnetConstru
     writeSimpleField(
         "eventAlgorithmInhibitRef", eventAlgorithmInhibitRef, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetObjectPropertyReference actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -133,39 +125,23 @@ public class BACnetConstructedDataEventAlgorithmInhibitRef extends BACnetConstru
 
     readBuffer.closeContext("BACnetConstructedDataEventAlgorithmInhibitRef");
     // Create the instance
-    return new BACnetConstructedDataEventAlgorithmInhibitRefBuilderImpl(
-        eventAlgorithmInhibitRef, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataEventAlgorithmInhibitRefBuilderImpl(eventAlgorithmInhibitRef);
   }
 
   public static class BACnetConstructedDataEventAlgorithmInhibitRefBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetObjectPropertyReference eventAlgorithmInhibitRef;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataEventAlgorithmInhibitRefBuilderImpl(
-        BACnetObjectPropertyReference eventAlgorithmInhibitRef,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetObjectPropertyReference eventAlgorithmInhibitRef) {
       this.eventAlgorithmInhibitRef = eventAlgorithmInhibitRef;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataEventAlgorithmInhibitRef build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataEventAlgorithmInhibitRef bACnetConstructedDataEventAlgorithmInhibitRef =
           new BACnetConstructedDataEventAlgorithmInhibitRef(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              eventAlgorithmInhibitRef,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, eventAlgorithmInhibitRef);
       return bACnetConstructedDataEventAlgorithmInhibitRef;
     }
   }

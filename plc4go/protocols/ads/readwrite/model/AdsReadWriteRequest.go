@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,14 +42,19 @@ type AdsReadWriteRequest interface {
 	utils.Copyable
 	AmsPacket
 	// GetIndexGroup returns IndexGroup (property field)
+	// 4 bytes	Index Group of the data which should be written.
 	GetIndexGroup() uint32
 	// GetIndexOffset returns IndexOffset (property field)
+	// 4 bytes	Index Offset of the data which should be written.
 	GetIndexOffset() uint32
 	// GetReadLength returns ReadLength (property field)
+	// 4 bytes	Length of data in bytes, which should be read.
 	GetReadLength() uint32
 	// GetItems returns Items (property field)
+	// Only if the indexGroup implies a sum-read response, will the indexOffset indicate the number of elements. (ADSIGRP_MULTIPLE_READ, ADSIGRP_MULTIPLE_WRITE, ADSIGRP_MULTIPLE_READ_WRITE)
 	GetItems() []AdsMultiRequestItem
 	// GetData returns Data (property field)
+	// n bytes	Data which are written in the ADS device.
 	GetData() []byte
 	// IsAdsReadWriteRequest is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsReadWriteRequest()
@@ -121,7 +127,7 @@ type _AdsReadWriteRequestBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsReadWriteRequestBuilder) = (*_AdsReadWriteRequestBuilder)(nil)
@@ -161,8 +167,8 @@ func (b *_AdsReadWriteRequestBuilder) WithData(data ...byte) AdsReadWriteRequest
 }
 
 func (b *_AdsReadWriteRequestBuilder) Build() (AdsReadWriteRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsReadWriteRequest.deepCopy(), nil
 }
@@ -188,8 +194,8 @@ func (b *_AdsReadWriteRequestBuilder) buildForAmsPacket() (AmsPacket, error) {
 
 func (b *_AdsReadWriteRequestBuilder) DeepCopy() any {
 	_copy := b.CreateAdsReadWriteRequestBuilder().(*_AdsReadWriteRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

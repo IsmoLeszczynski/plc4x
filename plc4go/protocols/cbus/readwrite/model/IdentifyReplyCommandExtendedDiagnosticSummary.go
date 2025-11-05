@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -118,9 +119,9 @@ var _ IdentifyReplyCommandExtendedDiagnosticSummary = (*_IdentifyReplyCommandExt
 var _ IdentifyReplyCommandRequirements = (*_IdentifyReplyCommandExtendedDiagnosticSummary)(nil)
 
 // NewIdentifyReplyCommandExtendedDiagnosticSummary factory function for _IdentifyReplyCommandExtendedDiagnosticSummary
-func NewIdentifyReplyCommandExtendedDiagnosticSummary(lowApplication ApplicationIdContainer, highApplication ApplicationIdContainer, area byte, crc uint16, serialNumber uint32, networkVoltage byte, unitInLearnMode bool, networkVoltageLow bool, networkVoltageMarginal bool, enableChecksumAlarm bool, outputUnit bool, installationMMIError bool, EEWriteError bool, EEChecksumError bool, EEDataError bool, microReset bool, commsTxError bool, internalStackOverflow bool, microPowerReset bool, numBytes uint8) *_IdentifyReplyCommandExtendedDiagnosticSummary {
+func NewIdentifyReplyCommandExtendedDiagnosticSummary(lowApplication ApplicationIdContainer, highApplication ApplicationIdContainer, area byte, crc uint16, serialNumber uint32, networkVoltage byte, unitInLearnMode bool, networkVoltageLow bool, networkVoltageMarginal bool, enableChecksumAlarm bool, outputUnit bool, installationMMIError bool, EEWriteError bool, EEChecksumError bool, EEDataError bool, microReset bool, commsTxError bool, internalStackOverflow bool, microPowerReset bool) *_IdentifyReplyCommandExtendedDiagnosticSummary {
 	_result := &_IdentifyReplyCommandExtendedDiagnosticSummary{
-		IdentifyReplyCommandContract: NewIdentifyReplyCommand(numBytes),
+		IdentifyReplyCommandContract: NewIdentifyReplyCommand(),
 		LowApplication:               lowApplication,
 		HighApplication:              highApplication,
 		Area:                         area,
@@ -211,7 +212,7 @@ type _IdentifyReplyCommandExtendedDiagnosticSummaryBuilder struct {
 
 	parentBuilder *_IdentifyReplyCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (IdentifyReplyCommandExtendedDiagnosticSummaryBuilder) = (*_IdentifyReplyCommandExtendedDiagnosticSummaryBuilder)(nil)
@@ -321,8 +322,8 @@ func (b *_IdentifyReplyCommandExtendedDiagnosticSummaryBuilder) WithMicroPowerRe
 }
 
 func (b *_IdentifyReplyCommandExtendedDiagnosticSummaryBuilder) Build() (IdentifyReplyCommandExtendedDiagnosticSummary, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._IdentifyReplyCommandExtendedDiagnosticSummary.deepCopy(), nil
 }
@@ -348,8 +349,8 @@ func (b *_IdentifyReplyCommandExtendedDiagnosticSummaryBuilder) buildForIdentify
 
 func (b *_IdentifyReplyCommandExtendedDiagnosticSummaryBuilder) DeepCopy() any {
 	_copy := b.CreateIdentifyReplyCommandExtendedDiagnosticSummaryBuilder().(*_IdentifyReplyCommandExtendedDiagnosticSummaryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

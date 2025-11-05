@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -51,6 +52,7 @@ type MPropReadCon interface {
 	// GetStartIndex returns StartIndex (property field)
 	GetStartIndex() uint16
 	// GetData returns Data (property field)
+	// TODO: See chapter 4.1.7.3.1 ... this is actually a var length array of elements ('numberOfElements') with the type specified by 'interfaceObjectType'.
 	GetData() uint16
 	// IsMPropReadCon is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsMPropReadCon()
@@ -73,9 +75,9 @@ var _ MPropReadCon = (*_MPropReadCon)(nil)
 var _ CEMIRequirements = (*_MPropReadCon)(nil)
 
 // NewMPropReadCon factory function for _MPropReadCon
-func NewMPropReadCon(interfaceObjectType uint16, objectInstance uint8, propertyId uint8, numberOfElements uint8, startIndex uint16, data uint16, size uint16) *_MPropReadCon {
+func NewMPropReadCon(interfaceObjectType uint16, objectInstance uint8, propertyId uint8, numberOfElements uint8, startIndex uint16, data uint16) *_MPropReadCon {
 	_result := &_MPropReadCon{
-		CEMIContract:        NewCEMI(size),
+		CEMIContract:        NewCEMI(),
 		InterfaceObjectType: interfaceObjectType,
 		ObjectInstance:      objectInstance,
 		PropertyId:          propertyId,
@@ -127,7 +129,7 @@ type _MPropReadConBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (MPropReadConBuilder) = (*_MPropReadConBuilder)(nil)
@@ -172,8 +174,8 @@ func (b *_MPropReadConBuilder) WithData(data uint16) MPropReadConBuilder {
 }
 
 func (b *_MPropReadConBuilder) Build() (MPropReadCon, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._MPropReadCon.deepCopy(), nil
 }
@@ -199,8 +201,8 @@ func (b *_MPropReadConBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_MPropReadConBuilder) DeepCopy() any {
 	_copy := b.CreateMPropReadConBuilder().(*_MPropReadConBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

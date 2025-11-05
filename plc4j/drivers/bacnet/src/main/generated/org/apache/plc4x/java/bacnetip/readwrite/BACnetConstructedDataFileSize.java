@@ -49,21 +49,13 @@ public class BACnetConstructedDataFileSize extends BACnetConstructedData impleme
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger fileSize;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataFileSize(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger fileSize,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger fileSize) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.fileSize = fileSize;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getFileSize() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataFileSize extends BACnetConstructedData impleme
     // Simple Field (fileSize)
     writeSimpleField("fileSize", fileSize, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,33 +126,21 @@ public class BACnetConstructedDataFileSize extends BACnetConstructedData impleme
 
     readBuffer.closeContext("BACnetConstructedDataFileSize");
     // Create the instance
-    return new BACnetConstructedDataFileSizeBuilderImpl(fileSize, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataFileSizeBuilderImpl(fileSize);
   }
 
   public static class BACnetConstructedDataFileSizeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger fileSize;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataFileSizeBuilderImpl(
-        BACnetApplicationTagUnsignedInteger fileSize,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataFileSizeBuilderImpl(BACnetApplicationTagUnsignedInteger fileSize) {
       this.fileSize = fileSize;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataFileSize build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataFileSize bACnetConstructedDataFileSize =
-          new BACnetConstructedDataFileSize(
-              openingTag, peekedTagHeader, closingTag, fileSize, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataFileSize(openingTag, peekedTagHeader, closingTag, fileSize);
       return bACnetConstructedDataFileSize;
     }
   }

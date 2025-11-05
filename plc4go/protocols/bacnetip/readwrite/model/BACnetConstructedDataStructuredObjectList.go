@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataStructuredObjectList interface {
 	// GetStructuredObjectList returns StructuredObjectList (property field)
 	GetStructuredObjectList() []BACnetApplicationTagObjectIdentifier
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataStructuredObjectList is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataStructuredObjectList()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataStructuredObjectList = (*_BACnetConstructedDataStruct
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataStructuredObjectList)(nil)
 
 // NewBACnetConstructedDataStructuredObjectList factory function for _BACnetConstructedDataStructuredObjectList
-func NewBACnetConstructedDataStructuredObjectList(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, structuredObjectList []BACnetApplicationTagObjectIdentifier, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataStructuredObjectList {
+func NewBACnetConstructedDataStructuredObjectList(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, structuredObjectList []BACnetApplicationTagObjectIdentifier) *_BACnetConstructedDataStructuredObjectList {
 	_result := &_BACnetConstructedDataStructuredObjectList{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		StructuredObjectList:          structuredObjectList,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataStructuredObjectListBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataStructuredObjectListBuilder) = (*_BACnetConstructedDataStructuredObjectListBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataStructuredObjectListBuilder) WithOptionalNumberOf
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataStructuredObjectListBuilder) WithStructuredObject
 }
 
 func (b *_BACnetConstructedDataStructuredObjectListBuilder) Build() (BACnetConstructedDataStructuredObjectList, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataStructuredObjectList.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataStructuredObjectListBuilder) buildForBACnetConstr
 
 func (b *_BACnetConstructedDataStructuredObjectListBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataStructuredObjectListBuilder().(*_BACnetConstructedDataStructuredObjectListBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

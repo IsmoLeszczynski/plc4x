@@ -49,21 +49,13 @@ public class BACnetConstructedDataBufferSize extends BACnetConstructedData imple
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger bufferSize;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataBufferSize(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger bufferSize,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger bufferSize) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.bufferSize = bufferSize;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getBufferSize() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataBufferSize extends BACnetConstructedData imple
     // Simple Field (bufferSize)
     writeSimpleField("bufferSize", bufferSize, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,22 @@ public class BACnetConstructedDataBufferSize extends BACnetConstructedData imple
 
     readBuffer.closeContext("BACnetConstructedDataBufferSize");
     // Create the instance
-    return new BACnetConstructedDataBufferSizeBuilderImpl(
-        bufferSize, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataBufferSizeBuilderImpl(bufferSize);
   }
 
   public static class BACnetConstructedDataBufferSizeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger bufferSize;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataBufferSizeBuilderImpl(
-        BACnetApplicationTagUnsignedInteger bufferSize,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger bufferSize) {
       this.bufferSize = bufferSize;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataBufferSize build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataBufferSize bACnetConstructedDataBufferSize =
-          new BACnetConstructedDataBufferSize(
-              openingTag, peekedTagHeader, closingTag, bufferSize, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataBufferSize(openingTag, peekedTagHeader, closingTag, bufferSize);
       return bACnetConstructedDataBufferSize;
     }
   }

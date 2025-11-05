@@ -42,22 +42,11 @@ public class ErrorCodeTagged implements Message {
   protected final ErrorCode value;
   protected final long proprietaryValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
-  public ErrorCodeTagged(
-      BACnetTagHeader header,
-      ErrorCode value,
-      long proprietaryValue,
-      Short tagNumber,
-      TagClass tagClass) {
+  public ErrorCodeTagged(BACnetTagHeader header, ErrorCode value, long proprietaryValue) {
     super();
     this.header = header;
     this.value = value;
     this.proprietaryValue = proprietaryValue;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -92,7 +81,7 @@ public class ErrorCodeTagged implements Message {
                 writeBuffer, value),
         writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isProprietary = getIsProprietary();
     writeBuffer.writeVirtual("isProprietary", isProprietary);
 
@@ -176,7 +165,7 @@ public class ErrorCodeTagged implements Message {
     readBuffer.closeContext("ErrorCodeTagged");
     // Create the instance
     ErrorCodeTagged _errorCodeTagged;
-    _errorCodeTagged = new ErrorCodeTagged(header, value, proprietaryValue, tagNumber, tagClass);
+    _errorCodeTagged = new ErrorCodeTagged(header, value, proprietaryValue);
     return _errorCodeTagged;
   }
 

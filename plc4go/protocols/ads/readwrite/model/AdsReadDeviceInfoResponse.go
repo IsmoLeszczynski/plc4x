@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,14 +42,19 @@ type AdsReadDeviceInfoResponse interface {
 	utils.Copyable
 	AmsPacket
 	// GetResult returns Result (property field)
+	// 4 bytes	ADS error number.
 	GetResult() ReturnCode
 	// GetMajorVersion returns MajorVersion (property field)
+	// Version	1 byte	Major version number
 	GetMajorVersion() uint8
 	// GetMinorVersion returns MinorVersion (property field)
+	// Version	1 byte	Minor version number
 	GetMinorVersion() uint8
 	// GetVersion returns Version (property field)
+	// Build	2 bytes	Build number
 	GetVersion() uint16
 	// GetDevice returns Device (property field)
+	// Name	16 bytes	Name of ADS device
 	GetDevice() []byte
 	// IsAdsReadDeviceInfoResponse is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsReadDeviceInfoResponse()
@@ -121,7 +127,7 @@ type _AdsReadDeviceInfoResponseBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsReadDeviceInfoResponseBuilder) = (*_AdsReadDeviceInfoResponseBuilder)(nil)
@@ -161,8 +167,8 @@ func (b *_AdsReadDeviceInfoResponseBuilder) WithDevice(device ...byte) AdsReadDe
 }
 
 func (b *_AdsReadDeviceInfoResponseBuilder) Build() (AdsReadDeviceInfoResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsReadDeviceInfoResponse.deepCopy(), nil
 }
@@ -188,8 +194,8 @@ func (b *_AdsReadDeviceInfoResponseBuilder) buildForAmsPacket() (AmsPacket, erro
 
 func (b *_AdsReadDeviceInfoResponseBuilder) DeepCopy() any {
 	_copy := b.CreateAdsReadDeviceInfoResponseBuilder().(*_AdsReadDeviceInfoResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

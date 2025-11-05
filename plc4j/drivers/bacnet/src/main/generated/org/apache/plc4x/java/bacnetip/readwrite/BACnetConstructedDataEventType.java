@@ -49,21 +49,13 @@ public class BACnetConstructedDataEventType extends BACnetConstructedData implem
   // Properties.
   protected final BACnetEventTypeTagged eventType;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataEventType(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetEventTypeTagged eventType,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetEventTypeTagged eventType) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.eventType = eventType;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetEventTypeTagged getEventType() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataEventType extends BACnetConstructedData implem
     // Simple Field (eventType)
     writeSimpleField("eventType", eventType, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetEventTypeTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,33 +126,21 @@ public class BACnetConstructedDataEventType extends BACnetConstructedData implem
 
     readBuffer.closeContext("BACnetConstructedDataEventType");
     // Create the instance
-    return new BACnetConstructedDataEventTypeBuilderImpl(eventType, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataEventTypeBuilderImpl(eventType);
   }
 
   public static class BACnetConstructedDataEventTypeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetEventTypeTagged eventType;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataEventTypeBuilderImpl(
-        BACnetEventTypeTagged eventType,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataEventTypeBuilderImpl(BACnetEventTypeTagged eventType) {
       this.eventType = eventType;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataEventType build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataEventType bACnetConstructedDataEventType =
-          new BACnetConstructedDataEventType(
-              openingTag, peekedTagHeader, closingTag, eventType, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataEventType(openingTag, peekedTagHeader, closingTag, eventType);
       return bACnetConstructedDataEventType;
     }
   }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataProtocolServicesSupported = (*_BACnetConstructedDataP
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataProtocolServicesSupported)(nil)
 
 // NewBACnetConstructedDataProtocolServicesSupported factory function for _BACnetConstructedDataProtocolServicesSupported
-func NewBACnetConstructedDataProtocolServicesSupported(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, protocolServicesSupported BACnetServicesSupportedTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataProtocolServicesSupported {
+func NewBACnetConstructedDataProtocolServicesSupported(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, protocolServicesSupported BACnetServicesSupportedTagged) *_BACnetConstructedDataProtocolServicesSupported {
 	if protocolServicesSupported == nil {
 		panic("protocolServicesSupported of type BACnetServicesSupportedTagged for BACnetConstructedDataProtocolServicesSupported must not be nil")
 	}
 	_result := &_BACnetConstructedDataProtocolServicesSupported{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ProtocolServicesSupported:     protocolServicesSupported,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataProtocolServicesSupportedBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataProtocolServicesSupportedBuilder) = (*_BACnetConstructedDataProtocolServicesSupportedBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataProtocolServicesSupportedBuilder) WithProtocolSer
 	var err error
 	b.ProtocolServicesSupported, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetServicesSupportedTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetServicesSupportedTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataProtocolServicesSupportedBuilder) Build() (BACnetConstructedDataProtocolServicesSupported, error) {
 	if b.ProtocolServicesSupported == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'protocolServicesSupported' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'protocolServicesSupported' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataProtocolServicesSupported.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataProtocolServicesSupportedBuilder) buildForBACnetC
 
 func (b *_BACnetConstructedDataProtocolServicesSupportedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataProtocolServicesSupportedBuilder().(*_BACnetConstructedDataProtocolServicesSupportedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -24,7 +24,7 @@
   <parent>
     <artifactId>plc4j-utils</artifactId>
     <groupId>org.apache.plc4x</groupId>
-    <version>0.13.0-SNAPSHOT</version>
+    <version>0.14.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>plc4j-utils-test-generator</artifactId>
@@ -33,7 +33,8 @@
   <description>Generates tests.</description>
 
   <properties>
-    <project.build.outputTimestamp>2024-02-16T14:53:02Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2025-08-02T13:55:11Z</project.build.outputTimestamp>
+    <skipBytecodeCheck>true</skipBytecodeCheck>
   </properties>
 
   <build>
@@ -86,28 +87,16 @@
     </plugins>
   </build>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.spockframework</groupId>
-        <artifactId>spock-bom</artifactId>
-        <version>2.3-groovy-4.0</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>org.apache.plc4x</groupId>
       <artifactId>plc4j-spi</artifactId>
-      <version>0.13.0-SNAPSHOT</version>
+      <version>0.14.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.plc4x</groupId>
       <artifactId>plc4j-utils-pcap-shared</artifactId>
-      <version>0.13.0-SNAPSHOT</version>
+      <version>0.14.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -142,27 +131,22 @@
     <dependency>
       <groupId>org.apache.plc4x</groupId>
       <artifactId>plc4j-driver-s7</artifactId>
-      <version>0.13.0-SNAPSHOT</version>
+      <version>0.14.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.plc4x</groupId>
       <artifactId>plc4j-driver-eip</artifactId>
-      <version>0.13.0-SNAPSHOT</version>
+      <version>0.14.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.plc4x</groupId>
       <artifactId>plc4j-driver-iec-60870</artifactId>
-      <version>0.13.0-SNAPSHOT</version>
+      <version>0.14.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.spockframework</groupId>
-      <artifactId>spock-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

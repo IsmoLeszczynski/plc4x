@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataAlarmValues interface {
 	// GetAlarmValues returns AlarmValues (property field)
 	GetAlarmValues() []BACnetLifeSafetyStateTagged
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataAlarmValues is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataAlarmValues()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataAlarmValues = (*_BACnetConstructedDataAlarmValues)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAlarmValues)(nil)
 
 // NewBACnetConstructedDataAlarmValues factory function for _BACnetConstructedDataAlarmValues
-func NewBACnetConstructedDataAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, alarmValues []BACnetLifeSafetyStateTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAlarmValues {
+func NewBACnetConstructedDataAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, alarmValues []BACnetLifeSafetyStateTagged) *_BACnetConstructedDataAlarmValues {
 	_result := &_BACnetConstructedDataAlarmValues{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		AlarmValues:                   alarmValues,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataAlarmValuesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAlarmValuesBuilder) = (*_BACnetConstructedDataAlarmValuesBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataAlarmValuesBuilder) WithOptionalNumberOfDataEleme
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataAlarmValuesBuilder) WithAlarmValues(alarmValues .
 }
 
 func (b *_BACnetConstructedDataAlarmValuesBuilder) Build() (BACnetConstructedDataAlarmValues, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAlarmValues.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataAlarmValuesBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataAlarmValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAlarmValuesBuilder().(*_BACnetConstructedDataAlarmValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

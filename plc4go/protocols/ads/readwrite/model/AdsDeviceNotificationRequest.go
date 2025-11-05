@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,10 +42,13 @@ type AdsDeviceNotificationRequest interface {
 	utils.Copyable
 	AmsPacket
 	// GetLength returns Length (property field)
+	// 4 bytes	Size of data in byte.
 	GetLength() uint32
 	// GetStamps returns Stamps (property field)
+	// 4 bytes	Number of elements of type AdsStampHeader.
 	GetStamps() uint32
 	// GetAdsStampHeaders returns AdsStampHeaders (property field)
+	// n bytes	Array with elements of type AdsStampHeader.
 	GetAdsStampHeaders() []AdsStampHeader
 	// IsAdsDeviceNotificationRequest is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsDeviceNotificationRequest()
@@ -109,7 +113,7 @@ type _AdsDeviceNotificationRequestBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsDeviceNotificationRequestBuilder) = (*_AdsDeviceNotificationRequestBuilder)(nil)
@@ -139,8 +143,8 @@ func (b *_AdsDeviceNotificationRequestBuilder) WithAdsStampHeaders(adsStampHeade
 }
 
 func (b *_AdsDeviceNotificationRequestBuilder) Build() (AdsDeviceNotificationRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsDeviceNotificationRequest.deepCopy(), nil
 }
@@ -166,8 +170,8 @@ func (b *_AdsDeviceNotificationRequestBuilder) buildForAmsPacket() (AmsPacket, e
 
 func (b *_AdsDeviceNotificationRequestBuilder) DeepCopy() any {
 	_copy := b.CreateAdsDeviceNotificationRequestBuilder().(*_AdsDeviceNotificationRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

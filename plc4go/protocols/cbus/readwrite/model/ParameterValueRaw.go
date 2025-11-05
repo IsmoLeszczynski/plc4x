@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ ParameterValueRaw = (*_ParameterValueRaw)(nil)
 var _ ParameterValueRequirements = (*_ParameterValueRaw)(nil)
 
 // NewParameterValueRaw factory function for _ParameterValueRaw
-func NewParameterValueRaw(data []byte, numBytes uint8) *_ParameterValueRaw {
+func NewParameterValueRaw(data []byte) *_ParameterValueRaw {
 	_result := &_ParameterValueRaw{
-		ParameterValueContract: NewParameterValue(numBytes),
+		ParameterValueContract: NewParameterValue(),
 		Data:                   data,
 	}
 	_result.ParameterValueContract.(*_ParameterValue)._SubType = _result
@@ -97,7 +98,7 @@ type _ParameterValueRawBuilder struct {
 
 	parentBuilder *_ParameterValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ParameterValueRawBuilder) = (*_ParameterValueRawBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_ParameterValueRawBuilder) WithData(data ...byte) ParameterValueRawBuil
 }
 
 func (b *_ParameterValueRawBuilder) Build() (ParameterValueRaw, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ParameterValueRaw.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_ParameterValueRawBuilder) buildForParameterValue() (ParameterValue, er
 
 func (b *_ParameterValueRawBuilder) DeepCopy() any {
 	_copy := b.CreateParameterValueRawBuilder().(*_ParameterValueRawBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

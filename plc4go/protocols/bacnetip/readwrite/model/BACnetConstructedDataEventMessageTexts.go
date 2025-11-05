@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataEventMessageTexts interface {
 	// GetEventMessageTexts returns EventMessageTexts (property field)
 	GetEventMessageTexts() []BACnetOptionalCharacterString
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// GetToOffnormalText returns ToOffnormalText (virtual field)
 	GetToOffnormalText() BACnetOptionalCharacterString
@@ -69,9 +71,9 @@ var _ BACnetConstructedDataEventMessageTexts = (*_BACnetConstructedDataEventMess
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEventMessageTexts)(nil)
 
 // NewBACnetConstructedDataEventMessageTexts factory function for _BACnetConstructedDataEventMessageTexts
-func NewBACnetConstructedDataEventMessageTexts(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, eventMessageTexts []BACnetOptionalCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEventMessageTexts {
+func NewBACnetConstructedDataEventMessageTexts(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, eventMessageTexts []BACnetOptionalCharacterString) *_BACnetConstructedDataEventMessageTexts {
 	_result := &_BACnetConstructedDataEventMessageTexts{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		EventMessageTexts:             eventMessageTexts,
 	}
@@ -113,7 +115,7 @@ type _BACnetConstructedDataEventMessageTextsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEventMessageTextsBuilder) = (*_BACnetConstructedDataEventMessageTextsBuilder)(nil)
@@ -137,10 +139,7 @@ func (b *_BACnetConstructedDataEventMessageTextsBuilder) WithOptionalNumberOfDat
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -151,8 +150,8 @@ func (b *_BACnetConstructedDataEventMessageTextsBuilder) WithEventMessageTexts(e
 }
 
 func (b *_BACnetConstructedDataEventMessageTextsBuilder) Build() (BACnetConstructedDataEventMessageTexts, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEventMessageTexts.deepCopy(), nil
 }
@@ -178,8 +177,8 @@ func (b *_BACnetConstructedDataEventMessageTextsBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataEventMessageTextsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEventMessageTextsBuilder().(*_BACnetConstructedDataEventMessageTextsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

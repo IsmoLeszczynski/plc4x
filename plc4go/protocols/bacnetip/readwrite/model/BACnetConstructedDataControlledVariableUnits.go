@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataControlledVariableUnits = (*_BACnetConstructedDataCon
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataControlledVariableUnits)(nil)
 
 // NewBACnetConstructedDataControlledVariableUnits factory function for _BACnetConstructedDataControlledVariableUnits
-func NewBACnetConstructedDataControlledVariableUnits(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, units BACnetEngineeringUnitsTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataControlledVariableUnits {
+func NewBACnetConstructedDataControlledVariableUnits(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, units BACnetEngineeringUnitsTagged) *_BACnetConstructedDataControlledVariableUnits {
 	if units == nil {
 		panic("units of type BACnetEngineeringUnitsTagged for BACnetConstructedDataControlledVariableUnits must not be nil")
 	}
 	_result := &_BACnetConstructedDataControlledVariableUnits{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Units:                         units,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataControlledVariableUnitsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataControlledVariableUnitsBuilder) = (*_BACnetConstructedDataControlledVariableUnitsBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataControlledVariableUnitsBuilder) WithUnitsBuilder(
 	var err error
 	b.Units, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetEngineeringUnitsTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetEngineeringUnitsTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataControlledVariableUnitsBuilder) Build() (BACnetConstructedDataControlledVariableUnits, error) {
 	if b.Units == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'units' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'units' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataControlledVariableUnits.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataControlledVariableUnitsBuilder) buildForBACnetCon
 
 func (b *_BACnetConstructedDataControlledVariableUnitsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataControlledVariableUnitsBuilder().(*_BACnetConstructedDataControlledVariableUnitsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

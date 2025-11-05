@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -120,7 +121,7 @@ func NewIdentifyReplyCommandUnitSummaryBuilder() IdentifyReplyCommandUnitSummary
 type _IdentifyReplyCommandUnitSummaryBuilder struct {
 	*_IdentifyReplyCommandUnitSummary
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (IdentifyReplyCommandUnitSummaryBuilder) = (*_IdentifyReplyCommandUnitSummaryBuilder)(nil)
@@ -170,8 +171,8 @@ func (b *_IdentifyReplyCommandUnitSummaryBuilder) WithUnitGeneratingClock(unitGe
 }
 
 func (b *_IdentifyReplyCommandUnitSummaryBuilder) Build() (IdentifyReplyCommandUnitSummary, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._IdentifyReplyCommandUnitSummary.deepCopy(), nil
 }
@@ -186,8 +187,8 @@ func (b *_IdentifyReplyCommandUnitSummaryBuilder) MustBuild() IdentifyReplyComma
 
 func (b *_IdentifyReplyCommandUnitSummaryBuilder) DeepCopy() any {
 	_copy := b.CreateIdentifyReplyCommandUnitSummaryBuilder().(*_IdentifyReplyCommandUnitSummaryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -307,7 +308,7 @@ func IdentifyReplyCommandUnitSummaryParseWithBufferProducer() func(ctx context.C
 }
 
 func IdentifyReplyCommandUnitSummaryParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (IdentifyReplyCommandUnitSummary, error) {
-	v, err := (&_IdentifyReplyCommandUnitSummary{}).parse(ctx, readBuffer)
+	v, err := (new(_IdentifyReplyCommandUnitSummary)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLogDeviceObjectProperty = (*_BACnetConstructedDataLog
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLogDeviceObjectProperty)(nil)
 
 // NewBACnetConstructedDataLogDeviceObjectProperty factory function for _BACnetConstructedDataLogDeviceObjectProperty
-func NewBACnetConstructedDataLogDeviceObjectProperty(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, logDeviceObjectProperty BACnetDeviceObjectPropertyReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLogDeviceObjectProperty {
+func NewBACnetConstructedDataLogDeviceObjectProperty(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, logDeviceObjectProperty BACnetDeviceObjectPropertyReference) *_BACnetConstructedDataLogDeviceObjectProperty {
 	if logDeviceObjectProperty == nil {
 		panic("logDeviceObjectProperty of type BACnetDeviceObjectPropertyReference for BACnetConstructedDataLogDeviceObjectProperty must not be nil")
 	}
 	_result := &_BACnetConstructedDataLogDeviceObjectProperty{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LogDeviceObjectProperty:       logDeviceObjectProperty,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLogDeviceObjectPropertyBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLogDeviceObjectPropertyBuilder) = (*_BACnetConstructedDataLogDeviceObjectPropertyBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLogDeviceObjectPropertyBuilder) WithLogDeviceObje
 	var err error
 	b.LogDeviceObjectProperty, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDeviceObjectPropertyReferenceBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDeviceObjectPropertyReferenceBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLogDeviceObjectPropertyBuilder) Build() (BACnetConstructedDataLogDeviceObjectProperty, error) {
 	if b.LogDeviceObjectProperty == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'logDeviceObjectProperty' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'logDeviceObjectProperty' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLogDeviceObjectProperty.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLogDeviceObjectPropertyBuilder) buildForBACnetCon
 
 func (b *_BACnetConstructedDataLogDeviceObjectPropertyBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLogDeviceObjectPropertyBuilder().(*_BACnetConstructedDataLogDeviceObjectPropertyBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

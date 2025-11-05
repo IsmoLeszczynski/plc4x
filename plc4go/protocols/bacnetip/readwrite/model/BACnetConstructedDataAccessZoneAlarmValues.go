@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataAccessZoneAlarmValues = (*_BACnetConstructedDataAcces
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessZoneAlarmValues)(nil)
 
 // NewBACnetConstructedDataAccessZoneAlarmValues factory function for _BACnetConstructedDataAccessZoneAlarmValues
-func NewBACnetConstructedDataAccessZoneAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, alarmValues []BACnetAccessZoneOccupancyStateTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessZoneAlarmValues {
+func NewBACnetConstructedDataAccessZoneAlarmValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, alarmValues []BACnetAccessZoneOccupancyStateTagged) *_BACnetConstructedDataAccessZoneAlarmValues {
 	_result := &_BACnetConstructedDataAccessZoneAlarmValues{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AlarmValues:                   alarmValues,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataAccessZoneAlarmValuesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessZoneAlarmValuesBuilder) = (*_BACnetConstructedDataAccessZoneAlarmValuesBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataAccessZoneAlarmValuesBuilder) WithAlarmValues(ala
 }
 
 func (b *_BACnetConstructedDataAccessZoneAlarmValuesBuilder) Build() (BACnetConstructedDataAccessZoneAlarmValues, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessZoneAlarmValues.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataAccessZoneAlarmValuesBuilder) buildForBACnetConst
 
 func (b *_BACnetConstructedDataAccessZoneAlarmValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessZoneAlarmValuesBuilder().(*_BACnetConstructedDataAccessZoneAlarmValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

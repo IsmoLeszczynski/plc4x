@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataModificationDate = (*_BACnetConstructedDataModificati
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataModificationDate)(nil)
 
 // NewBACnetConstructedDataModificationDate factory function for _BACnetConstructedDataModificationDate
-func NewBACnetConstructedDataModificationDate(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, modificationDate BACnetDateTime, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataModificationDate {
+func NewBACnetConstructedDataModificationDate(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, modificationDate BACnetDateTime) *_BACnetConstructedDataModificationDate {
 	if modificationDate == nil {
 		panic("modificationDate of type BACnetDateTime for BACnetConstructedDataModificationDate must not be nil")
 	}
 	_result := &_BACnetConstructedDataModificationDate{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ModificationDate:              modificationDate,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataModificationDateBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataModificationDateBuilder) = (*_BACnetConstructedDataModificationDateBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataModificationDateBuilder) WithModificationDateBuil
 	var err error
 	b.ModificationDate, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateTimeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateTimeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataModificationDateBuilder) Build() (BACnetConstructedDataModificationDate, error) {
 	if b.ModificationDate == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'modificationDate' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'modificationDate' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataModificationDate.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataModificationDateBuilder) buildForBACnetConstructe
 
 func (b *_BACnetConstructedDataModificationDateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataModificationDateBuilder().(*_BACnetConstructedDataModificationDateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

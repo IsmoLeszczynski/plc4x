@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataIPAddress = (*_BACnetConstructedDataIPAddress)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataIPAddress)(nil)
 
 // NewBACnetConstructedDataIPAddress factory function for _BACnetConstructedDataIPAddress
-func NewBACnetConstructedDataIPAddress(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ipAddress BACnetApplicationTagOctetString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataIPAddress {
+func NewBACnetConstructedDataIPAddress(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ipAddress BACnetApplicationTagOctetString) *_BACnetConstructedDataIPAddress {
 	if ipAddress == nil {
 		panic("ipAddress of type BACnetApplicationTagOctetString for BACnetConstructedDataIPAddress must not be nil")
 	}
 	_result := &_BACnetConstructedDataIPAddress{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		IpAddress:                     ipAddress,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataIPAddressBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataIPAddressBuilder) = (*_BACnetConstructedDataIPAddressBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataIPAddressBuilder) WithIpAddressBuilder(builderSup
 	var err error
 	b.IpAddress, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataIPAddressBuilder) Build() (BACnetConstructedDataIPAddress, error) {
 	if b.IpAddress == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'ipAddress' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'ipAddress' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataIPAddress.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataIPAddressBuilder) buildForBACnetConstructedData()
 
 func (b *_BACnetConstructedDataIPAddressBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataIPAddressBuilder().(*_BACnetConstructedDataIPAddressBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

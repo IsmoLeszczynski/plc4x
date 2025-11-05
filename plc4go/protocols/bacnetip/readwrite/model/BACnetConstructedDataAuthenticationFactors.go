@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataAuthenticationFactors interface {
 	// GetAuthenticationFactors returns AuthenticationFactors (property field)
 	GetAuthenticationFactors() []BACnetCredentialAuthenticationFactor
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataAuthenticationFactors is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataAuthenticationFactors()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataAuthenticationFactors = (*_BACnetConstructedDataAuthe
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAuthenticationFactors)(nil)
 
 // NewBACnetConstructedDataAuthenticationFactors factory function for _BACnetConstructedDataAuthenticationFactors
-func NewBACnetConstructedDataAuthenticationFactors(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, authenticationFactors []BACnetCredentialAuthenticationFactor, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAuthenticationFactors {
+func NewBACnetConstructedDataAuthenticationFactors(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, authenticationFactors []BACnetCredentialAuthenticationFactor) *_BACnetConstructedDataAuthenticationFactors {
 	_result := &_BACnetConstructedDataAuthenticationFactors{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		AuthenticationFactors:         authenticationFactors,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataAuthenticationFactorsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAuthenticationFactorsBuilder) = (*_BACnetConstructedDataAuthenticationFactorsBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataAuthenticationFactorsBuilder) WithOptionalNumberO
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataAuthenticationFactorsBuilder) WithAuthenticationF
 }
 
 func (b *_BACnetConstructedDataAuthenticationFactorsBuilder) Build() (BACnetConstructedDataAuthenticationFactors, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAuthenticationFactors.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataAuthenticationFactorsBuilder) buildForBACnetConst
 
 func (b *_BACnetConstructedDataAuthenticationFactorsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAuthenticationFactorsBuilder().(*_BACnetConstructedDataAuthenticationFactorsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

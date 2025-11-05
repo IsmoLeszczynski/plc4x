@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataProfileName = (*_BACnetConstructedDataProfileName)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataProfileName)(nil)
 
 // NewBACnetConstructedDataProfileName factory function for _BACnetConstructedDataProfileName
-func NewBACnetConstructedDataProfileName(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, profileName BACnetApplicationTagCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataProfileName {
+func NewBACnetConstructedDataProfileName(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, profileName BACnetApplicationTagCharacterString) *_BACnetConstructedDataProfileName {
 	if profileName == nil {
 		panic("profileName of type BACnetApplicationTagCharacterString for BACnetConstructedDataProfileName must not be nil")
 	}
 	_result := &_BACnetConstructedDataProfileName{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ProfileName:                   profileName,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataProfileNameBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataProfileNameBuilder) = (*_BACnetConstructedDataProfileNameBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataProfileNameBuilder) WithProfileNameBuilder(builde
 	var err error
 	b.ProfileName, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataProfileNameBuilder) Build() (BACnetConstructedDataProfileName, error) {
 	if b.ProfileName == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'profileName' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'profileName' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataProfileName.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataProfileNameBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataProfileNameBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataProfileNameBuilder().(*_BACnetConstructedDataProfileNameBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataExpirationTime = (*_BACnetConstructedDataExpirationTi
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataExpirationTime)(nil)
 
 // NewBACnetConstructedDataExpirationTime factory function for _BACnetConstructedDataExpirationTime
-func NewBACnetConstructedDataExpirationTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, expirationTime BACnetDateTime, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataExpirationTime {
+func NewBACnetConstructedDataExpirationTime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, expirationTime BACnetDateTime) *_BACnetConstructedDataExpirationTime {
 	if expirationTime == nil {
 		panic("expirationTime of type BACnetDateTime for BACnetConstructedDataExpirationTime must not be nil")
 	}
 	_result := &_BACnetConstructedDataExpirationTime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ExpirationTime:                expirationTime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataExpirationTimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataExpirationTimeBuilder) = (*_BACnetConstructedDataExpirationTimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataExpirationTimeBuilder) WithExpirationTimeBuilder(
 	var err error
 	b.ExpirationTime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateTimeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateTimeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataExpirationTimeBuilder) Build() (BACnetConstructedDataExpirationTime, error) {
 	if b.ExpirationTime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'expirationTime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'expirationTime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataExpirationTime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataExpirationTimeBuilder) buildForBACnetConstructedD
 
 func (b *_BACnetConstructedDataExpirationTimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataExpirationTimeBuilder().(*_BACnetConstructedDataExpirationTimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

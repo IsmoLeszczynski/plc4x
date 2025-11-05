@@ -41,20 +41,10 @@ public class BACnetResultFlagsTagged implements Message {
   protected final BACnetTagHeader header;
   protected final BACnetTagPayloadBitString payload;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
-  public BACnetResultFlagsTagged(
-      BACnetTagHeader header,
-      BACnetTagPayloadBitString payload,
-      Short tagNumber,
-      TagClass tagClass) {
+  public BACnetResultFlagsTagged(BACnetTagHeader header, BACnetTagPayloadBitString payload) {
     super();
     this.header = header;
     this.payload = payload;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -91,15 +81,15 @@ public class BACnetResultFlagsTagged implements Message {
     // Simple Field (payload)
     writeSimpleField("payload", payload, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean firstItem = getFirstItem();
     writeBuffer.writeVirtual("firstItem", firstItem);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean lastItem = getLastItem();
     writeBuffer.writeVirtual("lastItem", lastItem);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean moreItems = getMoreItems();
     writeBuffer.writeVirtual("moreItems", moreItems);
 
@@ -178,7 +168,7 @@ public class BACnetResultFlagsTagged implements Message {
     readBuffer.closeContext("BACnetResultFlagsTagged");
     // Create the instance
     BACnetResultFlagsTagged _bACnetResultFlagsTagged;
-    _bACnetResultFlagsTagged = new BACnetResultFlagsTagged(header, payload, tagNumber, tagClass);
+    _bACnetResultFlagsTagged = new BACnetResultFlagsTagged(header, payload);
     return _bACnetResultFlagsTagged;
   }
 

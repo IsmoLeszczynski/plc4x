@@ -46,23 +46,18 @@ public abstract class Request implements Message {
   protected final RequestType secondPeek;
   protected final RequestTermination termination;
 
-  // Arguments.
-  protected final CBusOptions cBusOptions;
-
   public Request(
       RequestType peekedByte,
       RequestType startingCR,
       RequestType resetMode,
       RequestType secondPeek,
-      RequestTermination termination,
-      CBusOptions cBusOptions) {
+      RequestTermination termination) {
     super();
     this.peekedByte = peekedByte;
     this.startingCR = startingCR;
     this.resetMode = resetMode;
     this.secondPeek = secondPeek;
     this.termination = termination;
-    this.cBusOptions = cBusOptions;
   }
 
   public RequestType getPeekedByte() {
@@ -118,7 +113,7 @@ public abstract class Request implements Message {
         writeEnum(RequestType::getValue, RequestType::name, writeUnsignedShort(writeBuffer, 8)),
         (getPeekedByte()) == (RequestType.RESET));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     RequestType actualPeek = getActualPeek();
     writeBuffer.writeVirtual("actualPeek", actualPeek);
 
@@ -230,8 +225,7 @@ public abstract class Request implements Message {
 
     readBuffer.closeContext("Request");
     // Create the instance
-    Request _request =
-        builder.build(peekedByte, startingCR, resetMode, secondPeek, termination, cBusOptions);
+    Request _request = builder.build(peekedByte, startingCR, resetMode, secondPeek, termination);
     return _request;
   }
 
@@ -241,8 +235,7 @@ public abstract class Request implements Message {
         RequestType startingCR,
         RequestType resetMode,
         RequestType secondPeek,
-        RequestTermination termination,
-        CBusOptions cBusOptions);
+        RequestTermination termination);
   }
 
   @Override

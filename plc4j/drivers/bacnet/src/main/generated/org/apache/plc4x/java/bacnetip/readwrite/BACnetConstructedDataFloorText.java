@@ -51,23 +51,15 @@ public class BACnetConstructedDataFloorText extends BACnetConstructedData implem
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetApplicationTagCharacterString> floorText;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataFloorText(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetApplicationTagCharacterString> floorText,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetApplicationTagCharacterString> floorText) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.floorText = floorText;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -78,6 +70,7 @@ public class BACnetConstructedDataFloorText extends BACnetConstructedData implem
     return floorText;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -91,16 +84,12 @@ public class BACnetConstructedDataFloorText extends BACnetConstructedData implem
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataFloorText");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (floorText)
     writeComplexTypeArrayField("floorText", floorText, writeBuffer);
@@ -173,43 +162,26 @@ public class BACnetConstructedDataFloorText extends BACnetConstructedData implem
 
     readBuffer.closeContext("BACnetConstructedDataFloorText");
     // Create the instance
-    return new BACnetConstructedDataFloorTextBuilderImpl(
-        numberOfDataElements, floorText, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataFloorTextBuilderImpl(numberOfDataElements, floorText);
   }
 
   public static class BACnetConstructedDataFloorTextBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetApplicationTagCharacterString> floorText;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataFloorTextBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetApplicationTagCharacterString> floorText,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetApplicationTagCharacterString> floorText) {
       this.numberOfDataElements = numberOfDataElements;
       this.floorText = floorText;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataFloorText build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataFloorText bACnetConstructedDataFloorText =
           new BACnetConstructedDataFloorText(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              floorText,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, floorText);
       return bACnetConstructedDataFloorText;
     }
   }

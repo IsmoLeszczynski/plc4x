@@ -52,23 +52,15 @@ public class BACnetConstructedDataAssignedAccessRights extends BACnetConstructed
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetAssignedAccessRights> assignedAccessRights;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataAssignedAccessRights(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetAssignedAccessRights> assignedAccessRights,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetAssignedAccessRights> assignedAccessRights) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.assignedAccessRights = assignedAccessRights;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataAssignedAccessRights extends BACnetConstructed
     return assignedAccessRights;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -92,16 +85,12 @@ public class BACnetConstructedDataAssignedAccessRights extends BACnetConstructed
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataAssignedAccessRights");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (assignedAccessRights)
     writeComplexTypeArrayField("assignedAccessRights", assignedAccessRights, writeBuffer);
@@ -171,42 +160,26 @@ public class BACnetConstructedDataAssignedAccessRights extends BACnetConstructed
     readBuffer.closeContext("BACnetConstructedDataAssignedAccessRights");
     // Create the instance
     return new BACnetConstructedDataAssignedAccessRightsBuilderImpl(
-        numberOfDataElements, assignedAccessRights, tagNumber, arrayIndexArgument);
+        numberOfDataElements, assignedAccessRights);
   }
 
   public static class BACnetConstructedDataAssignedAccessRightsBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetAssignedAccessRights> assignedAccessRights;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataAssignedAccessRightsBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetAssignedAccessRights> assignedAccessRights,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetAssignedAccessRights> assignedAccessRights) {
       this.numberOfDataElements = numberOfDataElements;
       this.assignedAccessRights = assignedAccessRights;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataAssignedAccessRights build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataAssignedAccessRights bACnetConstructedDataAssignedAccessRights =
           new BACnetConstructedDataAssignedAccessRights(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              assignedAccessRights,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, assignedAccessRights);
       return bACnetConstructedDataAssignedAccessRights;
     }
   }

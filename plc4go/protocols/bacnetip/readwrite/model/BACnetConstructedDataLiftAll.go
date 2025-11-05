@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataLiftAll = (*_BACnetConstructedDataLiftAll)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLiftAll)(nil)
 
 // NewBACnetConstructedDataLiftAll factory function for _BACnetConstructedDataLiftAll
-func NewBACnetConstructedDataLiftAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLiftAll {
+func NewBACnetConstructedDataLiftAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataLiftAll {
 	_result := &_BACnetConstructedDataLiftAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataLiftAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLiftAllBuilder) = (*_BACnetConstructedDataLiftAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataLiftAllBuilder) WithMandatoryFields() BACnetConst
 }
 
 func (b *_BACnetConstructedDataLiftAllBuilder) Build() (BACnetConstructedDataLiftAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLiftAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataLiftAllBuilder) buildForBACnetConstructedData() (
 
 func (b *_BACnetConstructedDataLiftAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLiftAllBuilder().(*_BACnetConstructedDataLiftAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

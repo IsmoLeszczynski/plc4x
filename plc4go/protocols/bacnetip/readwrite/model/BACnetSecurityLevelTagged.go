@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetSecurityLevelTagged interface {
 type _BACnetSecurityLevelTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetSecurityLevel
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetSecurityLevelTagged = (*_BACnetSecurityLevelTagged)(nil)
 
 // NewBACnetSecurityLevelTagged factory function for _BACnetSecurityLevelTagged
-func NewBACnetSecurityLevelTagged(header BACnetTagHeader, value BACnetSecurityLevel, tagNumber uint8, tagClass TagClass) *_BACnetSecurityLevelTagged {
+func NewBACnetSecurityLevelTagged(header BACnetTagHeader, value BACnetSecurityLevel) *_BACnetSecurityLevelTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetSecurityLevelTagged must not be nil")
 	}
-	return &_BACnetSecurityLevelTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetSecurityLevelTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetSecurityLevelTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetSecurityLevelTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetSecurityLevel) BACnetSecurityLevelTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetSecurityLevelTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetSecurityLevelTaggedBuilder
 	// Build builds the BACnetSecurityLevelTagged or returns an error if something is wrong
 	Build() (BACnetSecurityLevelTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetSecurityLevelTaggedBuilder() BACnetSecurityLevelTaggedBuilder {
 type _BACnetSecurityLevelTaggedBuilder struct {
 	*_BACnetSecurityLevelTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetSecurityLevelTaggedBuilder) = (*_BACnetSecurityLevelTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetSecurityLevelTaggedBuilder) WithHeaderBuilder(builderSupplier fu
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetSecurityLevelTaggedBuilder) WithValue(value BACnetSecurityLevel)
 	return b
 }
 
-func (b *_BACnetSecurityLevelTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetSecurityLevelTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetSecurityLevelTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetSecurityLevelTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetSecurityLevelTaggedBuilder) Build() (BACnetSecurityLevelTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetSecurityLevelTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetSecurityLevelTaggedBuilder) MustBuild() BACnetSecurityLevelTagge
 
 func (b *_BACnetSecurityLevelTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetSecurityLevelTaggedBuilder().(*_BACnetSecurityLevelTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetSecurityLevelTaggedParseWithBufferProducer(tagNumber uint8, tagClass 
 }
 
 func BACnetSecurityLevelTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetSecurityLevelTagged, error) {
-	v, err := (&_BACnetSecurityLevelTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetSecurityLevelTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetSecurityLevelTagged) SerializeWithWriteBuffer(ctx context.Contex
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetSecurityLevelTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetSecurityLevelTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetSecurityLevelTagged) IsBACnetSecurityLevelTagged() {}
 
 func (m *_BACnetSecurityLevelTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetSecurityLevelTagged) deepCopy() *_BACnetSecurityLevelTagged {
 	_BACnetSecurityLevelTaggedCopy := &_BACnetSecurityLevelTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetSecurityLevelTaggedCopy
 }

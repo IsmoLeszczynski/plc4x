@@ -22,6 +22,7 @@ package model
 import (
 	"context"
 	"encoding/binary"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -54,16 +55,13 @@ type BVLCSecureBVLL interface {
 type _BVLCSecureBVLL struct {
 	BVLCContract
 	SecurityWrapper []byte
-
-	// Arguments.
-	BvlcPayloadLength uint16
 }
 
 var _ BVLCSecureBVLL = (*_BVLCSecureBVLL)(nil)
 var _ BVLCRequirements = (*_BVLCSecureBVLL)(nil)
 
 // NewBVLCSecureBVLL factory function for _BVLCSecureBVLL
-func NewBVLCSecureBVLL(securityWrapper []byte, bvlcPayloadLength uint16) *_BVLCSecureBVLL {
+func NewBVLCSecureBVLL(securityWrapper []byte) *_BVLCSecureBVLL {
 	_result := &_BVLCSecureBVLL{
 		BVLCContract:    NewBVLC(),
 		SecurityWrapper: securityWrapper,
@@ -84,8 +82,6 @@ type BVLCSecureBVLLBuilder interface {
 	WithMandatoryFields(securityWrapper []byte) BVLCSecureBVLLBuilder
 	// WithSecurityWrapper adds SecurityWrapper (property field)
 	WithSecurityWrapper(...byte) BVLCSecureBVLLBuilder
-	// WithArgBvlcPayloadLength sets a parser argument
-	WithArgBvlcPayloadLength(uint16) BVLCSecureBVLLBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BVLCBuilder
 	// Build builds the BVLCSecureBVLL or returns an error if something is wrong
@@ -104,7 +100,7 @@ type _BVLCSecureBVLLBuilder struct {
 
 	parentBuilder *_BVLCBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BVLCSecureBVLLBuilder) = (*_BVLCSecureBVLLBuilder)(nil)
@@ -123,14 +119,9 @@ func (b *_BVLCSecureBVLLBuilder) WithSecurityWrapper(securityWrapper ...byte) BV
 	return b
 }
 
-func (b *_BVLCSecureBVLLBuilder) WithArgBvlcPayloadLength(bvlcPayloadLength uint16) BVLCSecureBVLLBuilder {
-	b.BvlcPayloadLength = bvlcPayloadLength
-	return b
-}
-
 func (b *_BVLCSecureBVLLBuilder) Build() (BVLCSecureBVLL, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BVLCSecureBVLL.deepCopy(), nil
 }
@@ -156,8 +147,8 @@ func (b *_BVLCSecureBVLLBuilder) buildForBVLC() (BVLC, error) {
 
 func (b *_BVLCSecureBVLLBuilder) DeepCopy() any {
 	_copy := b.CreateBVLCSecureBVLLBuilder().(*_BVLCSecureBVLLBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -291,16 +282,6 @@ func (m *_BVLCSecureBVLL) SerializeWithWriteBuffer(ctx context.Context, writeBuf
 	return m.BVLCContract.(*_BVLC).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BVLCSecureBVLL) GetBvlcPayloadLength() uint16 {
-	return m.BvlcPayloadLength
-}
-
-//
-////
-
 func (m *_BVLCSecureBVLL) IsBVLCSecureBVLL() {}
 
 func (m *_BVLCSecureBVLL) DeepCopy() any {
@@ -314,7 +295,6 @@ func (m *_BVLCSecureBVLL) deepCopy() *_BVLCSecureBVLL {
 	_BVLCSecureBVLLCopy := &_BVLCSecureBVLL{
 		m.BVLCContract.(*_BVLC).deepCopy(),
 		utils.DeepCopySlice[byte, byte](m.SecurityWrapper),
-		m.BvlcPayloadLength,
 	}
 	_BVLCSecureBVLLCopy.BVLCContract.(*_BVLC)._SubType = m
 	return _BVLCSecureBVLLCopy

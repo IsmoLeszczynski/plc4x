@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataExceptionSchedule interface {
 	// GetExceptionSchedule returns ExceptionSchedule (property field)
 	GetExceptionSchedule() []BACnetSpecialEvent
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataExceptionSchedule is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataExceptionSchedule()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataExceptionSchedule = (*_BACnetConstructedDataException
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataExceptionSchedule)(nil)
 
 // NewBACnetConstructedDataExceptionSchedule factory function for _BACnetConstructedDataExceptionSchedule
-func NewBACnetConstructedDataExceptionSchedule(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, exceptionSchedule []BACnetSpecialEvent, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataExceptionSchedule {
+func NewBACnetConstructedDataExceptionSchedule(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, exceptionSchedule []BACnetSpecialEvent) *_BACnetConstructedDataExceptionSchedule {
 	_result := &_BACnetConstructedDataExceptionSchedule{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		ExceptionSchedule:             exceptionSchedule,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataExceptionScheduleBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataExceptionScheduleBuilder) = (*_BACnetConstructedDataExceptionScheduleBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataExceptionScheduleBuilder) WithOptionalNumberOfDat
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataExceptionScheduleBuilder) WithExceptionSchedule(e
 }
 
 func (b *_BACnetConstructedDataExceptionScheduleBuilder) Build() (BACnetConstructedDataExceptionSchedule, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataExceptionSchedule.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataExceptionScheduleBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataExceptionScheduleBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataExceptionScheduleBuilder().(*_BACnetConstructedDataExceptionScheduleBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLimitEnable = (*_BACnetConstructedDataLimitEnable)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLimitEnable)(nil)
 
 // NewBACnetConstructedDataLimitEnable factory function for _BACnetConstructedDataLimitEnable
-func NewBACnetConstructedDataLimitEnable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, limitEnable BACnetLimitEnableTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLimitEnable {
+func NewBACnetConstructedDataLimitEnable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, limitEnable BACnetLimitEnableTagged) *_BACnetConstructedDataLimitEnable {
 	if limitEnable == nil {
 		panic("limitEnable of type BACnetLimitEnableTagged for BACnetConstructedDataLimitEnable must not be nil")
 	}
 	_result := &_BACnetConstructedDataLimitEnable{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LimitEnable:                   limitEnable,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLimitEnableBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLimitEnableBuilder) = (*_BACnetConstructedDataLimitEnableBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLimitEnableBuilder) WithLimitEnableBuilder(builde
 	var err error
 	b.LimitEnable, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetLimitEnableTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetLimitEnableTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLimitEnableBuilder) Build() (BACnetConstructedDataLimitEnable, error) {
 	if b.LimitEnable == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'limitEnable' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'limitEnable' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLimitEnable.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLimitEnableBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataLimitEnableBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLimitEnableBuilder().(*_BACnetConstructedDataLimitEnableBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

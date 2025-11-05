@@ -50,21 +50,13 @@ public class BACnetConstructedDataProtocolServicesSupported extends BACnetConstr
   // Properties.
   protected final BACnetServicesSupportedTagged protocolServicesSupported;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataProtocolServicesSupported(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetServicesSupportedTagged protocolServicesSupported,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetServicesSupportedTagged protocolServicesSupported) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.protocolServicesSupported = protocolServicesSupported;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetServicesSupportedTagged getProtocolServicesSupported() {
@@ -86,7 +78,7 @@ public class BACnetConstructedDataProtocolServicesSupported extends BACnetConstr
     writeSimpleField(
         "protocolServicesSupported", protocolServicesSupported, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetServicesSupportedTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -137,40 +129,24 @@ public class BACnetConstructedDataProtocolServicesSupported extends BACnetConstr
 
     readBuffer.closeContext("BACnetConstructedDataProtocolServicesSupported");
     // Create the instance
-    return new BACnetConstructedDataProtocolServicesSupportedBuilderImpl(
-        protocolServicesSupported, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataProtocolServicesSupportedBuilderImpl(protocolServicesSupported);
   }
 
   public static class BACnetConstructedDataProtocolServicesSupportedBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetServicesSupportedTagged protocolServicesSupported;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataProtocolServicesSupportedBuilderImpl(
-        BACnetServicesSupportedTagged protocolServicesSupported,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetServicesSupportedTagged protocolServicesSupported) {
       this.protocolServicesSupported = protocolServicesSupported;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataProtocolServicesSupported build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataProtocolServicesSupported
           bACnetConstructedDataProtocolServicesSupported =
               new BACnetConstructedDataProtocolServicesSupported(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  protocolServicesSupported,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, protocolServicesSupported);
       return bACnetConstructedDataProtocolServicesSupported;
     }
   }

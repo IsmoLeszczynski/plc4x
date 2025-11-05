@@ -40,12 +40,18 @@ public abstract class BACnetConfirmedServiceRequest implements Message {
   // Abstract accessors for discriminator values.
   public abstract BACnetConfirmedServiceChoice getServiceChoice();
 
-  // Arguments.
-  protected final Long serviceRequestLength;
+  // Properties.
+  /** we subtract serviceChoice from our payload */
+  protected final long serviceRequestLength;
 
-  public BACnetConfirmedServiceRequest(Long serviceRequestLength) {
+  public BACnetConfirmedServiceRequest(long serviceRequestLength) {
     super();
     this.serviceRequestLength = serviceRequestLength;
+  }
+
+  /** we subtract serviceChoice from our payload */
+  public long getServiceRequestLength() {
+    return serviceRequestLength;
   }
 
   public long getServiceRequestPayloadLength() {
@@ -70,7 +76,7 @@ public abstract class BACnetConfirmedServiceRequest implements Message {
             BACnetConfirmedServiceChoice::name,
             writeUnsignedShort(writeBuffer, 8)));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     long serviceRequestPayloadLength = getServiceRequestPayloadLength();
     writeBuffer.writeVirtual("serviceRequestPayloadLength", serviceRequestPayloadLength);
 
@@ -285,12 +291,11 @@ public abstract class BACnetConfirmedServiceRequest implements Message {
     // Create the instance
     BACnetConfirmedServiceRequest _bACnetConfirmedServiceRequest =
         builder.build(serviceRequestLength);
-
     return _bACnetConfirmedServiceRequest;
   }
 
   public interface BACnetConfirmedServiceRequestBuilder {
-    BACnetConfirmedServiceRequest build(Long serviceRequestLength);
+    BACnetConfirmedServiceRequest build(long serviceRequestLength);
   }
 
   @Override
@@ -302,12 +307,12 @@ public abstract class BACnetConfirmedServiceRequest implements Message {
       return false;
     }
     BACnetConfirmedServiceRequest that = (BACnetConfirmedServiceRequest) o;
-    return true;
+    return (getServiceRequestLength() == that.getServiceRequestLength()) && true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash();
+    return Objects.hash(getServiceRequestLength());
   }
 
   @Override

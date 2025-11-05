@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,22 +41,31 @@ type CBusOptions interface {
 	utils.Serializable
 	utils.Copyable
 	// GetConnect returns Connect (property field)
+	// Defines that SAL messages can occur at any time
 	GetConnect() bool
 	// GetSmart returns Smart (property field)
+	// Disable echo of characters. When used with connect SAL have a long option. Select long from of most CAL replies
 	GetSmart() bool
 	// GetIdmon returns Idmon (property field)
+	// only works with smart. Select long form of CAL messages
 	GetIdmon() bool
 	// GetExstat returns Exstat (property field)
+	// useful with smart. Select long form, extended format for all monitored and initiated status requests
 	GetExstat() bool
 	// GetMonitor returns Monitor (property field)
+	// monitors all traffic for status requests. Status requests will be returned as CAL. Replies are modified by exstat. Usually used in conjunction with connect.
 	GetMonitor() bool
 	// GetMonall returns Monall (property field)
+	// Same as connect. In addition it will return remote network SAL
 	GetMonall() bool
 	// GetPun returns Pun (property field)
+	// Serial interface will emit a power up notification
 	GetPun() bool
 	// GetPcn returns Pcn (property field)
+	// causes parameter change notifications to be emitted.
 	GetPcn() bool
 	// GetSrchk returns Srchk (property field)
+	// enabled the checksum checks
 	GetSrchk() bool
 	// IsCBusOptions is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsCBusOptions()
@@ -125,7 +135,7 @@ func NewCBusOptionsBuilder() CBusOptionsBuilder {
 type _CBusOptionsBuilder struct {
 	*_CBusOptions
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CBusOptionsBuilder) = (*_CBusOptionsBuilder)(nil)
@@ -180,8 +190,8 @@ func (b *_CBusOptionsBuilder) WithSrchk(srchk bool) CBusOptionsBuilder {
 }
 
 func (b *_CBusOptionsBuilder) Build() (CBusOptions, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CBusOptions.deepCopy(), nil
 }
@@ -196,8 +206,8 @@ func (b *_CBusOptionsBuilder) MustBuild() CBusOptions {
 
 func (b *_CBusOptionsBuilder) DeepCopy() any {
 	_copy := b.CreateCBusOptionsBuilder().(*_CBusOptionsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -324,7 +334,7 @@ func CBusOptionsParseWithBufferProducer() func(ctx context.Context, readBuffer u
 }
 
 func CBusOptionsParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (CBusOptions, error) {
-	v, err := (&_CBusOptions{}).parse(ctx, readBuffer)
+	v, err := (new(_CBusOptions)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

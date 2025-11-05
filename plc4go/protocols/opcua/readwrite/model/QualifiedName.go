@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,7 @@ type QualifiedName interface {
 	utils.Serializable
 	utils.Copyable
 	// GetNamespaceIndex returns NamespaceIndex (property field)
+	// A string qualified with a namespace index.
 	GetNamespaceIndex() uint16
 	// GetName returns Name (property field)
 	GetName() PascalString
@@ -95,7 +97,7 @@ func NewQualifiedNameBuilder() QualifiedNameBuilder {
 type _QualifiedNameBuilder struct {
 	*_QualifiedName
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (QualifiedNameBuilder) = (*_QualifiedNameBuilder)(nil)
@@ -119,23 +121,17 @@ func (b *_QualifiedNameBuilder) WithNameBuilder(builderSupplier func(PascalStrin
 	var err error
 	b.Name, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "PascalStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "PascalStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_QualifiedNameBuilder) Build() (QualifiedName, error) {
 	if b.Name == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'name' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'name' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._QualifiedName.deepCopy(), nil
 }
@@ -150,8 +146,8 @@ func (b *_QualifiedNameBuilder) MustBuild() QualifiedName {
 
 func (b *_QualifiedNameBuilder) DeepCopy() any {
 	_copy := b.CreateQualifiedNameBuilder().(*_QualifiedNameBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -229,7 +225,7 @@ func QualifiedNameParseWithBufferProducer() func(ctx context.Context, readBuffer
 }
 
 func QualifiedNameParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (QualifiedName, error) {
-	v, err := (&_QualifiedName{}).parse(ctx, readBuffer)
+	v, err := (new(_QualifiedName)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

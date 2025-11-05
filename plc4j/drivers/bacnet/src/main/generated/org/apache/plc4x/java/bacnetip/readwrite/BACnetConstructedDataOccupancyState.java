@@ -49,21 +49,13 @@ public class BACnetConstructedDataOccupancyState extends BACnetConstructedData i
   // Properties.
   protected final BACnetAccessZoneOccupancyStateTagged occupancyState;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataOccupancyState(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetAccessZoneOccupancyStateTagged occupancyState,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetAccessZoneOccupancyStateTagged occupancyState) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.occupancyState = occupancyState;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetAccessZoneOccupancyStateTagged getOccupancyState() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataOccupancyState extends BACnetConstructedData i
     // Simple Field (occupancyState)
     writeSimpleField("occupancyState", occupancyState, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetAccessZoneOccupancyStateTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,39 +126,23 @@ public class BACnetConstructedDataOccupancyState extends BACnetConstructedData i
 
     readBuffer.closeContext("BACnetConstructedDataOccupancyState");
     // Create the instance
-    return new BACnetConstructedDataOccupancyStateBuilderImpl(
-        occupancyState, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataOccupancyStateBuilderImpl(occupancyState);
   }
 
   public static class BACnetConstructedDataOccupancyStateBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetAccessZoneOccupancyStateTagged occupancyState;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataOccupancyStateBuilderImpl(
-        BACnetAccessZoneOccupancyStateTagged occupancyState,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetAccessZoneOccupancyStateTagged occupancyState) {
       this.occupancyState = occupancyState;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataOccupancyState build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataOccupancyState bACnetConstructedDataOccupancyState =
           new BACnetConstructedDataOccupancyState(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              occupancyState,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, occupancyState);
       return bACnetConstructedDataOccupancyState;
     }
   }

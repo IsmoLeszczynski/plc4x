@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -62,15 +63,12 @@ type _BACnetEventPriorities struct {
 	ToFault     BACnetApplicationTagUnsignedInteger
 	ToNormal    BACnetApplicationTagUnsignedInteger
 	ClosingTag  BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetEventPriorities = (*_BACnetEventPriorities)(nil)
 
 // NewBACnetEventPriorities factory function for _BACnetEventPriorities
-func NewBACnetEventPriorities(openingTag BACnetOpeningTag, toOffnormal BACnetApplicationTagUnsignedInteger, toFault BACnetApplicationTagUnsignedInteger, toNormal BACnetApplicationTagUnsignedInteger, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetEventPriorities {
+func NewBACnetEventPriorities(openingTag BACnetOpeningTag, toOffnormal BACnetApplicationTagUnsignedInteger, toFault BACnetApplicationTagUnsignedInteger, toNormal BACnetApplicationTagUnsignedInteger, closingTag BACnetClosingTag) *_BACnetEventPriorities {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetEventPriorities must not be nil")
 	}
@@ -86,7 +84,7 @@ func NewBACnetEventPriorities(openingTag BACnetOpeningTag, toOffnormal BACnetApp
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetEventPriorities must not be nil")
 	}
-	return &_BACnetEventPriorities{OpeningTag: openingTag, ToOffnormal: toOffnormal, ToFault: toFault, ToNormal: toNormal, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetEventPriorities{OpeningTag: openingTag, ToOffnormal: toOffnormal, ToFault: toFault, ToNormal: toNormal, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -119,8 +117,6 @@ type BACnetEventPrioritiesBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetEventPrioritiesBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetEventPrioritiesBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetEventPrioritiesBuilder
 	// Build builds the BACnetEventPriorities or returns an error if something is wrong
 	Build() (BACnetEventPriorities, error)
 	// MustBuild does the same as Build but panics on error
@@ -135,7 +131,7 @@ func NewBACnetEventPrioritiesBuilder() BACnetEventPrioritiesBuilder {
 type _BACnetEventPrioritiesBuilder struct {
 	*_BACnetEventPriorities
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetEventPrioritiesBuilder) = (*_BACnetEventPrioritiesBuilder)(nil)
@@ -154,10 +150,7 @@ func (b *_BACnetEventPrioritiesBuilder) WithOpeningTagBuilder(builderSupplier fu
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -172,10 +165,7 @@ func (b *_BACnetEventPrioritiesBuilder) WithToOffnormalBuilder(builderSupplier f
 	var err error
 	b.ToOffnormal, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -190,10 +180,7 @@ func (b *_BACnetEventPrioritiesBuilder) WithToFaultBuilder(builderSupplier func(
 	var err error
 	b.ToFault, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -208,10 +195,7 @@ func (b *_BACnetEventPrioritiesBuilder) WithToNormalBuilder(builderSupplier func
 	var err error
 	b.ToNormal, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -226,52 +210,29 @@ func (b *_BACnetEventPrioritiesBuilder) WithClosingTagBuilder(builderSupplier fu
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetEventPrioritiesBuilder) WithArgTagNumber(tagNumber uint8) BACnetEventPrioritiesBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetEventPrioritiesBuilder) Build() (BACnetEventPriorities, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ToOffnormal == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'toOffnormal' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'toOffnormal' not set"))
 	}
 	if b.ToFault == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'toFault' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'toFault' not set"))
 	}
 	if b.ToNormal == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'toNormal' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'toNormal' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetEventPriorities.deepCopy(), nil
 }
@@ -286,8 +247,8 @@ func (b *_BACnetEventPrioritiesBuilder) MustBuild() BACnetEventPriorities {
 
 func (b *_BACnetEventPrioritiesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetEventPrioritiesBuilder().(*_BACnetEventPrioritiesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -386,7 +347,7 @@ func BACnetEventPrioritiesParseWithBufferProducer(tagNumber uint8) func(ctx cont
 }
 
 func BACnetEventPrioritiesParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetEventPriorities, error) {
-	v, err := (&_BACnetEventPriorities{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetEventPriorities)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -482,16 +443,6 @@ func (m *_BACnetEventPriorities) SerializeWithWriteBuffer(ctx context.Context, w
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetEventPriorities) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetEventPriorities) IsBACnetEventPriorities() {}
 
 func (m *_BACnetEventPriorities) DeepCopy() any {
@@ -508,7 +459,6 @@ func (m *_BACnetEventPriorities) deepCopy() *_BACnetEventPriorities {
 		utils.DeepCopy[BACnetApplicationTagUnsignedInteger](m.ToFault),
 		utils.DeepCopy[BACnetApplicationTagUnsignedInteger](m.ToNormal),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetEventPrioritiesCopy
 }

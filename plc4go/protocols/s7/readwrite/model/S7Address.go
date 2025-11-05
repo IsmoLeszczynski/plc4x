@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -116,7 +117,7 @@ type _S7AddressBuilder struct {
 
 	childBuilder _S7AddressChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (S7AddressBuilder) = (*_S7AddressBuilder)(nil)
@@ -126,8 +127,8 @@ func (b *_S7AddressBuilder) WithMandatoryFields() S7AddressBuilder {
 }
 
 func (b *_S7AddressBuilder) PartialBuild() (S7AddressContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._S7Address.deepCopy(), nil
 }
@@ -174,8 +175,8 @@ func (b *_S7AddressBuilder) DeepCopy() any {
 	_copy := b.CreateS7AddressBuilder().(*_S7AddressBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_S7AddressChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -240,7 +241,7 @@ func S7AddressParseWithBufferProducer[T S7Address]() func(ctx context.Context, r
 }
 
 func S7AddressParseWithBuffer[T S7Address](ctx context.Context, readBuffer utils.ReadBuffer) (T, error) {
-	v, err := (&_S7Address{}).parse(ctx, readBuffer)
+	v, err := (new(_S7Address)).parse(ctx, readBuffer)
 	if err != nil {
 		var zero T
 		return zero, err

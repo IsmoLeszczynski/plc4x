@@ -49,21 +49,13 @@ public class BACnetConstructedDataDefaultFadeTime extends BACnetConstructedData 
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger defaultFadeTime;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataDefaultFadeTime(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger defaultFadeTime,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger defaultFadeTime) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.defaultFadeTime = defaultFadeTime;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getDefaultFadeTime() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataDefaultFadeTime extends BACnetConstructedData 
     // Simple Field (defaultFadeTime)
     writeSimpleField("defaultFadeTime", defaultFadeTime, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,39 +126,23 @@ public class BACnetConstructedDataDefaultFadeTime extends BACnetConstructedData 
 
     readBuffer.closeContext("BACnetConstructedDataDefaultFadeTime");
     // Create the instance
-    return new BACnetConstructedDataDefaultFadeTimeBuilderImpl(
-        defaultFadeTime, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataDefaultFadeTimeBuilderImpl(defaultFadeTime);
   }
 
   public static class BACnetConstructedDataDefaultFadeTimeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger defaultFadeTime;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataDefaultFadeTimeBuilderImpl(
-        BACnetApplicationTagUnsignedInteger defaultFadeTime,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger defaultFadeTime) {
       this.defaultFadeTime = defaultFadeTime;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataDefaultFadeTime build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataDefaultFadeTime bACnetConstructedDataDefaultFadeTime =
           new BACnetConstructedDataDefaultFadeTime(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              defaultFadeTime,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, defaultFadeTime);
       return bACnetConstructedDataDefaultFadeTime;
     }
   }

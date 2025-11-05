@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataPositiveIntegerValueCOVIncrement = (*_BACnetConstruct
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataPositiveIntegerValueCOVIncrement)(nil)
 
 // NewBACnetConstructedDataPositiveIntegerValueCOVIncrement factory function for _BACnetConstructedDataPositiveIntegerValueCOVIncrement
-func NewBACnetConstructedDataPositiveIntegerValueCOVIncrement(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, covIncrement BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataPositiveIntegerValueCOVIncrement {
+func NewBACnetConstructedDataPositiveIntegerValueCOVIncrement(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, covIncrement BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataPositiveIntegerValueCOVIncrement {
 	if covIncrement == nil {
 		panic("covIncrement of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataPositiveIntegerValueCOVIncrement must not be nil")
 	}
 	_result := &_BACnetConstructedDataPositiveIntegerValueCOVIncrement{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		CovIncrement:                  covIncrement,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder) = (*_BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder) WithCovI
 	var err error
 	b.CovIncrement, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder) Build() (BACnetConstructedDataPositiveIntegerValueCOVIncrement, error) {
 	if b.CovIncrement == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'covIncrement' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'covIncrement' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataPositiveIntegerValueCOVIncrement.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder) buildFor
 
 func (b *_BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder().(*_BACnetConstructedDataPositiveIntegerValueCOVIncrementBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

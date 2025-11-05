@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataNodeType = (*_BACnetConstructedDataNodeType)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNodeType)(nil)
 
 // NewBACnetConstructedDataNodeType factory function for _BACnetConstructedDataNodeType
-func NewBACnetConstructedDataNodeType(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, nodeType BACnetNodeTypeTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNodeType {
+func NewBACnetConstructedDataNodeType(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, nodeType BACnetNodeTypeTagged) *_BACnetConstructedDataNodeType {
 	if nodeType == nil {
 		panic("nodeType of type BACnetNodeTypeTagged for BACnetConstructedDataNodeType must not be nil")
 	}
 	_result := &_BACnetConstructedDataNodeType{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NodeType:                      nodeType,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataNodeTypeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNodeTypeBuilder) = (*_BACnetConstructedDataNodeTypeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataNodeTypeBuilder) WithNodeTypeBuilder(builderSuppl
 	var err error
 	b.NodeType, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetNodeTypeTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetNodeTypeTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataNodeTypeBuilder) Build() (BACnetConstructedDataNodeType, error) {
 	if b.NodeType == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'nodeType' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'nodeType' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNodeType.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataNodeTypeBuilder) buildForBACnetConstructedData() 
 
 func (b *_BACnetConstructedDataNodeTypeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNodeTypeBuilder().(*_BACnetConstructedDataNodeTypeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

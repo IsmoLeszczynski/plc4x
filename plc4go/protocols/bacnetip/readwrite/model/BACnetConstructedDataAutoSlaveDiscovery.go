@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAutoSlaveDiscovery = (*_BACnetConstructedDataAutoSlav
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAutoSlaveDiscovery)(nil)
 
 // NewBACnetConstructedDataAutoSlaveDiscovery factory function for _BACnetConstructedDataAutoSlaveDiscovery
-func NewBACnetConstructedDataAutoSlaveDiscovery(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, autoSlaveDiscovery BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAutoSlaveDiscovery {
+func NewBACnetConstructedDataAutoSlaveDiscovery(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, autoSlaveDiscovery BACnetApplicationTagBoolean) *_BACnetConstructedDataAutoSlaveDiscovery {
 	if autoSlaveDiscovery == nil {
 		panic("autoSlaveDiscovery of type BACnetApplicationTagBoolean for BACnetConstructedDataAutoSlaveDiscovery must not be nil")
 	}
 	_result := &_BACnetConstructedDataAutoSlaveDiscovery{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AutoSlaveDiscovery:            autoSlaveDiscovery,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAutoSlaveDiscoveryBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAutoSlaveDiscoveryBuilder) = (*_BACnetConstructedDataAutoSlaveDiscoveryBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAutoSlaveDiscoveryBuilder) WithAutoSlaveDiscovery
 	var err error
 	b.AutoSlaveDiscovery, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAutoSlaveDiscoveryBuilder) Build() (BACnetConstructedDataAutoSlaveDiscovery, error) {
 	if b.AutoSlaveDiscovery == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'autoSlaveDiscovery' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'autoSlaveDiscovery' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAutoSlaveDiscovery.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAutoSlaveDiscoveryBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataAutoSlaveDiscoveryBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAutoSlaveDiscoveryBuilder().(*_BACnetConstructedDataAutoSlaveDiscoveryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

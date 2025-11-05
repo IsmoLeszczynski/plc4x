@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataVirtualMACAddressTable = (*_BACnetConstructedDataVirt
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataVirtualMACAddressTable)(nil)
 
 // NewBACnetConstructedDataVirtualMACAddressTable factory function for _BACnetConstructedDataVirtualMACAddressTable
-func NewBACnetConstructedDataVirtualMACAddressTable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, virtualMacAddressTable []BACnetVMACEntry, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataVirtualMACAddressTable {
+func NewBACnetConstructedDataVirtualMACAddressTable(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, virtualMacAddressTable []BACnetVMACEntry) *_BACnetConstructedDataVirtualMACAddressTable {
 	_result := &_BACnetConstructedDataVirtualMACAddressTable{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		VirtualMacAddressTable:        virtualMacAddressTable,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataVirtualMACAddressTableBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataVirtualMACAddressTableBuilder) = (*_BACnetConstructedDataVirtualMACAddressTableBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataVirtualMACAddressTableBuilder) WithVirtualMacAddr
 }
 
 func (b *_BACnetConstructedDataVirtualMACAddressTableBuilder) Build() (BACnetConstructedDataVirtualMACAddressTable, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataVirtualMACAddressTable.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataVirtualMACAddressTableBuilder) buildForBACnetCons
 
 func (b *_BACnetConstructedDataVirtualMACAddressTableBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataVirtualMACAddressTableBuilder().(*_BACnetConstructedDataVirtualMACAddressTableBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

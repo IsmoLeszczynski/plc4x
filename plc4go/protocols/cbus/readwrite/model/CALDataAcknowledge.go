@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type CALDataAcknowledge interface {
 	utils.Copyable
 	CALData
 	// GetParamNo returns ParamNo (property field)
+	// Reply
 	GetParamNo() Parameter
 	// GetCode returns Code (property field)
 	GetCode() uint8
@@ -61,9 +63,9 @@ var _ CALDataAcknowledge = (*_CALDataAcknowledge)(nil)
 var _ CALDataRequirements = (*_CALDataAcknowledge)(nil)
 
 // NewCALDataAcknowledge factory function for _CALDataAcknowledge
-func NewCALDataAcknowledge(commandTypeContainer CALCommandTypeContainer, additionalData CALData, paramNo Parameter, code uint8, requestContext RequestContext) *_CALDataAcknowledge {
+func NewCALDataAcknowledge(requestContext RequestContext, commandTypeContainer CALCommandTypeContainer, additionalData CALData, paramNo Parameter, code uint8) *_CALDataAcknowledge {
 	_result := &_CALDataAcknowledge{
-		CALDataContract: NewCALData(commandTypeContainer, additionalData, requestContext),
+		CALDataContract: NewCALData(requestContext, commandTypeContainer, additionalData),
 		ParamNo:         paramNo,
 		Code:            code,
 	}
@@ -103,7 +105,7 @@ type _CALDataAcknowledgeBuilder struct {
 
 	parentBuilder *_CALDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CALDataAcknowledgeBuilder) = (*_CALDataAcknowledgeBuilder)(nil)
@@ -128,8 +130,8 @@ func (b *_CALDataAcknowledgeBuilder) WithCode(code uint8) CALDataAcknowledgeBuil
 }
 
 func (b *_CALDataAcknowledgeBuilder) Build() (CALDataAcknowledge, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CALDataAcknowledge.deepCopy(), nil
 }
@@ -155,8 +157,8 @@ func (b *_CALDataAcknowledgeBuilder) buildForCALData() (CALData, error) {
 
 func (b *_CALDataAcknowledgeBuilder) DeepCopy() any {
 	_copy := b.CreateCALDataAcknowledgeBuilder().(*_CALDataAcknowledgeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

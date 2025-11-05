@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataReliability = (*_BACnetConstructedDataReliability)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataReliability)(nil)
 
 // NewBACnetConstructedDataReliability factory function for _BACnetConstructedDataReliability
-func NewBACnetConstructedDataReliability(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, reliability BACnetReliabilityTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataReliability {
+func NewBACnetConstructedDataReliability(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, reliability BACnetReliabilityTagged) *_BACnetConstructedDataReliability {
 	if reliability == nil {
 		panic("reliability of type BACnetReliabilityTagged for BACnetConstructedDataReliability must not be nil")
 	}
 	_result := &_BACnetConstructedDataReliability{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Reliability:                   reliability,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataReliabilityBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataReliabilityBuilder) = (*_BACnetConstructedDataReliabilityBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataReliabilityBuilder) WithReliabilityBuilder(builde
 	var err error
 	b.Reliability, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetReliabilityTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetReliabilityTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataReliabilityBuilder) Build() (BACnetConstructedDataReliability, error) {
 	if b.Reliability == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'reliability' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'reliability' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataReliability.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataReliabilityBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataReliabilityBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataReliabilityBuilder().(*_BACnetConstructedDataReliabilityBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

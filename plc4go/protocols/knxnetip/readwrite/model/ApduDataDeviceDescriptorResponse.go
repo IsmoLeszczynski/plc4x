@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,9 +62,9 @@ var _ ApduDataDeviceDescriptorResponse = (*_ApduDataDeviceDescriptorResponse)(ni
 var _ ApduDataRequirements = (*_ApduDataDeviceDescriptorResponse)(nil)
 
 // NewApduDataDeviceDescriptorResponse factory function for _ApduDataDeviceDescriptorResponse
-func NewApduDataDeviceDescriptorResponse(descriptorType uint8, data []byte, dataLength uint8) *_ApduDataDeviceDescriptorResponse {
+func NewApduDataDeviceDescriptorResponse(descriptorType uint8, data []byte) *_ApduDataDeviceDescriptorResponse {
 	_result := &_ApduDataDeviceDescriptorResponse{
-		ApduDataContract: NewApduData(dataLength),
+		ApduDataContract: NewApduData(),
 		DescriptorType:   descriptorType,
 		Data:             data,
 	}
@@ -103,7 +104,7 @@ type _ApduDataDeviceDescriptorResponseBuilder struct {
 
 	parentBuilder *_ApduDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataDeviceDescriptorResponseBuilder) = (*_ApduDataDeviceDescriptorResponseBuilder)(nil)
@@ -128,8 +129,8 @@ func (b *_ApduDataDeviceDescriptorResponseBuilder) WithData(data ...byte) ApduDa
 }
 
 func (b *_ApduDataDeviceDescriptorResponseBuilder) Build() (ApduDataDeviceDescriptorResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataDeviceDescriptorResponse.deepCopy(), nil
 }
@@ -155,8 +156,8 @@ func (b *_ApduDataDeviceDescriptorResponseBuilder) buildForApduData() (ApduData,
 
 func (b *_ApduDataDeviceDescriptorResponseBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataDeviceDescriptorResponseBuilder().(*_ApduDataDeviceDescriptorResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

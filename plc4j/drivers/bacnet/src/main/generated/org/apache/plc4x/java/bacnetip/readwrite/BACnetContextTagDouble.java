@@ -45,14 +45,9 @@ public class BACnetContextTagDouble extends BACnetContextTag implements Message 
   // Properties.
   protected final BACnetTagPayloadDouble payload;
 
-  // Arguments.
-  protected final Short tagNumberArgument;
-
-  public BACnetContextTagDouble(
-      BACnetTagHeader header, BACnetTagPayloadDouble payload, Short tagNumberArgument) {
-    super(header, tagNumberArgument);
+  public BACnetContextTagDouble(BACnetTagHeader header, BACnetTagPayloadDouble payload) {
+    super(header);
     this.payload = payload;
-    this.tagNumberArgument = tagNumberArgument;
   }
 
   public BACnetTagPayloadDouble getPayload() {
@@ -73,7 +68,7 @@ public class BACnetContextTagDouble extends BACnetContextTag implements Message 
     // Simple Field (payload)
     writeSimpleField("payload", payload, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     double actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -114,23 +109,19 @@ public class BACnetContextTagDouble extends BACnetContextTag implements Message 
 
     readBuffer.closeContext("BACnetContextTagDouble");
     // Create the instance
-    return new BACnetContextTagDoubleBuilderImpl(payload, tagNumberArgument);
+    return new BACnetContextTagDoubleBuilderImpl(payload);
   }
 
   public static class BACnetContextTagDoubleBuilderImpl
       implements BACnetContextTag.BACnetContextTagBuilder {
     private final BACnetTagPayloadDouble payload;
-    private final Short tagNumberArgument;
 
-    public BACnetContextTagDoubleBuilderImpl(
-        BACnetTagPayloadDouble payload, Short tagNumberArgument) {
+    public BACnetContextTagDoubleBuilderImpl(BACnetTagPayloadDouble payload) {
       this.payload = payload;
-      this.tagNumberArgument = tagNumberArgument;
     }
 
-    public BACnetContextTagDouble build(BACnetTagHeader header, Short tagNumberArgument) {
-      BACnetContextTagDouble bACnetContextTagDouble =
-          new BACnetContextTagDouble(header, payload, tagNumberArgument);
+    public BACnetContextTagDouble build(BACnetTagHeader header) {
+      BACnetContextTagDouble bACnetContextTagDouble = new BACnetContextTagDouble(header, payload);
       return bACnetContextTagDouble;
     }
   }

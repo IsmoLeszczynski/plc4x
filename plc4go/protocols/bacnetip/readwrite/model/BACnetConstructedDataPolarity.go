@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataPolarity = (*_BACnetConstructedDataPolarity)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataPolarity)(nil)
 
 // NewBACnetConstructedDataPolarity factory function for _BACnetConstructedDataPolarity
-func NewBACnetConstructedDataPolarity(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, polarity BACnetPolarityTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataPolarity {
+func NewBACnetConstructedDataPolarity(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, polarity BACnetPolarityTagged) *_BACnetConstructedDataPolarity {
 	if polarity == nil {
 		panic("polarity of type BACnetPolarityTagged for BACnetConstructedDataPolarity must not be nil")
 	}
 	_result := &_BACnetConstructedDataPolarity{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Polarity:                      polarity,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataPolarityBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataPolarityBuilder) = (*_BACnetConstructedDataPolarityBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataPolarityBuilder) WithPolarityBuilder(builderSuppl
 	var err error
 	b.Polarity, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetPolarityTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetPolarityTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataPolarityBuilder) Build() (BACnetConstructedDataPolarity, error) {
 	if b.Polarity == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'polarity' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'polarity' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataPolarity.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataPolarityBuilder) buildForBACnetConstructedData() 
 
 func (b *_BACnetConstructedDataPolarityBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataPolarityBuilder().(*_BACnetConstructedDataPolarityBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

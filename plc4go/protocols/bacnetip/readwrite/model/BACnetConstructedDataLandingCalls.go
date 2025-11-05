@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataLandingCalls = (*_BACnetConstructedDataLandingCalls)(
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLandingCalls)(nil)
 
 // NewBACnetConstructedDataLandingCalls factory function for _BACnetConstructedDataLandingCalls
-func NewBACnetConstructedDataLandingCalls(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, landingCallStatus []BACnetLandingCallStatus, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLandingCalls {
+func NewBACnetConstructedDataLandingCalls(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, landingCallStatus []BACnetLandingCallStatus) *_BACnetConstructedDataLandingCalls {
 	_result := &_BACnetConstructedDataLandingCalls{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LandingCallStatus:             landingCallStatus,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataLandingCallsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLandingCallsBuilder) = (*_BACnetConstructedDataLandingCallsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataLandingCallsBuilder) WithLandingCallStatus(landin
 }
 
 func (b *_BACnetConstructedDataLandingCallsBuilder) Build() (BACnetConstructedDataLandingCalls, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLandingCalls.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataLandingCallsBuilder) buildForBACnetConstructedDat
 
 func (b *_BACnetConstructedDataLandingCallsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLandingCallsBuilder().(*_BACnetConstructedDataLandingCallsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

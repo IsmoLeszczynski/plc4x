@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAccumulatorHighLimit = (*_BACnetConstructedDataAccumu
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccumulatorHighLimit)(nil)
 
 // NewBACnetConstructedDataAccumulatorHighLimit factory function for _BACnetConstructedDataAccumulatorHighLimit
-func NewBACnetConstructedDataAccumulatorHighLimit(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, highLimit BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccumulatorHighLimit {
+func NewBACnetConstructedDataAccumulatorHighLimit(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, highLimit BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataAccumulatorHighLimit {
 	if highLimit == nil {
 		panic("highLimit of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataAccumulatorHighLimit must not be nil")
 	}
 	_result := &_BACnetConstructedDataAccumulatorHighLimit{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		HighLimit:                     highLimit,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAccumulatorHighLimitBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccumulatorHighLimitBuilder) = (*_BACnetConstructedDataAccumulatorHighLimitBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAccumulatorHighLimitBuilder) WithHighLimitBuilder
 	var err error
 	b.HighLimit, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAccumulatorHighLimitBuilder) Build() (BACnetConstructedDataAccumulatorHighLimit, error) {
 	if b.HighLimit == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'highLimit' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'highLimit' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccumulatorHighLimit.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAccumulatorHighLimitBuilder) buildForBACnetConstr
 
 func (b *_BACnetConstructedDataAccumulatorHighLimitBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccumulatorHighLimitBuilder().(*_BACnetConstructedDataAccumulatorHighLimitBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

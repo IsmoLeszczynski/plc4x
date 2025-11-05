@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataFDSubscriptionLifetime = (*_BACnetConstructedDataFDSu
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataFDSubscriptionLifetime)(nil)
 
 // NewBACnetConstructedDataFDSubscriptionLifetime factory function for _BACnetConstructedDataFDSubscriptionLifetime
-func NewBACnetConstructedDataFDSubscriptionLifetime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, fdSubscriptionLifetime BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataFDSubscriptionLifetime {
+func NewBACnetConstructedDataFDSubscriptionLifetime(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, fdSubscriptionLifetime BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataFDSubscriptionLifetime {
 	if fdSubscriptionLifetime == nil {
 		panic("fdSubscriptionLifetime of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataFDSubscriptionLifetime must not be nil")
 	}
 	_result := &_BACnetConstructedDataFDSubscriptionLifetime{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FdSubscriptionLifetime:        fdSubscriptionLifetime,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataFDSubscriptionLifetimeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataFDSubscriptionLifetimeBuilder) = (*_BACnetConstructedDataFDSubscriptionLifetimeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataFDSubscriptionLifetimeBuilder) WithFdSubscription
 	var err error
 	b.FdSubscriptionLifetime, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataFDSubscriptionLifetimeBuilder) Build() (BACnetConstructedDataFDSubscriptionLifetime, error) {
 	if b.FdSubscriptionLifetime == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'fdSubscriptionLifetime' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'fdSubscriptionLifetime' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataFDSubscriptionLifetime.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataFDSubscriptionLifetimeBuilder) buildForBACnetCons
 
 func (b *_BACnetConstructedDataFDSubscriptionLifetimeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataFDSubscriptionLifetimeBuilder().(*_BACnetConstructedDataFDSubscriptionLifetimeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

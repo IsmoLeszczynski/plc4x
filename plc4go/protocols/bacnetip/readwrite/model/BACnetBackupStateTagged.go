@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetBackupStateTagged interface {
 type _BACnetBackupStateTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetBackupState
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetBackupStateTagged = (*_BACnetBackupStateTagged)(nil)
 
 // NewBACnetBackupStateTagged factory function for _BACnetBackupStateTagged
-func NewBACnetBackupStateTagged(header BACnetTagHeader, value BACnetBackupState, tagNumber uint8, tagClass TagClass) *_BACnetBackupStateTagged {
+func NewBACnetBackupStateTagged(header BACnetTagHeader, value BACnetBackupState) *_BACnetBackupStateTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetBackupStateTagged must not be nil")
 	}
-	return &_BACnetBackupStateTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetBackupStateTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetBackupStateTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetBackupStateTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetBackupState) BACnetBackupStateTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetBackupStateTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetBackupStateTaggedBuilder
 	// Build builds the BACnetBackupStateTagged or returns an error if something is wrong
 	Build() (BACnetBackupStateTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetBackupStateTaggedBuilder() BACnetBackupStateTaggedBuilder {
 type _BACnetBackupStateTaggedBuilder struct {
 	*_BACnetBackupStateTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetBackupStateTaggedBuilder) = (*_BACnetBackupStateTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetBackupStateTaggedBuilder) WithHeaderBuilder(builderSupplier func
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetBackupStateTaggedBuilder) WithValue(value BACnetBackupState) BAC
 	return b
 }
 
-func (b *_BACnetBackupStateTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetBackupStateTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetBackupStateTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetBackupStateTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetBackupStateTaggedBuilder) Build() (BACnetBackupStateTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetBackupStateTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetBackupStateTaggedBuilder) MustBuild() BACnetBackupStateTagged {
 
 func (b *_BACnetBackupStateTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetBackupStateTaggedBuilder().(*_BACnetBackupStateTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetBackupStateTaggedParseWithBufferProducer(tagNumber uint8, tagClass Ta
 }
 
 func BACnetBackupStateTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetBackupStateTagged, error) {
-	v, err := (&_BACnetBackupStateTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetBackupStateTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetBackupStateTagged) SerializeWithWriteBuffer(ctx context.Context,
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetBackupStateTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetBackupStateTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetBackupStateTagged) IsBACnetBackupStateTagged() {}
 
 func (m *_BACnetBackupStateTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetBackupStateTagged) deepCopy() *_BACnetBackupStateTagged {
 	_BACnetBackupStateTaggedCopy := &_BACnetBackupStateTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetBackupStateTaggedCopy
 }

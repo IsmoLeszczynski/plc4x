@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetContextTagNull = (*_BACnetContextTagNull)(nil)
 var _ BACnetContextTagRequirements = (*_BACnetContextTagNull)(nil)
 
 // NewBACnetContextTagNull factory function for _BACnetContextTagNull
-func NewBACnetContextTagNull(header BACnetTagHeader, tagNumberArgument uint8) *_BACnetContextTagNull {
+func NewBACnetContextTagNull(header BACnetTagHeader) *_BACnetContextTagNull {
 	_result := &_BACnetContextTagNull{
-		BACnetContextTagContract: NewBACnetContextTag(header, tagNumberArgument),
+		BACnetContextTagContract: NewBACnetContextTag(header),
 	}
 	_result.BACnetContextTagContract.(*_BACnetContextTag)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetContextTagNullBuilder struct {
 
 	parentBuilder *_BACnetContextTagBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetContextTagNullBuilder) = (*_BACnetContextTagNullBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetContextTagNullBuilder) WithMandatoryFields() BACnetContextTagNul
 }
 
 func (b *_BACnetContextTagNullBuilder) Build() (BACnetContextTagNull, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetContextTagNull.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetContextTagNullBuilder) buildForBACnetContextTag() (BACnetContext
 
 func (b *_BACnetContextTagNullBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetContextTagNullBuilder().(*_BACnetContextTagNullBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -43,6 +44,7 @@ type ParameterValueSerialNumber interface {
 	// GetValue returns Value (property field)
 	GetValue() SerialNumber
 	// GetData returns Data (property field)
+	// TODO: find out what additional bytes mean here...
 	GetData() []byte
 	// IsParameterValueSerialNumber is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsParameterValueSerialNumber()
@@ -61,12 +63,12 @@ var _ ParameterValueSerialNumber = (*_ParameterValueSerialNumber)(nil)
 var _ ParameterValueRequirements = (*_ParameterValueSerialNumber)(nil)
 
 // NewParameterValueSerialNumber factory function for _ParameterValueSerialNumber
-func NewParameterValueSerialNumber(value SerialNumber, data []byte, numBytes uint8) *_ParameterValueSerialNumber {
+func NewParameterValueSerialNumber(value SerialNumber, data []byte) *_ParameterValueSerialNumber {
 	if value == nil {
 		panic("value of type SerialNumber for ParameterValueSerialNumber must not be nil")
 	}
 	_result := &_ParameterValueSerialNumber{
-		ParameterValueContract: NewParameterValue(numBytes),
+		ParameterValueContract: NewParameterValue(),
 		Value:                  value,
 		Data:                   data,
 	}
@@ -108,7 +110,7 @@ type _ParameterValueSerialNumberBuilder struct {
 
 	parentBuilder *_ParameterValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ParameterValueSerialNumberBuilder) = (*_ParameterValueSerialNumberBuilder)(nil)
@@ -132,10 +134,7 @@ func (b *_ParameterValueSerialNumberBuilder) WithValueBuilder(builderSupplier fu
 	var err error
 	b.Value, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "SerialNumberBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "SerialNumberBuilder failed"))
 	}
 	return b
 }
@@ -147,13 +146,10 @@ func (b *_ParameterValueSerialNumberBuilder) WithData(data ...byte) ParameterVal
 
 func (b *_ParameterValueSerialNumberBuilder) Build() (ParameterValueSerialNumber, error) {
 	if b.Value == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'value' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'value' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ParameterValueSerialNumber.deepCopy(), nil
 }
@@ -179,8 +175,8 @@ func (b *_ParameterValueSerialNumberBuilder) buildForParameterValue() (Parameter
 
 func (b *_ParameterValueSerialNumberBuilder) DeepCopy() any {
 	_copy := b.CreateParameterValueSerialNumberBuilder().(*_ParameterValueSerialNumberBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

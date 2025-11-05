@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataWriteStatus = (*_BACnetConstructedDataWriteStatus)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataWriteStatus)(nil)
 
 // NewBACnetConstructedDataWriteStatus factory function for _BACnetConstructedDataWriteStatus
-func NewBACnetConstructedDataWriteStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, writeStatus BACnetWriteStatusTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataWriteStatus {
+func NewBACnetConstructedDataWriteStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, writeStatus BACnetWriteStatusTagged) *_BACnetConstructedDataWriteStatus {
 	if writeStatus == nil {
 		panic("writeStatus of type BACnetWriteStatusTagged for BACnetConstructedDataWriteStatus must not be nil")
 	}
 	_result := &_BACnetConstructedDataWriteStatus{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		WriteStatus:                   writeStatus,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataWriteStatusBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataWriteStatusBuilder) = (*_BACnetConstructedDataWriteStatusBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataWriteStatusBuilder) WithWriteStatusBuilder(builde
 	var err error
 	b.WriteStatus, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetWriteStatusTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetWriteStatusTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataWriteStatusBuilder) Build() (BACnetConstructedDataWriteStatus, error) {
 	if b.WriteStatus == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'writeStatus' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'writeStatus' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataWriteStatus.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataWriteStatusBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataWriteStatusBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataWriteStatusBuilder().(*_BACnetConstructedDataWriteStatusBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

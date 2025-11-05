@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ RequestEmpty = (*_RequestEmpty)(nil)
 var _ RequestRequirements = (*_RequestEmpty)(nil)
 
 // NewRequestEmpty factory function for _RequestEmpty
-func NewRequestEmpty(peekedByte RequestType, startingCR *RequestType, resetMode *RequestType, secondPeek RequestType, termination RequestTermination, cBusOptions CBusOptions) *_RequestEmpty {
+func NewRequestEmpty(peekedByte RequestType, startingCR *RequestType, resetMode *RequestType, secondPeek RequestType, termination RequestTermination) *_RequestEmpty {
 	_result := &_RequestEmpty{
-		RequestContract: NewRequest(peekedByte, startingCR, resetMode, secondPeek, termination, cBusOptions),
+		RequestContract: NewRequest(peekedByte, startingCR, resetMode, secondPeek, termination),
 	}
 	_result.RequestContract.(*_Request)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _RequestEmptyBuilder struct {
 
 	parentBuilder *_RequestBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (RequestEmptyBuilder) = (*_RequestEmptyBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_RequestEmptyBuilder) WithMandatoryFields() RequestEmptyBuilder {
 }
 
 func (b *_RequestEmptyBuilder) Build() (RequestEmpty, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._RequestEmpty.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_RequestEmptyBuilder) buildForRequest() (Request, error) {
 
 func (b *_RequestEmptyBuilder) DeepCopy() any {
 	_copy := b.CreateRequestEmptyBuilder().(*_RequestEmptyBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

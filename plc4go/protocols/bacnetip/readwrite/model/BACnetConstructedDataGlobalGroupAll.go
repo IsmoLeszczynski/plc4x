@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataGlobalGroupAll = (*_BACnetConstructedDataGlobalGroupA
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataGlobalGroupAll)(nil)
 
 // NewBACnetConstructedDataGlobalGroupAll factory function for _BACnetConstructedDataGlobalGroupAll
-func NewBACnetConstructedDataGlobalGroupAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataGlobalGroupAll {
+func NewBACnetConstructedDataGlobalGroupAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataGlobalGroupAll {
 	_result := &_BACnetConstructedDataGlobalGroupAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataGlobalGroupAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataGlobalGroupAllBuilder) = (*_BACnetConstructedDataGlobalGroupAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataGlobalGroupAllBuilder) WithMandatoryFields() BACn
 }
 
 func (b *_BACnetConstructedDataGlobalGroupAllBuilder) Build() (BACnetConstructedDataGlobalGroupAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataGlobalGroupAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataGlobalGroupAllBuilder) buildForBACnetConstructedD
 
 func (b *_BACnetConstructedDataGlobalGroupAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataGlobalGroupAllBuilder().(*_BACnetConstructedDataGlobalGroupAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

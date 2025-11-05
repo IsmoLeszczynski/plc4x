@@ -38,15 +38,20 @@ import org.apache.plc4x.java.spi.generation.*;
 public class CustomTypes implements Message {
 
   // Properties.
+  /** Note 9 */
+  protected final short numBytes;
+
   protected final String customString;
 
-  // Arguments.
-  protected final Short numBytes;
-
-  public CustomTypes(String customString, Short numBytes) {
+  public CustomTypes(short numBytes, String customString) {
     super();
-    this.customString = customString;
     this.numBytes = numBytes;
+    this.customString = customString;
+  }
+
+  /** Note 9 */
+  public short getNumBytes() {
+    return numBytes;
   }
 
   public String getCustomString() {
@@ -92,7 +97,7 @@ public class CustomTypes implements Message {
     readBuffer.closeContext("CustomTypes");
     // Create the instance
     CustomTypes _customTypes;
-    _customTypes = new CustomTypes(customString, numBytes);
+    _customTypes = new CustomTypes(numBytes, customString);
     return _customTypes;
   }
 
@@ -105,12 +110,14 @@ public class CustomTypes implements Message {
       return false;
     }
     CustomTypes that = (CustomTypes) o;
-    return (getCustomString() == that.getCustomString()) && true;
+    return (getNumBytes() == that.getNumBytes())
+        && (getCustomString() == that.getCustomString())
+        && true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getCustomString());
+    return Objects.hash(getNumBytes(), getCustomString());
   }
 
   @Override

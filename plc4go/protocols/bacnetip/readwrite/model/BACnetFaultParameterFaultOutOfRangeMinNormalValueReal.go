@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetFaultParameterFaultOutOfRangeMinNormalValueReal = (*_BACnetFaultPara
 var _ BACnetFaultParameterFaultOutOfRangeMinNormalValueRequirements = (*_BACnetFaultParameterFaultOutOfRangeMinNormalValueReal)(nil)
 
 // NewBACnetFaultParameterFaultOutOfRangeMinNormalValueReal factory function for _BACnetFaultParameterFaultOutOfRangeMinNormalValueReal
-func NewBACnetFaultParameterFaultOutOfRangeMinNormalValueReal(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, realValue BACnetApplicationTagReal, tagNumber uint8) *_BACnetFaultParameterFaultOutOfRangeMinNormalValueReal {
+func NewBACnetFaultParameterFaultOutOfRangeMinNormalValueReal(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, realValue BACnetApplicationTagReal) *_BACnetFaultParameterFaultOutOfRangeMinNormalValueReal {
 	if realValue == nil {
 		panic("realValue of type BACnetApplicationTagReal for BACnetFaultParameterFaultOutOfRangeMinNormalValueReal must not be nil")
 	}
 	_result := &_BACnetFaultParameterFaultOutOfRangeMinNormalValueReal{
-		BACnetFaultParameterFaultOutOfRangeMinNormalValueContract: NewBACnetFaultParameterFaultOutOfRangeMinNormalValue(openingTag, peekedTagHeader, closingTag, tagNumber),
+		BACnetFaultParameterFaultOutOfRangeMinNormalValueContract: NewBACnetFaultParameterFaultOutOfRangeMinNormalValue(openingTag, peekedTagHeader, closingTag),
 		RealValue: realValue,
 	}
 	_result.BACnetFaultParameterFaultOutOfRangeMinNormalValueContract.(*_BACnetFaultParameterFaultOutOfRangeMinNormalValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder struct {
 
 	parentBuilder *_BACnetFaultParameterFaultOutOfRangeMinNormalValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder) = (*_BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder) WithReal
 	var err error
 	b.RealValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagRealBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder) Build() (BACnetFaultParameterFaultOutOfRangeMinNormalValueReal, error) {
 	if b.RealValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'realValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'realValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetFaultParameterFaultOutOfRangeMinNormalValueReal.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder) buildFor
 
 func (b *_BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder().(*_BACnetFaultParameterFaultOutOfRangeMinNormalValueRealBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

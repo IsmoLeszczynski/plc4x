@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataTimerState = (*_BACnetConstructedDataTimerState)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataTimerState)(nil)
 
 // NewBACnetConstructedDataTimerState factory function for _BACnetConstructedDataTimerState
-func NewBACnetConstructedDataTimerState(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, timerState BACnetTimerStateTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataTimerState {
+func NewBACnetConstructedDataTimerState(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, timerState BACnetTimerStateTagged) *_BACnetConstructedDataTimerState {
 	if timerState == nil {
 		panic("timerState of type BACnetTimerStateTagged for BACnetConstructedDataTimerState must not be nil")
 	}
 	_result := &_BACnetConstructedDataTimerState{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		TimerState:                    timerState,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataTimerStateBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataTimerStateBuilder) = (*_BACnetConstructedDataTimerStateBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataTimerStateBuilder) WithTimerStateBuilder(builderS
 	var err error
 	b.TimerState, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTimerStateTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTimerStateTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataTimerStateBuilder) Build() (BACnetConstructedDataTimerState, error) {
 	if b.TimerState == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'timerState' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'timerState' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataTimerState.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataTimerStateBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataTimerStateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataTimerStateBuilder().(*_BACnetConstructedDataTimerStateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetNetworkPortCommandTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetNetworkPortCommand
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetNetworkPortCommandTagged = (*_BACnetNetworkPortCommandTagged)(nil)
 
 // NewBACnetNetworkPortCommandTagged factory function for _BACnetNetworkPortCommandTagged
-func NewBACnetNetworkPortCommandTagged(header BACnetTagHeader, value BACnetNetworkPortCommand, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetNetworkPortCommandTagged {
+func NewBACnetNetworkPortCommandTagged(header BACnetTagHeader, value BACnetNetworkPortCommand, proprietaryValue uint32) *_BACnetNetworkPortCommandTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetNetworkPortCommandTagged must not be nil")
 	}
-	return &_BACnetNetworkPortCommandTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetNetworkPortCommandTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetNetworkPortCommandTaggedBuilder interface {
 	WithValue(BACnetNetworkPortCommand) BACnetNetworkPortCommandTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetNetworkPortCommandTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetNetworkPortCommandTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetNetworkPortCommandTaggedBuilder
 	// Build builds the BACnetNetworkPortCommandTagged or returns an error if something is wrong
 	Build() (BACnetNetworkPortCommandTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetNetworkPortCommandTaggedBuilder() BACnetNetworkPortCommandTaggedBu
 type _BACnetNetworkPortCommandTaggedBuilder struct {
 	*_BACnetNetworkPortCommandTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNetworkPortCommandTaggedBuilder) = (*_BACnetNetworkPortCommandTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetNetworkPortCommandTaggedBuilder) WithHeaderBuilder(builderSuppli
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetNetworkPortCommandTaggedBuilder) WithProprietaryValue(proprietar
 	return b
 }
 
-func (b *_BACnetNetworkPortCommandTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetNetworkPortCommandTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetNetworkPortCommandTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetNetworkPortCommandTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetNetworkPortCommandTaggedBuilder) Build() (BACnetNetworkPortCommandTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNetworkPortCommandTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetNetworkPortCommandTaggedBuilder) MustBuild() BACnetNetworkPortCo
 
 func (b *_BACnetNetworkPortCommandTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetNetworkPortCommandTaggedBuilder().(*_BACnetNetworkPortCommandTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetNetworkPortCommandTaggedParseWithBufferProducer(tagNumber uint8, tagC
 }
 
 func BACnetNetworkPortCommandTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetNetworkPortCommandTagged, error) {
-	v, err := (&_BACnetNetworkPortCommandTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetNetworkPortCommandTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetNetworkPortCommandTagged) SerializeWithWriteBuffer(ctx context.C
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetNetworkPortCommandTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetNetworkPortCommandTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetNetworkPortCommandTagged) IsBACnetNetworkPortCommandTagged() {}
 
 func (m *_BACnetNetworkPortCommandTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_BACnetNetworkPortCommandTagged) deepCopy() *_BACnetNetworkPortCommandT
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetNetworkPortCommandTaggedCopy
 }

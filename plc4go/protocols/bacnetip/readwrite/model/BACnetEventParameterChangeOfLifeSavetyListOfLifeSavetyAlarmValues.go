@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,22 +57,19 @@ type _BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues struct {
 	OpeningTag                  BACnetOpeningTag
 	ListOfLifeSavetyAlarmValues []BACnetLifeSafetyStateTagged
 	ClosingTag                  BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues = (*_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues)(nil)
 
 // NewBACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues factory function for _BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues
-func NewBACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues(openingTag BACnetOpeningTag, listOfLifeSavetyAlarmValues []BACnetLifeSafetyStateTagged, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues {
+func NewBACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues(openingTag BACnetOpeningTag, listOfLifeSavetyAlarmValues []BACnetLifeSafetyStateTagged, closingTag BACnetClosingTag) *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues must not be nil")
 	}
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues must not be nil")
 	}
-	return &_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues{OpeningTag: openingTag, ListOfLifeSavetyAlarmValues: listOfLifeSavetyAlarmValues, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues{OpeningTag: openingTag, ListOfLifeSavetyAlarmValues: listOfLifeSavetyAlarmValues, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -94,8 +92,6 @@ type BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder in
 	WithClosingTag(BACnetClosingTag) BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder
 	// Build builds the BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues or returns an error if something is wrong
 	Build() (BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +106,7 @@ func NewBACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder
 type _BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder struct {
 	*_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder) = (*_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder)(nil)
@@ -129,10 +125,7 @@ func (b *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuild
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,34 +145,20 @@ func (b *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuild
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder) WithArgTagNumber(tagNumber uint8) BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder) Build() (BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues.deepCopy(), nil
 }
@@ -194,8 +173,8 @@ func (b *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuild
 
 func (b *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder().(*_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -284,7 +263,7 @@ func BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesParseWithB
 }
 
 func BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues, error) {
-	v, err := (&_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +339,6 @@ func (m *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues) Ser
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues) IsBACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues() {
 }
 
@@ -385,7 +354,6 @@ func (m *_BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValues) dee
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopySlice[BACnetLifeSafetyStateTagged, BACnetLifeSafetyStateTagged](m.ListOfLifeSavetyAlarmValues),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetEventParameterChangeOfLifeSavetyListOfLifeSavetyAlarmValuesCopy
 }

@@ -49,21 +49,13 @@ public class BACnetConstructedDataTransition extends BACnetConstructedData imple
   // Properties.
   protected final BACnetLightingTransitionTagged transition;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataTransition(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetLightingTransitionTagged transition,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetLightingTransitionTagged transition) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.transition = transition;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetLightingTransitionTagged getTransition() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataTransition extends BACnetConstructedData imple
     // Simple Field (transition)
     writeSimpleField("transition", transition, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetLightingTransitionTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,21 @@ public class BACnetConstructedDataTransition extends BACnetConstructedData imple
 
     readBuffer.closeContext("BACnetConstructedDataTransition");
     // Create the instance
-    return new BACnetConstructedDataTransitionBuilderImpl(
-        transition, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataTransitionBuilderImpl(transition);
   }
 
   public static class BACnetConstructedDataTransitionBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetLightingTransitionTagged transition;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataTransitionBuilderImpl(
-        BACnetLightingTransitionTagged transition,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataTransitionBuilderImpl(BACnetLightingTransitionTagged transition) {
       this.transition = transition;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataTransition build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataTransition bACnetConstructedDataTransition =
-          new BACnetConstructedDataTransition(
-              openingTag, peekedTagHeader, closingTag, transition, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataTransition(openingTag, peekedTagHeader, closingTag, transition);
       return bACnetConstructedDataTransition;
     }
   }

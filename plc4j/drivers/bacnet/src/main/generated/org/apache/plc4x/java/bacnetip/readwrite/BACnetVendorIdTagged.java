@@ -40,24 +40,15 @@ public class BACnetVendorIdTagged implements Message {
   // Properties.
   protected final BACnetTagHeader header;
   protected final BACnetVendorId value;
+
+  /** TODO: change to uint32 once cast is inserted */
   protected final long unknownId;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
-  public BACnetVendorIdTagged(
-      BACnetTagHeader header,
-      BACnetVendorId value,
-      long unknownId,
-      Short tagNumber,
-      TagClass tagClass) {
+  public BACnetVendorIdTagged(BACnetTagHeader header, BACnetVendorId value, long unknownId) {
     super();
     this.header = header;
     this.value = value;
     this.unknownId = unknownId;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -68,6 +59,7 @@ public class BACnetVendorIdTagged implements Message {
     return value;
   }
 
+  /** TODO: change to uint32 once cast is inserted */
   public long getUnknownId() {
     return unknownId;
   }
@@ -92,7 +84,7 @@ public class BACnetVendorIdTagged implements Message {
                 writeBuffer, value),
         writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isUnknownId = getIsUnknownId();
     writeBuffer.writeVirtual("isUnknownId", isUnknownId);
 
@@ -176,7 +168,7 @@ public class BACnetVendorIdTagged implements Message {
     readBuffer.closeContext("BACnetVendorIdTagged");
     // Create the instance
     BACnetVendorIdTagged _bACnetVendorIdTagged;
-    _bACnetVendorIdTagged = new BACnetVendorIdTagged(header, value, unknownId, tagNumber, tagClass);
+    _bACnetVendorIdTagged = new BACnetVendorIdTagged(header, value, unknownId);
     return _bACnetVendorIdTagged;
   }
 

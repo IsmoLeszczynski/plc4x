@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataUpdateInterval = (*_BACnetConstructedDataUpdateInterv
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataUpdateInterval)(nil)
 
 // NewBACnetConstructedDataUpdateInterval factory function for _BACnetConstructedDataUpdateInterval
-func NewBACnetConstructedDataUpdateInterval(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, updateInterval BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataUpdateInterval {
+func NewBACnetConstructedDataUpdateInterval(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, updateInterval BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataUpdateInterval {
 	if updateInterval == nil {
 		panic("updateInterval of type BACnetApplicationTagUnsignedInteger for BACnetConstructedDataUpdateInterval must not be nil")
 	}
 	_result := &_BACnetConstructedDataUpdateInterval{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		UpdateInterval:                updateInterval,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataUpdateIntervalBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataUpdateIntervalBuilder) = (*_BACnetConstructedDataUpdateIntervalBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataUpdateIntervalBuilder) WithUpdateIntervalBuilder(
 	var err error
 	b.UpdateInterval, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataUpdateIntervalBuilder) Build() (BACnetConstructedDataUpdateInterval, error) {
 	if b.UpdateInterval == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'updateInterval' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'updateInterval' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataUpdateInterval.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataUpdateIntervalBuilder) buildForBACnetConstructedD
 
 func (b *_BACnetConstructedDataUpdateIntervalBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataUpdateIntervalBuilder().(*_BACnetConstructedDataUpdateIntervalBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -52,16 +53,13 @@ type BACnetConfirmedServiceRequestUnknown interface {
 type _BACnetConfirmedServiceRequestUnknown struct {
 	BACnetConfirmedServiceRequestContract
 	UnknownBytes []byte
-
-	// Arguments.
-	ServiceRequestPayloadLength uint32
 }
 
 var _ BACnetConfirmedServiceRequestUnknown = (*_BACnetConfirmedServiceRequestUnknown)(nil)
 var _ BACnetConfirmedServiceRequestRequirements = (*_BACnetConfirmedServiceRequestUnknown)(nil)
 
 // NewBACnetConfirmedServiceRequestUnknown factory function for _BACnetConfirmedServiceRequestUnknown
-func NewBACnetConfirmedServiceRequestUnknown(unknownBytes []byte, serviceRequestPayloadLength uint32, serviceRequestLength uint32) *_BACnetConfirmedServiceRequestUnknown {
+func NewBACnetConfirmedServiceRequestUnknown(serviceRequestLength uint32, unknownBytes []byte) *_BACnetConfirmedServiceRequestUnknown {
 	_result := &_BACnetConfirmedServiceRequestUnknown{
 		BACnetConfirmedServiceRequestContract: NewBACnetConfirmedServiceRequest(serviceRequestLength),
 		UnknownBytes:                          unknownBytes,
@@ -82,8 +80,6 @@ type BACnetConfirmedServiceRequestUnknownBuilder interface {
 	WithMandatoryFields(unknownBytes []byte) BACnetConfirmedServiceRequestUnknownBuilder
 	// WithUnknownBytes adds UnknownBytes (property field)
 	WithUnknownBytes(...byte) BACnetConfirmedServiceRequestUnknownBuilder
-	// WithArgServiceRequestPayloadLength sets a parser argument
-	WithArgServiceRequestPayloadLength(uint32) BACnetConfirmedServiceRequestUnknownBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BACnetConfirmedServiceRequestBuilder
 	// Build builds the BACnetConfirmedServiceRequestUnknown or returns an error if something is wrong
@@ -102,7 +98,7 @@ type _BACnetConfirmedServiceRequestUnknownBuilder struct {
 
 	parentBuilder *_BACnetConfirmedServiceRequestBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConfirmedServiceRequestUnknownBuilder) = (*_BACnetConfirmedServiceRequestUnknownBuilder)(nil)
@@ -121,14 +117,9 @@ func (b *_BACnetConfirmedServiceRequestUnknownBuilder) WithUnknownBytes(unknownB
 	return b
 }
 
-func (b *_BACnetConfirmedServiceRequestUnknownBuilder) WithArgServiceRequestPayloadLength(serviceRequestPayloadLength uint32) BACnetConfirmedServiceRequestUnknownBuilder {
-	b.ServiceRequestPayloadLength = serviceRequestPayloadLength
-	return b
-}
-
 func (b *_BACnetConfirmedServiceRequestUnknownBuilder) Build() (BACnetConfirmedServiceRequestUnknown, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConfirmedServiceRequestUnknown.deepCopy(), nil
 }
@@ -154,8 +145,8 @@ func (b *_BACnetConfirmedServiceRequestUnknownBuilder) buildForBACnetConfirmedSe
 
 func (b *_BACnetConfirmedServiceRequestUnknownBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConfirmedServiceRequestUnknownBuilder().(*_BACnetConfirmedServiceRequestUnknownBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -289,16 +280,6 @@ func (m *_BACnetConfirmedServiceRequestUnknown) SerializeWithWriteBuffer(ctx con
 	return m.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetConfirmedServiceRequestUnknown) GetServiceRequestPayloadLength() uint32 {
-	return m.ServiceRequestPayloadLength
-}
-
-//
-////
-
 func (m *_BACnetConfirmedServiceRequestUnknown) IsBACnetConfirmedServiceRequestUnknown() {}
 
 func (m *_BACnetConfirmedServiceRequestUnknown) DeepCopy() any {
@@ -312,7 +293,6 @@ func (m *_BACnetConfirmedServiceRequestUnknown) deepCopy() *_BACnetConfirmedServ
 	_BACnetConfirmedServiceRequestUnknownCopy := &_BACnetConfirmedServiceRequestUnknown{
 		m.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest).deepCopy(),
 		utils.DeepCopySlice[byte, byte](m.UnknownBytes),
-		m.ServiceRequestPayloadLength,
 	}
 	_BACnetConfirmedServiceRequestUnknownCopy.BACnetConfirmedServiceRequestContract.(*_BACnetConfirmedServiceRequest)._SubType = m
 	return _BACnetConfirmedServiceRequestUnknownCopy

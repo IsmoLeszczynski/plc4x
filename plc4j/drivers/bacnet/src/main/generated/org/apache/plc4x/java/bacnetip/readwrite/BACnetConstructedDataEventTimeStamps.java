@@ -51,23 +51,15 @@ public class BACnetConstructedDataEventTimeStamps extends BACnetConstructedData 
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetTimeStamp> eventTimeStamps;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataEventTimeStamps(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetTimeStamp> eventTimeStamps,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetTimeStamp> eventTimeStamps) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.eventTimeStamps = eventTimeStamps;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -78,6 +70,7 @@ public class BACnetConstructedDataEventTimeStamps extends BACnetConstructedData 
     return eventTimeStamps;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -106,29 +99,25 @@ public class BACnetConstructedDataEventTimeStamps extends BACnetConstructedData 
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataEventTimeStamps");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (eventTimeStamps)
     writeComplexTypeArrayField("eventTimeStamps", eventTimeStamps, writeBuffer);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetTimeStamp toOffnormal = getToOffnormal();
     writeBuffer.writeVirtual("toOffnormal", toOffnormal);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetTimeStamp toFault = getToFault();
     writeBuffer.writeVirtual("toFault", toFault);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetTimeStamp toNormal = getToNormal();
     writeBuffer.writeVirtual("toNormal", toNormal);
 
@@ -222,42 +211,26 @@ public class BACnetConstructedDataEventTimeStamps extends BACnetConstructedData 
     readBuffer.closeContext("BACnetConstructedDataEventTimeStamps");
     // Create the instance
     return new BACnetConstructedDataEventTimeStampsBuilderImpl(
-        numberOfDataElements, eventTimeStamps, tagNumber, arrayIndexArgument);
+        numberOfDataElements, eventTimeStamps);
   }
 
   public static class BACnetConstructedDataEventTimeStampsBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetTimeStamp> eventTimeStamps;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataEventTimeStampsBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetTimeStamp> eventTimeStamps,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetTimeStamp> eventTimeStamps) {
       this.numberOfDataElements = numberOfDataElements;
       this.eventTimeStamps = eventTimeStamps;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataEventTimeStamps build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataEventTimeStamps bACnetConstructedDataEventTimeStamps =
           new BACnetConstructedDataEventTimeStamps(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              eventTimeStamps,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, eventTimeStamps);
       return bACnetConstructedDataEventTimeStamps;
     }
   }

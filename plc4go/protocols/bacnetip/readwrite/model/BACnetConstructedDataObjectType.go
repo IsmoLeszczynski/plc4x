@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataObjectType = (*_BACnetConstructedDataObjectType)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataObjectType)(nil)
 
 // NewBACnetConstructedDataObjectType factory function for _BACnetConstructedDataObjectType
-func NewBACnetConstructedDataObjectType(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, objectType BACnetObjectTypeTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataObjectType {
+func NewBACnetConstructedDataObjectType(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, objectType BACnetObjectTypeTagged) *_BACnetConstructedDataObjectType {
 	if objectType == nil {
 		panic("objectType of type BACnetObjectTypeTagged for BACnetConstructedDataObjectType must not be nil")
 	}
 	_result := &_BACnetConstructedDataObjectType{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ObjectType:                    objectType,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataObjectTypeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataObjectTypeBuilder) = (*_BACnetConstructedDataObjectTypeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataObjectTypeBuilder) WithObjectTypeBuilder(builderS
 	var err error
 	b.ObjectType, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetObjectTypeTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetObjectTypeTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataObjectTypeBuilder) Build() (BACnetConstructedDataObjectType, error) {
 	if b.ObjectType == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'objectType' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'objectType' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataObjectType.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataObjectTypeBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataObjectTypeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataObjectTypeBuilder().(*_BACnetConstructedDataObjectTypeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

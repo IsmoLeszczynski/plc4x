@@ -41,20 +41,10 @@ public class BACnetServicesSupportedTagged implements Message {
   protected final BACnetTagHeader header;
   protected final BACnetTagPayloadBitString payload;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
-  public BACnetServicesSupportedTagged(
-      BACnetTagHeader header,
-      BACnetTagPayloadBitString payload,
-      Short tagNumber,
-      TagClass tagClass) {
+  public BACnetServicesSupportedTagged(BACnetTagHeader header, BACnetTagPayloadBitString payload) {
     super();
     this.header = header;
     this.payload = payload;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -126,44 +116,44 @@ public class BACnetServicesSupportedTagged implements Message {
     // Simple Field (payload)
     writeSimpleField("payload", payload, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean writeGroup = getWriteGroup();
     writeBuffer.writeVirtual("writeGroup", writeGroup);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean subscribeCovPropertyMultiple = getSubscribeCovPropertyMultiple();
     writeBuffer.writeVirtual("subscribeCovPropertyMultiple", subscribeCovPropertyMultiple);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean confirmedCovNotificationMultiple = getConfirmedCovNotificationMultiple();
     writeBuffer.writeVirtual("confirmedCovNotificationMultiple", confirmedCovNotificationMultiple);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean unconfirmedCovNotificationMultiple = getUnconfirmedCovNotificationMultiple();
     writeBuffer.writeVirtual(
         "unconfirmedCovNotificationMultiple", unconfirmedCovNotificationMultiple);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean whoIs = getWhoIs();
     writeBuffer.writeVirtual("whoIs", whoIs);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean readRange = getReadRange();
     writeBuffer.writeVirtual("readRange", readRange);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean utcTimeSynchronization = getUtcTimeSynchronization();
     writeBuffer.writeVirtual("utcTimeSynchronization", utcTimeSynchronization);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean lifeSafetyOperation = getLifeSafetyOperation();
     writeBuffer.writeVirtual("lifeSafetyOperation", lifeSafetyOperation);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean subscribeCovProperty = getSubscribeCovProperty();
     writeBuffer.writeVirtual("subscribeCovProperty", subscribeCovProperty);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean getEventInformation = getGetEventInformation();
     writeBuffer.writeVirtual("getEventInformation", getEventInformation);
 
@@ -291,8 +281,7 @@ public class BACnetServicesSupportedTagged implements Message {
     readBuffer.closeContext("BACnetServicesSupportedTagged");
     // Create the instance
     BACnetServicesSupportedTagged _bACnetServicesSupportedTagged;
-    _bACnetServicesSupportedTagged =
-        new BACnetServicesSupportedTagged(header, payload, tagNumber, tagClass);
+    _bACnetServicesSupportedTagged = new BACnetServicesSupportedTagged(header, payload);
     return _bACnetServicesSupportedTagged;
   }
 

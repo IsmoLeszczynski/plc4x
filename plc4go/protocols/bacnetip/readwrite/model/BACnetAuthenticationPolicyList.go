@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,22 +57,19 @@ type _BACnetAuthenticationPolicyList struct {
 	OpeningTag BACnetOpeningTag
 	Entries    []BACnetAuthenticationPolicyListEntry
 	ClosingTag BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetAuthenticationPolicyList = (*_BACnetAuthenticationPolicyList)(nil)
 
 // NewBACnetAuthenticationPolicyList factory function for _BACnetAuthenticationPolicyList
-func NewBACnetAuthenticationPolicyList(openingTag BACnetOpeningTag, entries []BACnetAuthenticationPolicyListEntry, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetAuthenticationPolicyList {
+func NewBACnetAuthenticationPolicyList(openingTag BACnetOpeningTag, entries []BACnetAuthenticationPolicyListEntry, closingTag BACnetClosingTag) *_BACnetAuthenticationPolicyList {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetAuthenticationPolicyList must not be nil")
 	}
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetAuthenticationPolicyList must not be nil")
 	}
-	return &_BACnetAuthenticationPolicyList{OpeningTag: openingTag, Entries: entries, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetAuthenticationPolicyList{OpeningTag: openingTag, Entries: entries, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -94,8 +92,6 @@ type BACnetAuthenticationPolicyListBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetAuthenticationPolicyListBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetAuthenticationPolicyListBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetAuthenticationPolicyListBuilder
 	// Build builds the BACnetAuthenticationPolicyList or returns an error if something is wrong
 	Build() (BACnetAuthenticationPolicyList, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +106,7 @@ func NewBACnetAuthenticationPolicyListBuilder() BACnetAuthenticationPolicyListBu
 type _BACnetAuthenticationPolicyListBuilder struct {
 	*_BACnetAuthenticationPolicyList
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetAuthenticationPolicyListBuilder) = (*_BACnetAuthenticationPolicyListBuilder)(nil)
@@ -129,10 +125,7 @@ func (b *_BACnetAuthenticationPolicyListBuilder) WithOpeningTagBuilder(builderSu
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,34 +145,20 @@ func (b *_BACnetAuthenticationPolicyListBuilder) WithClosingTagBuilder(builderSu
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetAuthenticationPolicyListBuilder) WithArgTagNumber(tagNumber uint8) BACnetAuthenticationPolicyListBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetAuthenticationPolicyListBuilder) Build() (BACnetAuthenticationPolicyList, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetAuthenticationPolicyList.deepCopy(), nil
 }
@@ -194,8 +173,8 @@ func (b *_BACnetAuthenticationPolicyListBuilder) MustBuild() BACnetAuthenticatio
 
 func (b *_BACnetAuthenticationPolicyListBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetAuthenticationPolicyListBuilder().(*_BACnetAuthenticationPolicyListBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -284,7 +263,7 @@ func BACnetAuthenticationPolicyListParseWithBufferProducer(tagNumber uint8) func
 }
 
 func BACnetAuthenticationPolicyListParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetAuthenticationPolicyList, error) {
-	v, err := (&_BACnetAuthenticationPolicyList{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetAuthenticationPolicyList)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +339,6 @@ func (m *_BACnetAuthenticationPolicyList) SerializeWithWriteBuffer(ctx context.C
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetAuthenticationPolicyList) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetAuthenticationPolicyList) IsBACnetAuthenticationPolicyList() {}
 
 func (m *_BACnetAuthenticationPolicyList) DeepCopy() any {
@@ -384,7 +353,6 @@ func (m *_BACnetAuthenticationPolicyList) deepCopy() *_BACnetAuthenticationPolic
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopySlice[BACnetAuthenticationPolicyListEntry, BACnetAuthenticationPolicyListEntry](m.Entries),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetAuthenticationPolicyListCopy
 }

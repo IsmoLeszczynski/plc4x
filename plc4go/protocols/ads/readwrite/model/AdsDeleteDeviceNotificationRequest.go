@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type AdsDeleteDeviceNotificationRequest interface {
 	utils.Copyable
 	AmsPacket
 	// GetNotificationHandle returns NotificationHandle (property field)
+	// 4 bytes	Handle of notification
 	GetNotificationHandle() uint32
 	// IsAdsDeleteDeviceNotificationRequest is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsDeleteDeviceNotificationRequest()
@@ -97,7 +99,7 @@ type _AdsDeleteDeviceNotificationRequestBuilder struct {
 
 	parentBuilder *_AmsPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsDeleteDeviceNotificationRequestBuilder) = (*_AdsDeleteDeviceNotificationRequestBuilder)(nil)
@@ -117,8 +119,8 @@ func (b *_AdsDeleteDeviceNotificationRequestBuilder) WithNotificationHandle(noti
 }
 
 func (b *_AdsDeleteDeviceNotificationRequestBuilder) Build() (AdsDeleteDeviceNotificationRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsDeleteDeviceNotificationRequest.deepCopy(), nil
 }
@@ -144,8 +146,8 @@ func (b *_AdsDeleteDeviceNotificationRequestBuilder) buildForAmsPacket() (AmsPac
 
 func (b *_AdsDeleteDeviceNotificationRequestBuilder) DeepCopy() any {
 	_copy := b.CreateAdsDeleteDeviceNotificationRequestBuilder().(*_AdsDeleteDeviceNotificationRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

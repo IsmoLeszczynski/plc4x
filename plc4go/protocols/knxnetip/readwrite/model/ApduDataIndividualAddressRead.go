@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataIndividualAddressRead = (*_ApduDataIndividualAddressRead)(nil)
 var _ ApduDataRequirements = (*_ApduDataIndividualAddressRead)(nil)
 
 // NewApduDataIndividualAddressRead factory function for _ApduDataIndividualAddressRead
-func NewApduDataIndividualAddressRead(dataLength uint8) *_ApduDataIndividualAddressRead {
+func NewApduDataIndividualAddressRead() *_ApduDataIndividualAddressRead {
 	_result := &_ApduDataIndividualAddressRead{
-		ApduDataContract: NewApduData(dataLength),
+		ApduDataContract: NewApduData(),
 	}
 	_result.ApduDataContract.(*_ApduData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataIndividualAddressReadBuilder struct {
 
 	parentBuilder *_ApduDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataIndividualAddressReadBuilder) = (*_ApduDataIndividualAddressReadBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataIndividualAddressReadBuilder) WithMandatoryFields() ApduDataIn
 }
 
 func (b *_ApduDataIndividualAddressReadBuilder) Build() (ApduDataIndividualAddressRead, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataIndividualAddressRead.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataIndividualAddressReadBuilder) buildForApduData() (ApduData, er
 
 func (b *_ApduDataIndividualAddressReadBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataIndividualAddressReadBuilder().(*_ApduDataIndividualAddressReadBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

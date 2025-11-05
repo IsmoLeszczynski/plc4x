@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -52,16 +53,13 @@ type BACnetServiceAckAuthenticate interface {
 type _BACnetServiceAckAuthenticate struct {
 	BACnetServiceAckContract
 	BytesOfRemovedService []byte
-
-	// Arguments.
-	ServiceAckPayloadLength uint32
 }
 
 var _ BACnetServiceAckAuthenticate = (*_BACnetServiceAckAuthenticate)(nil)
 var _ BACnetServiceAckRequirements = (*_BACnetServiceAckAuthenticate)(nil)
 
 // NewBACnetServiceAckAuthenticate factory function for _BACnetServiceAckAuthenticate
-func NewBACnetServiceAckAuthenticate(bytesOfRemovedService []byte, serviceAckPayloadLength uint32, serviceAckLength uint32) *_BACnetServiceAckAuthenticate {
+func NewBACnetServiceAckAuthenticate(serviceAckLength uint32, bytesOfRemovedService []byte) *_BACnetServiceAckAuthenticate {
 	_result := &_BACnetServiceAckAuthenticate{
 		BACnetServiceAckContract: NewBACnetServiceAck(serviceAckLength),
 		BytesOfRemovedService:    bytesOfRemovedService,
@@ -82,8 +80,6 @@ type BACnetServiceAckAuthenticateBuilder interface {
 	WithMandatoryFields(bytesOfRemovedService []byte) BACnetServiceAckAuthenticateBuilder
 	// WithBytesOfRemovedService adds BytesOfRemovedService (property field)
 	WithBytesOfRemovedService(...byte) BACnetServiceAckAuthenticateBuilder
-	// WithArgServiceAckPayloadLength sets a parser argument
-	WithArgServiceAckPayloadLength(uint32) BACnetServiceAckAuthenticateBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() BACnetServiceAckBuilder
 	// Build builds the BACnetServiceAckAuthenticate or returns an error if something is wrong
@@ -102,7 +98,7 @@ type _BACnetServiceAckAuthenticateBuilder struct {
 
 	parentBuilder *_BACnetServiceAckBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetServiceAckAuthenticateBuilder) = (*_BACnetServiceAckAuthenticateBuilder)(nil)
@@ -121,14 +117,9 @@ func (b *_BACnetServiceAckAuthenticateBuilder) WithBytesOfRemovedService(bytesOf
 	return b
 }
 
-func (b *_BACnetServiceAckAuthenticateBuilder) WithArgServiceAckPayloadLength(serviceAckPayloadLength uint32) BACnetServiceAckAuthenticateBuilder {
-	b.ServiceAckPayloadLength = serviceAckPayloadLength
-	return b
-}
-
 func (b *_BACnetServiceAckAuthenticateBuilder) Build() (BACnetServiceAckAuthenticate, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetServiceAckAuthenticate.deepCopy(), nil
 }
@@ -154,8 +145,8 @@ func (b *_BACnetServiceAckAuthenticateBuilder) buildForBACnetServiceAck() (BACne
 
 func (b *_BACnetServiceAckAuthenticateBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetServiceAckAuthenticateBuilder().(*_BACnetServiceAckAuthenticateBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -289,16 +280,6 @@ func (m *_BACnetServiceAckAuthenticate) SerializeWithWriteBuffer(ctx context.Con
 	return m.BACnetServiceAckContract.(*_BACnetServiceAck).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetServiceAckAuthenticate) GetServiceAckPayloadLength() uint32 {
-	return m.ServiceAckPayloadLength
-}
-
-//
-////
-
 func (m *_BACnetServiceAckAuthenticate) IsBACnetServiceAckAuthenticate() {}
 
 func (m *_BACnetServiceAckAuthenticate) DeepCopy() any {
@@ -312,7 +293,6 @@ func (m *_BACnetServiceAckAuthenticate) deepCopy() *_BACnetServiceAckAuthenticat
 	_BACnetServiceAckAuthenticateCopy := &_BACnetServiceAckAuthenticate{
 		m.BACnetServiceAckContract.(*_BACnetServiceAck).deepCopy(),
 		utils.DeepCopySlice[byte, byte](m.BytesOfRemovedService),
-		m.ServiceAckPayloadLength,
 	}
 	_BACnetServiceAckAuthenticateCopy.BACnetServiceAckContract.(*_BACnetServiceAck)._SubType = m
 	return _BACnetServiceAckAuthenticateCopy

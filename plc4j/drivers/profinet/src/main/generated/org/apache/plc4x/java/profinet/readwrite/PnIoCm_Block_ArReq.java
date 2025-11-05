@@ -50,7 +50,10 @@ public class PnIoCm_Block_ArReq extends PnIoCm_Block implements Message {
   protected final int sessionKey;
   protected final MacAddress cmInitiatorMacAddr;
   protected final DceRpc_ObjectUuid cmInitiatorObjectUuid;
+
+  /** Begin ARProperties */
   protected final boolean pullModuleAlarmAllowed;
+
   protected final boolean advancedStartupMode;
   protected final boolean combinedObjectContainerUsed;
   protected final boolean acknowledgeCompanionAr;
@@ -59,10 +62,12 @@ public class PnIoCm_Block_ArReq extends PnIoCm_Block implements Message {
   protected final boolean cmInitiator;
   protected final boolean supervisorTakeoverAllowed;
   protected final PnIoCm_State state;
+
+  /** End ARProperties */
   protected final int cmInitiatorActivityTimeoutFactor;
+
   protected final int cmInitiatorUdpRtPort;
   protected final String cmInitiatorStationName;
-
   // Reserved Fields
   private Integer reservedField0;
   private Byte reservedField1;
@@ -137,6 +142,7 @@ public class PnIoCm_Block_ArReq extends PnIoCm_Block implements Message {
     return cmInitiatorObjectUuid;
   }
 
+  /** Begin ARProperties */
   public boolean getPullModuleAlarmAllowed() {
     return pullModuleAlarmAllowed;
   }
@@ -173,6 +179,7 @@ public class PnIoCm_Block_ArReq extends PnIoCm_Block implements Message {
     return state;
   }
 
+  /** End ARProperties */
   public int getCmInitiatorActivityTimeoutFactor() {
     return cmInitiatorActivityTimeoutFactor;
   }

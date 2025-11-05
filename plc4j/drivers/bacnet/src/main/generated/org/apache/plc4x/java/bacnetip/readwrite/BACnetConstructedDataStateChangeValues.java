@@ -52,23 +52,15 @@ public class BACnetConstructedDataStateChangeValues extends BACnetConstructedDat
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetTimerStateChangeValue> stateChangeValues;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataStateChangeValues(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetTimerStateChangeValue> stateChangeValues,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetTimerStateChangeValue> stateChangeValues) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.stateChangeValues = stateChangeValues;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataStateChangeValues extends BACnetConstructedDat
     return stateChangeValues;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -92,16 +85,12 @@ public class BACnetConstructedDataStateChangeValues extends BACnetConstructedDat
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataStateChangeValues");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (stateChangeValues)
     writeComplexTypeArrayField("stateChangeValues", stateChangeValues, writeBuffer);
@@ -179,42 +168,26 @@ public class BACnetConstructedDataStateChangeValues extends BACnetConstructedDat
     readBuffer.closeContext("BACnetConstructedDataStateChangeValues");
     // Create the instance
     return new BACnetConstructedDataStateChangeValuesBuilderImpl(
-        numberOfDataElements, stateChangeValues, tagNumber, arrayIndexArgument);
+        numberOfDataElements, stateChangeValues);
   }
 
   public static class BACnetConstructedDataStateChangeValuesBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetTimerStateChangeValue> stateChangeValues;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataStateChangeValuesBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetTimerStateChangeValue> stateChangeValues,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetTimerStateChangeValue> stateChangeValues) {
       this.numberOfDataElements = numberOfDataElements;
       this.stateChangeValues = stateChangeValues;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataStateChangeValues build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataStateChangeValues bACnetConstructedDataStateChangeValues =
           new BACnetConstructedDataStateChangeValues(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              numberOfDataElements,
-              stateChangeValues,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, numberOfDataElements, stateChangeValues);
       return bACnetConstructedDataStateChangeValues;
     }
   }

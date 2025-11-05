@@ -40,14 +40,19 @@ public abstract class BACnetServiceAck implements Message {
   // Abstract accessors for discriminator values.
   public abstract BACnetConfirmedServiceChoice getServiceChoice();
 
-  // Arguments.
-  protected final Long serviceAckLength;
+  // Properties.
+  protected final long serviceAckLength;
 
-  public BACnetServiceAck(Long serviceAckLength) {
+  public BACnetServiceAck(long serviceAckLength) {
     super();
     this.serviceAckLength = serviceAckLength;
   }
 
+  public long getServiceAckLength() {
+    return serviceAckLength;
+  }
+
+  /** we subtract serviceChoice from our payload */
   public long getServiceAckPayloadLength() {
     return (long) (((((serviceAckLength) > (0))) ? ((serviceAckLength) - (1L)) : 0L));
   }
@@ -70,7 +75,7 @@ public abstract class BACnetServiceAck implements Message {
             BACnetConfirmedServiceChoice::name,
             writeUnsignedShort(writeBuffer, 8)));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     long serviceAckPayloadLength = getServiceAckPayloadLength();
     writeBuffer.writeVirtual("serviceAckPayloadLength", serviceAckPayloadLength);
 
@@ -198,12 +203,11 @@ public abstract class BACnetServiceAck implements Message {
     readBuffer.closeContext("BACnetServiceAck");
     // Create the instance
     BACnetServiceAck _bACnetServiceAck = builder.build(serviceAckLength);
-
     return _bACnetServiceAck;
   }
 
   public interface BACnetServiceAckBuilder {
-    BACnetServiceAck build(Long serviceAckLength);
+    BACnetServiceAck build(long serviceAckLength);
   }
 
   @Override
@@ -215,12 +219,12 @@ public abstract class BACnetServiceAck implements Message {
       return false;
     }
     BACnetServiceAck that = (BACnetServiceAck) o;
-    return true;
+    return (getServiceAckLength() == that.getServiceAckLength()) && true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash();
+    return Objects.hash(getServiceAckLength());
   }
 
   @Override

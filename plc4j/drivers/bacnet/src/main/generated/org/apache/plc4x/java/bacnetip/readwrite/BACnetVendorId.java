@@ -1790,6 +1790,30 @@ public enum BACnetVendorId {
   ZAPHIREAS((int) 1557, (int) 1557, (String) "Zaphire AS"),
   AJ_MANUFACTURING((int) 1558, (int) 1558, (String) "AJ Manufacturing"),
   FUTURE_MOTORS_LTD((int) 1559, (int) 1559, (String) "Future Motors Ltd."),
+  HIMEL_HONG_KONG_LIMITED((int) 1560, (int) 1560, (String) "Himel Hong Kong Limited"),
+  SHENZHEN_SUNRICHER_TECHNOLOGY_CO_LTD(
+      (int) 1561, (int) 1561, (String) "Shenzhen Sunricher Technology Co., Ltd."),
+  ACTILITYSA((int) 1562, (int) 1562, (String) "Actility S.A."),
+  OY_HALTON_GROUP_LTD((int) 1563, (int) 1563, (String) "Oy Halton Group Ltd."),
+  AVTECH_SOFTWARE_INC((int) 1564, (int) 1564, (String) "AVTECH Software, Inc."),
+  IN_CONTROL_ENGINEERINGLLC((int) 1565, (int) 1565, (String) "InControl Engineering LLC"),
+  SOUND_WATER_TECHNOLOGIESLLC((int) 1566, (int) 1566, (String) "SoundWater Technologies LLC"),
+  CIRCULAR_BV((int) 1567, (int) 1567, (String) "Circular Bv"),
+  NORMATICAS((int) 1568, (int) 1568, (String) "Normatic AS"),
+  DOCK_RD((int) 1569, (int) 1569, (String) "Dock Rd"),
+  SMARTD_TECHNOLOGIES_INC((int) 1570, (int) 1570, (String) "SmartD Technologies Inc."),
+  LINEOF_SIGHT_SERVICESLLC((int) 1571, (int) 1571, (String) "Line of Sight Services LLC"),
+  LAIIER_LTD((int) 1572, (int) 1572, (String) "LAIIER Ltd."),
+  ANTEC_CONTROLS((int) 1573, (int) 1573, (String) "Antec Controls"),
+  CG_CONCEPTION((int) 1574, (int) 1574, (String) "CG Conception"),
+  SHANGHAI_YUAN_KONG_AUTOMATION_TECHNOLOGY_CO_LTD(
+      (int) 1575, (int) 1575, (String) "Shanghai YuanKong Automation Technology Co., Ltd."),
+  ARMATURALLC((int) 1576, (int) 1576, (String) "Armatura LLC"),
+  INGYBV((int) 1577, (int) 1577, (String) "Ingy BV"),
+  HEARTFUL_CODE((int) 1578, (int) 1578, (String) "Heartful Code"),
+  SYSTEM_MART_LTD((int) 1579, (int) 1579, (String) "System Mart Ltd."),
+  SPOT_GMBH((int) 1580, (int) 1580, (String) "Spot7 GmbH"),
+  INTEMPCO_CONTROLS_LTD((int) 1581, (int) 1581, (String) "Intempco Controls Ltd."),
   UNKNOWN_VENDOR((int) 0xFFFF, (int) 0xFFFF, (String) "Unknown");
   private static final Map<Integer, BACnetVendorId> map;
 

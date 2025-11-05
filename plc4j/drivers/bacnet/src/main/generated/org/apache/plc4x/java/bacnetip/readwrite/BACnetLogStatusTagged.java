@@ -41,20 +41,10 @@ public class BACnetLogStatusTagged implements Message {
   protected final BACnetTagHeader header;
   protected final BACnetTagPayloadBitString payload;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
-  public BACnetLogStatusTagged(
-      BACnetTagHeader header,
-      BACnetTagPayloadBitString payload,
-      Short tagNumber,
-      TagClass tagClass) {
+  public BACnetLogStatusTagged(BACnetTagHeader header, BACnetTagPayloadBitString payload) {
     super();
     this.header = header;
     this.payload = payload;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -91,15 +81,15 @@ public class BACnetLogStatusTagged implements Message {
     // Simple Field (payload)
     writeSimpleField("payload", payload, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean logDisabled = getLogDisabled();
     writeBuffer.writeVirtual("logDisabled", logDisabled);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean bufferPurged = getBufferPurged();
     writeBuffer.writeVirtual("bufferPurged", bufferPurged);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean logInterrupted = getLogInterrupted();
     writeBuffer.writeVirtual("logInterrupted", logInterrupted);
 
@@ -178,7 +168,7 @@ public class BACnetLogStatusTagged implements Message {
     readBuffer.closeContext("BACnetLogStatusTagged");
     // Create the instance
     BACnetLogStatusTagged _bACnetLogStatusTagged;
-    _bACnetLogStatusTagged = new BACnetLogStatusTagged(header, payload, tagNumber, tagClass);
+    _bACnetLogStatusTagged = new BACnetLogStatusTagged(header, payload);
     return _bACnetLogStatusTagged;
   }
 

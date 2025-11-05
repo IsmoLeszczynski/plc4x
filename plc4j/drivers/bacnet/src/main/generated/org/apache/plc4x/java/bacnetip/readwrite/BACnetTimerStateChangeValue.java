@@ -42,14 +42,9 @@ public abstract class BACnetTimerStateChangeValue implements Message {
   // Properties.
   protected final BACnetTagHeader peekedTagHeader;
 
-  // Arguments.
-  protected final BACnetObjectType objectTypeArgument;
-
-  public BACnetTimerStateChangeValue(
-      BACnetTagHeader peekedTagHeader, BACnetObjectType objectTypeArgument) {
+  public BACnetTimerStateChangeValue(BACnetTagHeader peekedTagHeader) {
     super();
     this.peekedTagHeader = peekedTagHeader;
-    this.objectTypeArgument = objectTypeArgument;
   }
 
   public BACnetTagHeader getPeekedTagHeader() {
@@ -72,11 +67,11 @@ public abstract class BACnetTimerStateChangeValue implements Message {
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetTimerStateChangeValue");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     short peekedTagNumber = getPeekedTagNumber();
     writeBuffer.writeVirtual("peekedTagNumber", peekedTagNumber);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean peekedIsContextTag = getPeekedIsContextTag();
     writeBuffer.writeVirtual("peekedIsContextTag", peekedIsContextTag);
 
@@ -232,14 +227,12 @@ public abstract class BACnetTimerStateChangeValue implements Message {
 
     readBuffer.closeContext("BACnetTimerStateChangeValue");
     // Create the instance
-    BACnetTimerStateChangeValue _bACnetTimerStateChangeValue =
-        builder.build(peekedTagHeader, objectTypeArgument);
+    BACnetTimerStateChangeValue _bACnetTimerStateChangeValue = builder.build(peekedTagHeader);
     return _bACnetTimerStateChangeValue;
   }
 
   public interface BACnetTimerStateChangeValueBuilder {
-    BACnetTimerStateChangeValue build(
-        BACnetTagHeader peekedTagHeader, BACnetObjectType objectTypeArgument);
+    BACnetTimerStateChangeValue build(BACnetTagHeader peekedTagHeader);
   }
 
   @Override

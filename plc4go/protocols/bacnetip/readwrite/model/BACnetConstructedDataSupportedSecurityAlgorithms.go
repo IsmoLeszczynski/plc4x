@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataSupportedSecurityAlgorithms = (*_BACnetConstructedDat
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataSupportedSecurityAlgorithms)(nil)
 
 // NewBACnetConstructedDataSupportedSecurityAlgorithms factory function for _BACnetConstructedDataSupportedSecurityAlgorithms
-func NewBACnetConstructedDataSupportedSecurityAlgorithms(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, supportedSecurityAlgorithms []BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataSupportedSecurityAlgorithms {
+func NewBACnetConstructedDataSupportedSecurityAlgorithms(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, supportedSecurityAlgorithms []BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataSupportedSecurityAlgorithms {
 	_result := &_BACnetConstructedDataSupportedSecurityAlgorithms{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		SupportedSecurityAlgorithms:   supportedSecurityAlgorithms,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataSupportedSecurityAlgorithmsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataSupportedSecurityAlgorithmsBuilder) = (*_BACnetConstructedDataSupportedSecurityAlgorithmsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataSupportedSecurityAlgorithmsBuilder) WithSupported
 }
 
 func (b *_BACnetConstructedDataSupportedSecurityAlgorithmsBuilder) Build() (BACnetConstructedDataSupportedSecurityAlgorithms, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataSupportedSecurityAlgorithms.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataSupportedSecurityAlgorithmsBuilder) buildForBACne
 
 func (b *_BACnetConstructedDataSupportedSecurityAlgorithmsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataSupportedSecurityAlgorithmsBuilder().(*_BACnetConstructedDataSupportedSecurityAlgorithmsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

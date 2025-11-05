@@ -37,12 +37,16 @@ import org.apache.plc4x.java.spi.generation.*;
 
 public class BACnetTagPayloadBoolean implements Message {
 
-  // Arguments.
-  protected final Long actualLength;
+  // Properties.
+  protected final long actualLength;
 
-  public BACnetTagPayloadBoolean(Long actualLength) {
+  public BACnetTagPayloadBoolean(long actualLength) {
     super();
     this.actualLength = actualLength;
+  }
+
+  public long getActualLength() {
+    return actualLength;
   }
 
   public boolean getValue() {
@@ -62,15 +66,15 @@ public class BACnetTagPayloadBoolean implements Message {
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetTagPayloadBoolean");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean value = getValue();
     writeBuffer.writeVirtual("value", value);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isTrue = getIsTrue();
     writeBuffer.writeVirtual("isTrue", isTrue);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isFalse = getIsFalse();
     writeBuffer.writeVirtual("isFalse", isFalse);
 
@@ -110,7 +114,6 @@ public class BACnetTagPayloadBoolean implements Message {
     // Create the instance
     BACnetTagPayloadBoolean _bACnetTagPayloadBoolean;
     _bACnetTagPayloadBoolean = new BACnetTagPayloadBoolean(actualLength);
-
     return _bACnetTagPayloadBoolean;
   }
 
@@ -123,12 +126,12 @@ public class BACnetTagPayloadBoolean implements Message {
       return false;
     }
     BACnetTagPayloadBoolean that = (BACnetTagPayloadBoolean) o;
-    return true;
+    return (getActualLength() == that.getActualLength()) && true;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash();
+    return Objects.hash(getActualLength());
   }
 
   @Override

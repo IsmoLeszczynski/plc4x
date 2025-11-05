@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataCredentialsInZone = (*_BACnetConstructedDataCredentia
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataCredentialsInZone)(nil)
 
 // NewBACnetConstructedDataCredentialsInZone factory function for _BACnetConstructedDataCredentialsInZone
-func NewBACnetConstructedDataCredentialsInZone(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, credentialsInZone []BACnetDeviceObjectReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataCredentialsInZone {
+func NewBACnetConstructedDataCredentialsInZone(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, credentialsInZone []BACnetDeviceObjectReference) *_BACnetConstructedDataCredentialsInZone {
 	_result := &_BACnetConstructedDataCredentialsInZone{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		CredentialsInZone:             credentialsInZone,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataCredentialsInZoneBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataCredentialsInZoneBuilder) = (*_BACnetConstructedDataCredentialsInZoneBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataCredentialsInZoneBuilder) WithCredentialsInZone(c
 }
 
 func (b *_BACnetConstructedDataCredentialsInZoneBuilder) Build() (BACnetConstructedDataCredentialsInZone, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataCredentialsInZone.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataCredentialsInZoneBuilder) buildForBACnetConstruct
 
 func (b *_BACnetConstructedDataCredentialsInZoneBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataCredentialsInZoneBuilder().(*_BACnetConstructedDataCredentialsInZoneBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

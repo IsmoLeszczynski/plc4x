@@ -41,20 +41,10 @@ public class BACnetStatusFlagsTagged implements Message {
   protected final BACnetTagHeader header;
   protected final BACnetTagPayloadBitString payload;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final TagClass tagClass;
-
-  public BACnetStatusFlagsTagged(
-      BACnetTagHeader header,
-      BACnetTagPayloadBitString payload,
-      Short tagNumber,
-      TagClass tagClass) {
+  public BACnetStatusFlagsTagged(BACnetTagHeader header, BACnetTagPayloadBitString payload) {
     super();
     this.header = header;
     this.payload = payload;
-    this.tagNumber = tagNumber;
-    this.tagClass = tagClass;
   }
 
   public BACnetTagHeader getHeader() {
@@ -96,19 +86,19 @@ public class BACnetStatusFlagsTagged implements Message {
     // Simple Field (payload)
     writeSimpleField("payload", payload, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean inAlarm = getInAlarm();
     writeBuffer.writeVirtual("inAlarm", inAlarm);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean fault = getFault();
     writeBuffer.writeVirtual("fault", fault);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean overridden = getOverridden();
     writeBuffer.writeVirtual("overridden", overridden);
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean outOfService = getOutOfService();
     writeBuffer.writeVirtual("outOfService", outOfService);
 
@@ -194,7 +184,7 @@ public class BACnetStatusFlagsTagged implements Message {
     readBuffer.closeContext("BACnetStatusFlagsTagged");
     // Create the instance
     BACnetStatusFlagsTagged _bACnetStatusFlagsTagged;
-    _bACnetStatusFlagsTagged = new BACnetStatusFlagsTagged(header, payload, tagNumber, tagClass);
+    _bACnetStatusFlagsTagged = new BACnetStatusFlagsTagged(header, payload);
     return _bACnetStatusFlagsTagged;
   }
 

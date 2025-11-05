@@ -50,21 +50,13 @@ public class BACnetConstructedDataAccompanimentTime extends BACnetConstructedDat
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger accompanimentTime;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataAccompanimentTime(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger accompanimentTime,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger accompanimentTime) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.accompanimentTime = accompanimentTime;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getAccompanimentTime() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataAccompanimentTime extends BACnetConstructedDat
     // Simple Field (accompanimentTime)
     writeSimpleField("accompanimentTime", accompanimentTime, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -136,39 +128,23 @@ public class BACnetConstructedDataAccompanimentTime extends BACnetConstructedDat
 
     readBuffer.closeContext("BACnetConstructedDataAccompanimentTime");
     // Create the instance
-    return new BACnetConstructedDataAccompanimentTimeBuilderImpl(
-        accompanimentTime, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataAccompanimentTimeBuilderImpl(accompanimentTime);
   }
 
   public static class BACnetConstructedDataAccompanimentTimeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger accompanimentTime;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataAccompanimentTimeBuilderImpl(
-        BACnetApplicationTagUnsignedInteger accompanimentTime,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger accompanimentTime) {
       this.accompanimentTime = accompanimentTime;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataAccompanimentTime build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataAccompanimentTime bACnetConstructedDataAccompanimentTime =
           new BACnetConstructedDataAccompanimentTime(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              accompanimentTime,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, accompanimentTime);
       return bACnetConstructedDataAccompanimentTime;
     }
   }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ IdentifyReplyCommandFirmwareVersion = (*_IdentifyReplyCommandFirmwareVersi
 var _ IdentifyReplyCommandRequirements = (*_IdentifyReplyCommandFirmwareVersion)(nil)
 
 // NewIdentifyReplyCommandFirmwareVersion factory function for _IdentifyReplyCommandFirmwareVersion
-func NewIdentifyReplyCommandFirmwareVersion(firmwareVersion string, numBytes uint8) *_IdentifyReplyCommandFirmwareVersion {
+func NewIdentifyReplyCommandFirmwareVersion(firmwareVersion string) *_IdentifyReplyCommandFirmwareVersion {
 	_result := &_IdentifyReplyCommandFirmwareVersion{
-		IdentifyReplyCommandContract: NewIdentifyReplyCommand(numBytes),
+		IdentifyReplyCommandContract: NewIdentifyReplyCommand(),
 		FirmwareVersion:              firmwareVersion,
 	}
 	_result.IdentifyReplyCommandContract.(*_IdentifyReplyCommand)._SubType = _result
@@ -97,7 +98,7 @@ type _IdentifyReplyCommandFirmwareVersionBuilder struct {
 
 	parentBuilder *_IdentifyReplyCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (IdentifyReplyCommandFirmwareVersionBuilder) = (*_IdentifyReplyCommandFirmwareVersionBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_IdentifyReplyCommandFirmwareVersionBuilder) WithFirmwareVersion(firmwa
 }
 
 func (b *_IdentifyReplyCommandFirmwareVersionBuilder) Build() (IdentifyReplyCommandFirmwareVersion, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._IdentifyReplyCommandFirmwareVersion.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_IdentifyReplyCommandFirmwareVersionBuilder) buildForIdentifyReplyComma
 
 func (b *_IdentifyReplyCommandFirmwareVersionBuilder) DeepCopy() any {
 	_copy := b.CreateIdentifyReplyCommandFirmwareVersionBuilder().(*_IdentifyReplyCommandFirmwareVersionBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

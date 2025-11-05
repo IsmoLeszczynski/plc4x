@@ -52,23 +52,15 @@ public class BACnetConstructedDataAuthenticationPolicyNames extends BACnetConstr
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetApplicationTagCharacterString> authenticationPolicyNames;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataAuthenticationPolicyNames(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetApplicationTagCharacterString> authenticationPolicyNames,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetApplicationTagCharacterString> authenticationPolicyNames) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.authenticationPolicyNames = authenticationPolicyNames;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataAuthenticationPolicyNames extends BACnetConstr
     return authenticationPolicyNames;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -92,16 +85,12 @@ public class BACnetConstructedDataAuthenticationPolicyNames extends BACnetConstr
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataAuthenticationPolicyNames");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (authenticationPolicyNames)
     writeComplexTypeArrayField("authenticationPolicyNames", authenticationPolicyNames, writeBuffer);
@@ -175,33 +164,23 @@ public class BACnetConstructedDataAuthenticationPolicyNames extends BACnetConstr
     readBuffer.closeContext("BACnetConstructedDataAuthenticationPolicyNames");
     // Create the instance
     return new BACnetConstructedDataAuthenticationPolicyNamesBuilderImpl(
-        numberOfDataElements, authenticationPolicyNames, tagNumber, arrayIndexArgument);
+        numberOfDataElements, authenticationPolicyNames);
   }
 
   public static class BACnetConstructedDataAuthenticationPolicyNamesBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetApplicationTagCharacterString> authenticationPolicyNames;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataAuthenticationPolicyNamesBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetApplicationTagCharacterString> authenticationPolicyNames,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetApplicationTagCharacterString> authenticationPolicyNames) {
       this.numberOfDataElements = numberOfDataElements;
       this.authenticationPolicyNames = authenticationPolicyNames;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataAuthenticationPolicyNames build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataAuthenticationPolicyNames
           bACnetConstructedDataAuthenticationPolicyNames =
               new BACnetConstructedDataAuthenticationPolicyNames(
@@ -209,9 +188,7 @@ public class BACnetConstructedDataAuthenticationPolicyNames extends BACnetConstr
                   peekedTagHeader,
                   closingTag,
                   numberOfDataElements,
-                  authenticationPolicyNames,
-                  tagNumber,
-                  arrayIndexArgument);
+                  authenticationPolicyNames);
       return bACnetConstructedDataAuthenticationPolicyNames;
     }
   }

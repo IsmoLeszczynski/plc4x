@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -49,8 +50,6 @@ type BACnetUnconfirmedServiceRequest interface {
 
 // BACnetUnconfirmedServiceRequestContract provides a set of functions which can be overwritten by a sub struct
 type BACnetUnconfirmedServiceRequestContract interface {
-	// GetServiceRequestLength() returns a parser argument
-	GetServiceRequestLength() uint16
 	// IsBACnetUnconfirmedServiceRequest is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetUnconfirmedServiceRequest()
 	// CreateBuilder creates a BACnetUnconfirmedServiceRequestBuilder
@@ -71,16 +70,13 @@ type _BACnetUnconfirmedServiceRequest struct {
 		BACnetUnconfirmedServiceRequestContract
 		BACnetUnconfirmedServiceRequestRequirements
 	}
-
-	// Arguments.
-	ServiceRequestLength uint16
 }
 
 var _ BACnetUnconfirmedServiceRequestContract = (*_BACnetUnconfirmedServiceRequest)(nil)
 
 // NewBACnetUnconfirmedServiceRequest factory function for _BACnetUnconfirmedServiceRequest
-func NewBACnetUnconfirmedServiceRequest(serviceRequestLength uint16) *_BACnetUnconfirmedServiceRequest {
-	return &_BACnetUnconfirmedServiceRequest{ServiceRequestLength: serviceRequestLength}
+func NewBACnetUnconfirmedServiceRequest() *_BACnetUnconfirmedServiceRequest {
+	return &_BACnetUnconfirmedServiceRequest{}
 }
 
 ///////////////////////////////////////////////////////////
@@ -93,8 +89,6 @@ type BACnetUnconfirmedServiceRequestBuilder interface {
 	utils.Copyable
 	// WithMandatoryFields adds all mandatory fields (convenience for using multiple builder calls)
 	WithMandatoryFields() BACnetUnconfirmedServiceRequestBuilder
-	// WithArgServiceRequestLength sets a parser argument
-	WithArgServiceRequestLength(uint16) BACnetUnconfirmedServiceRequestBuilder
 	// AsBACnetUnconfirmedServiceRequestIAm converts this build to a subType of BACnetUnconfirmedServiceRequest. It is always possible to return to current builder using Done()
 	AsBACnetUnconfirmedServiceRequestIAm() BACnetUnconfirmedServiceRequestIAmBuilder
 	// AsBACnetUnconfirmedServiceRequestIHave converts this build to a subType of BACnetUnconfirmedServiceRequest. It is always possible to return to current builder using Done()
@@ -147,7 +141,7 @@ type _BACnetUnconfirmedServiceRequestBuilder struct {
 
 	childBuilder _BACnetUnconfirmedServiceRequestChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetUnconfirmedServiceRequestBuilder) = (*_BACnetUnconfirmedServiceRequestBuilder)(nil)
@@ -156,14 +150,9 @@ func (b *_BACnetUnconfirmedServiceRequestBuilder) WithMandatoryFields() BACnetUn
 	return b
 }
 
-func (b *_BACnetUnconfirmedServiceRequestBuilder) WithArgServiceRequestLength(serviceRequestLength uint16) BACnetUnconfirmedServiceRequestBuilder {
-	b.ServiceRequestLength = serviceRequestLength
-	return b
-}
-
 func (b *_BACnetUnconfirmedServiceRequestBuilder) PartialBuild() (BACnetUnconfirmedServiceRequestContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetUnconfirmedServiceRequest.deepCopy(), nil
 }
@@ -330,8 +319,8 @@ func (b *_BACnetUnconfirmedServiceRequestBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetUnconfirmedServiceRequestBuilder().(*_BACnetUnconfirmedServiceRequestBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_BACnetUnconfirmedServiceRequestChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -396,7 +385,7 @@ func BACnetUnconfirmedServiceRequestParseWithBufferProducer[T BACnetUnconfirmedS
 }
 
 func BACnetUnconfirmedServiceRequestParseWithBuffer[T BACnetUnconfirmedServiceRequest](ctx context.Context, readBuffer utils.ReadBuffer, serviceRequestLength uint16) (T, error) {
-	v, err := (&_BACnetUnconfirmedServiceRequest{ServiceRequestLength: serviceRequestLength}).parse(ctx, readBuffer, serviceRequestLength)
+	v, err := (new(_BACnetUnconfirmedServiceRequest)).parse(ctx, readBuffer, serviceRequestLength)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -516,16 +505,6 @@ func (pm *_BACnetUnconfirmedServiceRequest) serializeParent(ctx context.Context,
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetUnconfirmedServiceRequest) GetServiceRequestLength() uint16 {
-	return m.ServiceRequestLength
-}
-
-//
-////
-
 func (m *_BACnetUnconfirmedServiceRequest) IsBACnetUnconfirmedServiceRequest() {}
 
 func (m *_BACnetUnconfirmedServiceRequest) DeepCopy() any {
@@ -538,7 +517,6 @@ func (m *_BACnetUnconfirmedServiceRequest) deepCopy() *_BACnetUnconfirmedService
 	}
 	_BACnetUnconfirmedServiceRequestCopy := &_BACnetUnconfirmedServiceRequest{
 		nil, // will be set by child
-		m.ServiceRequestLength,
 	}
 	return _BACnetUnconfirmedServiceRequestCopy
 }

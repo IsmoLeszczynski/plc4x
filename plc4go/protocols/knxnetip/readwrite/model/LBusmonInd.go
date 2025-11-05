@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -67,12 +68,12 @@ var _ LBusmonInd = (*_LBusmonInd)(nil)
 var _ CEMIRequirements = (*_LBusmonInd)(nil)
 
 // NewLBusmonInd factory function for _LBusmonInd
-func NewLBusmonInd(additionalInformationLength uint8, additionalInformation []CEMIAdditionalInformation, dataFrame LDataFrame, crc *uint8, size uint16) *_LBusmonInd {
+func NewLBusmonInd(additionalInformationLength uint8, additionalInformation []CEMIAdditionalInformation, dataFrame LDataFrame, crc *uint8) *_LBusmonInd {
 	if dataFrame == nil {
 		panic("dataFrame of type LDataFrame for LBusmonInd must not be nil")
 	}
 	_result := &_LBusmonInd{
-		CEMIContract:                NewCEMI(size),
+		CEMIContract:                NewCEMI(),
 		AdditionalInformationLength: additionalInformationLength,
 		AdditionalInformation:       additionalInformation,
 		DataFrame:                   dataFrame,
@@ -120,7 +121,7 @@ type _LBusmonIndBuilder struct {
 
 	parentBuilder *_CEMIBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (LBusmonIndBuilder) = (*_LBusmonIndBuilder)(nil)
@@ -154,10 +155,7 @@ func (b *_LBusmonIndBuilder) WithDataFrameBuilder(builderSupplier func(LDataFram
 	var err error
 	b.DataFrame, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "LDataFrameBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "LDataFrameBuilder failed"))
 	}
 	return b
 }
@@ -169,13 +167,10 @@ func (b *_LBusmonIndBuilder) WithOptionalCrc(crc uint8) LBusmonIndBuilder {
 
 func (b *_LBusmonIndBuilder) Build() (LBusmonInd, error) {
 	if b.DataFrame == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'dataFrame' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'dataFrame' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._LBusmonInd.deepCopy(), nil
 }
@@ -201,8 +196,8 @@ func (b *_LBusmonIndBuilder) buildForCEMI() (CEMI, error) {
 
 func (b *_LBusmonIndBuilder) DeepCopy() any {
 	_copy := b.CreateLBusmonIndBuilder().(*_LBusmonIndBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

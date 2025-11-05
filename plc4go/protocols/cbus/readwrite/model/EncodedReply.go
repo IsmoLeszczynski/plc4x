@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -49,14 +50,13 @@ type EncodedReply interface {
 
 // EncodedReplyContract provides a set of functions which can be overwritten by a sub struct
 type EncodedReplyContract interface {
+	// GetRequestContext returns RequestContext (property field)
+	GetRequestContext() RequestContext
 	// GetPeekedByte returns PeekedByte (property field)
 	GetPeekedByte() byte
 	// GetIsMonitoredSAL returns IsMonitoredSAL (virtual field)
+	// TODO: if we reliable can detect this with the mask we don't need the request context anymore
 	GetIsMonitoredSAL() bool
-	// GetCBusOptions() returns a parser argument
-	GetCBusOptions() CBusOptions
-	// GetRequestContext() returns a parser argument
-	GetRequestContext() RequestContext
 	// IsEncodedReply is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsEncodedReply()
 	// CreateBuilder creates a EncodedReplyBuilder
@@ -77,18 +77,15 @@ type _EncodedReply struct {
 		EncodedReplyContract
 		EncodedReplyRequirements
 	}
-	PeekedByte byte
-
-	// Arguments.
-	CBusOptions    CBusOptions
 	RequestContext RequestContext
+	PeekedByte     byte
 }
 
 var _ EncodedReplyContract = (*_EncodedReply)(nil)
 
 // NewEncodedReply factory function for _EncodedReply
-func NewEncodedReply(peekedByte byte, cBusOptions CBusOptions, requestContext RequestContext) *_EncodedReply {
-	return &_EncodedReply{PeekedByte: peekedByte, CBusOptions: cBusOptions, RequestContext: requestContext}
+func NewEncodedReply(requestContext RequestContext, peekedByte byte) *_EncodedReply {
+	return &_EncodedReply{RequestContext: requestContext, PeekedByte: peekedByte}
 }
 
 ///////////////////////////////////////////////////////////
@@ -100,13 +97,13 @@ func NewEncodedReply(peekedByte byte, cBusOptions CBusOptions, requestContext Re
 type EncodedReplyBuilder interface {
 	utils.Copyable
 	// WithMandatoryFields adds all mandatory fields (convenience for using multiple builder calls)
-	WithMandatoryFields(peekedByte byte) EncodedReplyBuilder
+	WithMandatoryFields(requestContext RequestContext, peekedByte byte) EncodedReplyBuilder
+	// WithRequestContext adds RequestContext (property field)
+	WithRequestContext(RequestContext) EncodedReplyBuilder
+	// WithRequestContextBuilder adds RequestContext (property field) which is build by the builder
+	WithRequestContextBuilder(func(RequestContextBuilder) RequestContextBuilder) EncodedReplyBuilder
 	// WithPeekedByte adds PeekedByte (property field)
 	WithPeekedByte(byte) EncodedReplyBuilder
-	// WithArgCBusOptions sets a parser argument
-	WithArgCBusOptions(CBusOptions) EncodedReplyBuilder
-	// WithArgRequestContext sets a parser argument
-	WithArgRequestContext(RequestContext) EncodedReplyBuilder
 	// AsMonitoredSALReply converts this build to a subType of EncodedReply. It is always possible to return to current builder using Done()
 	AsMonitoredSALReply() MonitoredSALReplyBuilder
 	// AsEncodedReplyCALReply converts this build to a subType of EncodedReply. It is always possible to return to current builder using Done()
@@ -137,13 +134,28 @@ type _EncodedReplyBuilder struct {
 
 	childBuilder _EncodedReplyChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (EncodedReplyBuilder) = (*_EncodedReplyBuilder)(nil)
 
-func (b *_EncodedReplyBuilder) WithMandatoryFields(peekedByte byte) EncodedReplyBuilder {
-	return b.WithPeekedByte(peekedByte)
+func (b *_EncodedReplyBuilder) WithMandatoryFields(requestContext RequestContext, peekedByte byte) EncodedReplyBuilder {
+	return b.WithRequestContext(requestContext).WithPeekedByte(peekedByte)
+}
+
+func (b *_EncodedReplyBuilder) WithRequestContext(requestContext RequestContext) EncodedReplyBuilder {
+	b.RequestContext = requestContext
+	return b
+}
+
+func (b *_EncodedReplyBuilder) WithRequestContextBuilder(builderSupplier func(RequestContextBuilder) RequestContextBuilder) EncodedReplyBuilder {
+	builder := builderSupplier(b.RequestContext.CreateRequestContextBuilder())
+	var err error
+	b.RequestContext, err = builder.Build()
+	if err != nil {
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "RequestContextBuilder failed"))
+	}
+	return b
 }
 
 func (b *_EncodedReplyBuilder) WithPeekedByte(peekedByte byte) EncodedReplyBuilder {
@@ -151,18 +163,12 @@ func (b *_EncodedReplyBuilder) WithPeekedByte(peekedByte byte) EncodedReplyBuild
 	return b
 }
 
-func (b *_EncodedReplyBuilder) WithArgCBusOptions(cBusOptions CBusOptions) EncodedReplyBuilder {
-	b.CBusOptions = cBusOptions
-	return b
-}
-func (b *_EncodedReplyBuilder) WithArgRequestContext(requestContext RequestContext) EncodedReplyBuilder {
-	b.RequestContext = requestContext
-	return b
-}
-
 func (b *_EncodedReplyBuilder) PartialBuild() (EncodedReplyContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if b.RequestContext == nil {
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'requestContext' not set"))
+	}
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._EncodedReply.deepCopy(), nil
 }
@@ -219,8 +225,8 @@ func (b *_EncodedReplyBuilder) DeepCopy() any {
 	_copy := b.CreateEncodedReplyBuilder().(*_EncodedReplyBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_EncodedReplyChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -242,6 +248,10 @@ func (b *_EncodedReply) CreateEncodedReplyBuilder() EncodedReplyBuilder {
 ///////////////////////////////////////////////////////////
 /////////////////////// Accessors for property fields.
 ///////////////////////
+
+func (m *_EncodedReply) GetRequestContext() RequestContext {
+	return m.RequestContext
+}
 
 func (m *_EncodedReply) GetPeekedByte() byte {
 	return m.PeekedByte
@@ -315,7 +325,7 @@ func EncodedReplyParseWithBufferProducer[T EncodedReply](cBusOptions CBusOptions
 }
 
 func EncodedReplyParseWithBuffer[T EncodedReply](ctx context.Context, readBuffer utils.ReadBuffer, cBusOptions CBusOptions, requestContext RequestContext) (T, error) {
-	v, err := (&_EncodedReply{CBusOptions: cBusOptions, RequestContext: requestContext}).parse(ctx, readBuffer, cBusOptions, requestContext)
+	v, err := (new(_EncodedReply)).parse(ctx, readBuffer, cBusOptions, requestContext)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -336,6 +346,7 @@ func (m *_EncodedReply) parse(ctx context.Context, readBuffer utils.ReadBuffer, 
 	}
 	currentPos := positionAware.GetPos()
 	_ = currentPos
+	m.RequestContext = requestContext
 
 	peekedByte, err := ReadPeekField[byte](ctx, "peekedByte", ReadByte(readBuffer, 8), 0)
 	if err != nil {
@@ -400,19 +411,6 @@ func (pm *_EncodedReply) serializeParent(ctx context.Context, writeBuffer utils.
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_EncodedReply) GetCBusOptions() CBusOptions {
-	return m.CBusOptions
-}
-func (m *_EncodedReply) GetRequestContext() RequestContext {
-	return m.RequestContext
-}
-
-//
-////
-
 func (m *_EncodedReply) IsEncodedReply() {}
 
 func (m *_EncodedReply) DeepCopy() any {
@@ -425,9 +423,8 @@ func (m *_EncodedReply) deepCopy() *_EncodedReply {
 	}
 	_EncodedReplyCopy := &_EncodedReply{
 		nil, // will be set by child
+		utils.DeepCopy[RequestContext](m.RequestContext),
 		m.PeekedByte,
-		m.CBusOptions,
-		m.RequestContext,
 	}
 	return _EncodedReplyCopy
 }

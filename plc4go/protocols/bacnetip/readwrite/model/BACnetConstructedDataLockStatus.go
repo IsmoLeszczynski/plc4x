@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLockStatus = (*_BACnetConstructedDataLockStatus)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLockStatus)(nil)
 
 // NewBACnetConstructedDataLockStatus factory function for _BACnetConstructedDataLockStatus
-func NewBACnetConstructedDataLockStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, lockStatus BACnetLockStatusTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLockStatus {
+func NewBACnetConstructedDataLockStatus(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, lockStatus BACnetLockStatusTagged) *_BACnetConstructedDataLockStatus {
 	if lockStatus == nil {
 		panic("lockStatus of type BACnetLockStatusTagged for BACnetConstructedDataLockStatus must not be nil")
 	}
 	_result := &_BACnetConstructedDataLockStatus{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		LockStatus:                    lockStatus,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLockStatusBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLockStatusBuilder) = (*_BACnetConstructedDataLockStatusBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLockStatusBuilder) WithLockStatusBuilder(builderS
 	var err error
 	b.LockStatus, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetLockStatusTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetLockStatusTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLockStatusBuilder) Build() (BACnetConstructedDataLockStatus, error) {
 	if b.LockStatus == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'lockStatus' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'lockStatus' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLockStatus.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLockStatusBuilder) buildForBACnetConstructedData(
 
 func (b *_BACnetConstructedDataLockStatusBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLockStatusBuilder().(*_BACnetConstructedDataLockStatusBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

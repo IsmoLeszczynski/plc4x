@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataAcceptedModes = (*_BACnetConstructedDataAcceptedModes
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAcceptedModes)(nil)
 
 // NewBACnetConstructedDataAcceptedModes factory function for _BACnetConstructedDataAcceptedModes
-func NewBACnetConstructedDataAcceptedModes(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, acceptedModes []BACnetLifeSafetyModeTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAcceptedModes {
+func NewBACnetConstructedDataAcceptedModes(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, acceptedModes []BACnetLifeSafetyModeTagged) *_BACnetConstructedDataAcceptedModes {
 	_result := &_BACnetConstructedDataAcceptedModes{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AcceptedModes:                 acceptedModes,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataAcceptedModesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAcceptedModesBuilder) = (*_BACnetConstructedDataAcceptedModesBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataAcceptedModesBuilder) WithAcceptedModes(acceptedM
 }
 
 func (b *_BACnetConstructedDataAcceptedModesBuilder) Build() (BACnetConstructedDataAcceptedModes, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAcceptedModes.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataAcceptedModesBuilder) buildForBACnetConstructedDa
 
 func (b *_BACnetConstructedDataAcceptedModesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAcceptedModesBuilder().(*_BACnetConstructedDataAcceptedModesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

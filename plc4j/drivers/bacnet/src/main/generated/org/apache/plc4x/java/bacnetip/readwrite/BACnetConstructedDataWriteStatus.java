@@ -49,21 +49,13 @@ public class BACnetConstructedDataWriteStatus extends BACnetConstructedData impl
   // Properties.
   protected final BACnetWriteStatusTagged writeStatus;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataWriteStatus(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetWriteStatusTagged writeStatus,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetWriteStatusTagged writeStatus) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.writeStatus = writeStatus;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetWriteStatusTagged getWriteStatus() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataWriteStatus extends BACnetConstructedData impl
     // Simple Field (writeStatus)
     writeSimpleField("writeStatus", writeStatus, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetWriteStatusTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,34 +126,22 @@ public class BACnetConstructedDataWriteStatus extends BACnetConstructedData impl
 
     readBuffer.closeContext("BACnetConstructedDataWriteStatus");
     // Create the instance
-    return new BACnetConstructedDataWriteStatusBuilderImpl(
-        writeStatus, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataWriteStatusBuilderImpl(writeStatus);
   }
 
   public static class BACnetConstructedDataWriteStatusBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetWriteStatusTagged writeStatus;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataWriteStatusBuilderImpl(
-        BACnetWriteStatusTagged writeStatus,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataWriteStatusBuilderImpl(BACnetWriteStatusTagged writeStatus) {
       this.writeStatus = writeStatus;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataWriteStatus build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataWriteStatus bACnetConstructedDataWriteStatus =
           new BACnetConstructedDataWriteStatus(
-              openingTag, peekedTagHeader, closingTag, writeStatus, tagNumber, arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, writeStatus);
       return bACnetConstructedDataWriteStatus;
     }
   }

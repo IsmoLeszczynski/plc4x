@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,8 +41,10 @@ type LightingLabelOptions interface {
 	utils.Serializable
 	utils.Copyable
 	// GetLabelFlavour returns LabelFlavour (property field)
+	// only for dynamic icon loading can switch to 1
 	GetLabelFlavour() LightingLabelFlavour
 	// GetLabelType returns LabelType (property field)
+	// For Lighting, this bit must be 0
 	GetLabelType() LightingLabelType
 	// IsLightingLabelOptions is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsLightingLabelOptions()
@@ -95,7 +98,7 @@ func NewLightingLabelOptionsBuilder() LightingLabelOptionsBuilder {
 type _LightingLabelOptionsBuilder struct {
 	*_LightingLabelOptions
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (LightingLabelOptionsBuilder) = (*_LightingLabelOptionsBuilder)(nil)
@@ -115,8 +118,8 @@ func (b *_LightingLabelOptionsBuilder) WithLabelType(labelType LightingLabelType
 }
 
 func (b *_LightingLabelOptionsBuilder) Build() (LightingLabelOptions, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._LightingLabelOptions.deepCopy(), nil
 }
@@ -131,8 +134,8 @@ func (b *_LightingLabelOptionsBuilder) MustBuild() LightingLabelOptions {
 
 func (b *_LightingLabelOptionsBuilder) DeepCopy() any {
 	_copy := b.CreateLightingLabelOptionsBuilder().(*_LightingLabelOptionsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -222,7 +225,7 @@ func LightingLabelOptionsParseWithBufferProducer() func(ctx context.Context, rea
 }
 
 func LightingLabelOptionsParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (LightingLabelOptions, error) {
-	v, err := (&_LightingLabelOptions{}).parse(ctx, readBuffer)
+	v, err := (new(_LightingLabelOptions)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

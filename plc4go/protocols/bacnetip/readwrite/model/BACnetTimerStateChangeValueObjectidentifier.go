@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetTimerStateChangeValueObjectidentifier = (*_BACnetTimerStateChangeVal
 var _ BACnetTimerStateChangeValueRequirements = (*_BACnetTimerStateChangeValueObjectidentifier)(nil)
 
 // NewBACnetTimerStateChangeValueObjectidentifier factory function for _BACnetTimerStateChangeValueObjectidentifier
-func NewBACnetTimerStateChangeValueObjectidentifier(peekedTagHeader BACnetTagHeader, objectidentifierValue BACnetApplicationTagObjectIdentifier, objectTypeArgument BACnetObjectType) *_BACnetTimerStateChangeValueObjectidentifier {
+func NewBACnetTimerStateChangeValueObjectidentifier(peekedTagHeader BACnetTagHeader, objectidentifierValue BACnetApplicationTagObjectIdentifier) *_BACnetTimerStateChangeValueObjectidentifier {
 	if objectidentifierValue == nil {
 		panic("objectidentifierValue of type BACnetApplicationTagObjectIdentifier for BACnetTimerStateChangeValueObjectidentifier must not be nil")
 	}
 	_result := &_BACnetTimerStateChangeValueObjectidentifier{
-		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader, objectTypeArgument),
+		BACnetTimerStateChangeValueContract: NewBACnetTimerStateChangeValue(peekedTagHeader),
 		ObjectidentifierValue:               objectidentifierValue,
 	}
 	_result.BACnetTimerStateChangeValueContract.(*_BACnetTimerStateChangeValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetTimerStateChangeValueObjectidentifierBuilder struct {
 
 	parentBuilder *_BACnetTimerStateChangeValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetTimerStateChangeValueObjectidentifierBuilder) = (*_BACnetTimerStateChangeValueObjectidentifierBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetTimerStateChangeValueObjectidentifierBuilder) WithObjectidentifi
 	var err error
 	b.ObjectidentifierValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagObjectIdentifierBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagObjectIdentifierBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetTimerStateChangeValueObjectidentifierBuilder) Build() (BACnetTimerStateChangeValueObjectidentifier, error) {
 	if b.ObjectidentifierValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'objectidentifierValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'objectidentifierValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetTimerStateChangeValueObjectidentifier.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetTimerStateChangeValueObjectidentifierBuilder) buildForBACnetTime
 
 func (b *_BACnetTimerStateChangeValueObjectidentifierBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetTimerStateChangeValueObjectidentifierBuilder().(*_BACnetTimerStateChangeValueObjectidentifierBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

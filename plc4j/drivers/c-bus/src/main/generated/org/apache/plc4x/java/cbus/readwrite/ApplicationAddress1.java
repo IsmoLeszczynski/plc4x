@@ -38,6 +38,7 @@ import org.apache.plc4x.java.spi.generation.*;
 public class ApplicationAddress1 implements Message {
 
   // Properties.
+  /** Note 1 */
   protected final byte address;
 
   public ApplicationAddress1(byte address) {
@@ -45,10 +46,12 @@ public class ApplicationAddress1 implements Message {
     this.address = address;
   }
 
+  /** Note 1 */
   public byte getAddress() {
     return address;
   }
 
+  /** if wildcard is set address 2 should set to wildcard as well */
   public boolean getIsWildcard() {
     return (boolean) ((getAddress()) == (0xFF));
   }
@@ -61,7 +64,7 @@ public class ApplicationAddress1 implements Message {
     // Simple Field (address)
     writeSimpleField("address", address, writeByte(writeBuffer, 8));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isWildcard = getIsWildcard();
     writeBuffer.writeVirtual("isWildcard", isWildcard);
 

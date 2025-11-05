@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataAuthorizationExemptions = (*_BACnetConstructedDataAut
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAuthorizationExemptions)(nil)
 
 // NewBACnetConstructedDataAuthorizationExemptions factory function for _BACnetConstructedDataAuthorizationExemptions
-func NewBACnetConstructedDataAuthorizationExemptions(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, authorizationExemption []BACnetAuthorizationExemptionTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAuthorizationExemptions {
+func NewBACnetConstructedDataAuthorizationExemptions(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, authorizationExemption []BACnetAuthorizationExemptionTagged) *_BACnetConstructedDataAuthorizationExemptions {
 	_result := &_BACnetConstructedDataAuthorizationExemptions{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AuthorizationExemption:        authorizationExemption,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataAuthorizationExemptionsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAuthorizationExemptionsBuilder) = (*_BACnetConstructedDataAuthorizationExemptionsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataAuthorizationExemptionsBuilder) WithAuthorization
 }
 
 func (b *_BACnetConstructedDataAuthorizationExemptionsBuilder) Build() (BACnetConstructedDataAuthorizationExemptions, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAuthorizationExemptions.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataAuthorizationExemptionsBuilder) buildForBACnetCon
 
 func (b *_BACnetConstructedDataAuthorizationExemptionsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAuthorizationExemptionsBuilder().(*_BACnetConstructedDataAuthorizationExemptionsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataManualSlaveAddressBinding = (*_BACnetConstructedDataM
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataManualSlaveAddressBinding)(nil)
 
 // NewBACnetConstructedDataManualSlaveAddressBinding factory function for _BACnetConstructedDataManualSlaveAddressBinding
-func NewBACnetConstructedDataManualSlaveAddressBinding(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, manualSlaveAddressBinding []BACnetAddressBinding, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataManualSlaveAddressBinding {
+func NewBACnetConstructedDataManualSlaveAddressBinding(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, manualSlaveAddressBinding []BACnetAddressBinding) *_BACnetConstructedDataManualSlaveAddressBinding {
 	_result := &_BACnetConstructedDataManualSlaveAddressBinding{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		ManualSlaveAddressBinding:     manualSlaveAddressBinding,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataManualSlaveAddressBindingBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataManualSlaveAddressBindingBuilder) = (*_BACnetConstructedDataManualSlaveAddressBindingBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataManualSlaveAddressBindingBuilder) WithManualSlave
 }
 
 func (b *_BACnetConstructedDataManualSlaveAddressBindingBuilder) Build() (BACnetConstructedDataManualSlaveAddressBinding, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataManualSlaveAddressBinding.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataManualSlaveAddressBindingBuilder) buildForBACnetC
 
 func (b *_BACnetConstructedDataManualSlaveAddressBindingBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataManualSlaveAddressBindingBuilder().(*_BACnetConstructedDataManualSlaveAddressBindingBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

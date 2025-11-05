@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetFileAccessMethodTagged interface {
 type _BACnetFileAccessMethodTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetFileAccessMethod
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetFileAccessMethodTagged = (*_BACnetFileAccessMethodTagged)(nil)
 
 // NewBACnetFileAccessMethodTagged factory function for _BACnetFileAccessMethodTagged
-func NewBACnetFileAccessMethodTagged(header BACnetTagHeader, value BACnetFileAccessMethod, tagNumber uint8, tagClass TagClass) *_BACnetFileAccessMethodTagged {
+func NewBACnetFileAccessMethodTagged(header BACnetTagHeader, value BACnetFileAccessMethod) *_BACnetFileAccessMethodTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetFileAccessMethodTagged must not be nil")
 	}
-	return &_BACnetFileAccessMethodTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetFileAccessMethodTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetFileAccessMethodTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetFileAccessMethodTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetFileAccessMethod) BACnetFileAccessMethodTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetFileAccessMethodTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetFileAccessMethodTaggedBuilder
 	// Build builds the BACnetFileAccessMethodTagged or returns an error if something is wrong
 	Build() (BACnetFileAccessMethodTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetFileAccessMethodTaggedBuilder() BACnetFileAccessMethodTaggedBuilde
 type _BACnetFileAccessMethodTaggedBuilder struct {
 	*_BACnetFileAccessMethodTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetFileAccessMethodTaggedBuilder) = (*_BACnetFileAccessMethodTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetFileAccessMethodTaggedBuilder) WithHeaderBuilder(builderSupplier
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetFileAccessMethodTaggedBuilder) WithValue(value BACnetFileAccessM
 	return b
 }
 
-func (b *_BACnetFileAccessMethodTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetFileAccessMethodTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetFileAccessMethodTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetFileAccessMethodTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetFileAccessMethodTaggedBuilder) Build() (BACnetFileAccessMethodTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetFileAccessMethodTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetFileAccessMethodTaggedBuilder) MustBuild() BACnetFileAccessMetho
 
 func (b *_BACnetFileAccessMethodTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetFileAccessMethodTaggedBuilder().(*_BACnetFileAccessMethodTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetFileAccessMethodTaggedParseWithBufferProducer(tagNumber uint8, tagCla
 }
 
 func BACnetFileAccessMethodTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetFileAccessMethodTagged, error) {
-	v, err := (&_BACnetFileAccessMethodTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetFileAccessMethodTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetFileAccessMethodTagged) SerializeWithWriteBuffer(ctx context.Con
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetFileAccessMethodTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetFileAccessMethodTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetFileAccessMethodTagged) IsBACnetFileAccessMethodTagged() {}
 
 func (m *_BACnetFileAccessMethodTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetFileAccessMethodTagged) deepCopy() *_BACnetFileAccessMethodTagge
 	_BACnetFileAccessMethodTaggedCopy := &_BACnetFileAccessMethodTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetFileAccessMethodTaggedCopy
 }

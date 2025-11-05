@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -43,7 +44,7 @@ type BACnetApplicationTagSignedInteger interface {
 	// GetPayload returns Payload (property field)
 	GetPayload() BACnetTagPayloadSignedInteger
 	// GetActualValue returns ActualValue (virtual field)
-	GetActualValue() uint64
+	GetActualValue() int64
 	// IsBACnetApplicationTagSignedInteger is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetApplicationTagSignedInteger()
 	// CreateBuilder creates a BACnetApplicationTagSignedIntegerBuilder
@@ -104,7 +105,7 @@ type _BACnetApplicationTagSignedIntegerBuilder struct {
 
 	parentBuilder *_BACnetApplicationTagBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetApplicationTagSignedIntegerBuilder) = (*_BACnetApplicationTagSignedIntegerBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetApplicationTagSignedIntegerBuilder) WithPayloadBuilder(builderSu
 	var err error
 	b.Payload, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagPayloadSignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagPayloadSignedIntegerBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetApplicationTagSignedIntegerBuilder) Build() (BACnetApplicationTagSignedInteger, error) {
 	if b.Payload == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'payload' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'payload' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetApplicationTagSignedInteger.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetApplicationTagSignedIntegerBuilder) buildForBACnetApplicationTag
 
 func (b *_BACnetApplicationTagSignedIntegerBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetApplicationTagSignedIntegerBuilder().(*_BACnetApplicationTagSignedIntegerBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -221,10 +216,10 @@ func (m *_BACnetApplicationTagSignedInteger) GetPayload() BACnetTagPayloadSigned
 /////////////////////// Accessors for virtual fields.
 ///////////////////////
 
-func (m *_BACnetApplicationTagSignedInteger) GetActualValue() uint64 {
+func (m *_BACnetApplicationTagSignedInteger) GetActualValue() int64 {
 	ctx := context.Background()
 	_ = ctx
-	return uint64(m.GetPayload().GetActualValue())
+	return int64(m.GetPayload().GetActualValue())
 }
 
 ///////////////////////
@@ -279,7 +274,7 @@ func (m *_BACnetApplicationTagSignedInteger) parse(ctx context.Context, readBuff
 	}
 	m.Payload = payload
 
-	actualValue, err := ReadVirtualField[uint64](ctx, "actualValue", (*uint64)(nil), payload.GetActualValue())
+	actualValue, err := ReadVirtualField[int64](ctx, "actualValue", (*int64)(nil), payload.GetActualValue())
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("Error parsing 'actualValue' field"))
 	}

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,8 +41,10 @@ type ApplicationAddress1 interface {
 	utils.Serializable
 	utils.Copyable
 	// GetAddress returns Address (property field)
+	// Note 1
 	GetAddress() byte
 	// GetIsWildcard returns IsWildcard (virtual field)
+	// if wildcard is set address 2 should set to wildcard as well
 	GetIsWildcard() bool
 	// IsApplicationAddress1 is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsApplicationAddress1()
@@ -87,7 +90,7 @@ func NewApplicationAddress1Builder() ApplicationAddress1Builder {
 type _ApplicationAddress1Builder struct {
 	*_ApplicationAddress1
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApplicationAddress1Builder) = (*_ApplicationAddress1Builder)(nil)
@@ -102,8 +105,8 @@ func (b *_ApplicationAddress1Builder) WithAddress(address byte) ApplicationAddre
 }
 
 func (b *_ApplicationAddress1Builder) Build() (ApplicationAddress1, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApplicationAddress1.deepCopy(), nil
 }
@@ -118,8 +121,8 @@ func (b *_ApplicationAddress1Builder) MustBuild() ApplicationAddress1 {
 
 func (b *_ApplicationAddress1Builder) DeepCopy() any {
 	_copy := b.CreateApplicationAddress1Builder().(*_ApplicationAddress1Builder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -207,7 +210,7 @@ func ApplicationAddress1ParseWithBufferProducer() func(ctx context.Context, read
 }
 
 func ApplicationAddress1ParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (ApplicationAddress1, error) {
-	v, err := (&_ApplicationAddress1{}).parse(ctx, readBuffer)
+	v, err := (new(_ApplicationAddress1)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

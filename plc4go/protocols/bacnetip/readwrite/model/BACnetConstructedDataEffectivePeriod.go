@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataEffectivePeriod = (*_BACnetConstructedDataEffectivePe
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEffectivePeriod)(nil)
 
 // NewBACnetConstructedDataEffectivePeriod factory function for _BACnetConstructedDataEffectivePeriod
-func NewBACnetConstructedDataEffectivePeriod(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, dateRange BACnetDateRange, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEffectivePeriod {
+func NewBACnetConstructedDataEffectivePeriod(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, dateRange BACnetDateRange) *_BACnetConstructedDataEffectivePeriod {
 	if dateRange == nil {
 		panic("dateRange of type BACnetDateRange for BACnetConstructedDataEffectivePeriod must not be nil")
 	}
 	_result := &_BACnetConstructedDataEffectivePeriod{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		DateRange:                     dateRange,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataEffectivePeriodBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEffectivePeriodBuilder) = (*_BACnetConstructedDataEffectivePeriodBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataEffectivePeriodBuilder) WithDateRangeBuilder(buil
 	var err error
 	b.DateRange, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetDateRangeBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetDateRangeBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataEffectivePeriodBuilder) Build() (BACnetConstructedDataEffectivePeriod, error) {
 	if b.DateRange == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'dateRange' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'dateRange' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEffectivePeriod.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataEffectivePeriodBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataEffectivePeriodBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEffectivePeriodBuilder().(*_BACnetConstructedDataEffectivePeriodBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -50,21 +50,13 @@ public class BACnetConstructedDataOctetStringValuePresentValue extends BACnetCon
   // Properties.
   protected final BACnetApplicationTagOctetString presentValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataOctetStringValuePresentValue(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagOctetString presentValue,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagOctetString presentValue) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.presentValue = presentValue;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagOctetString getPresentValue() {
@@ -85,7 +77,7 @@ public class BACnetConstructedDataOctetStringValuePresentValue extends BACnetCon
     // Simple Field (presentValue)
     writeSimpleField("presentValue", presentValue, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagOctetString actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,40 +126,24 @@ public class BACnetConstructedDataOctetStringValuePresentValue extends BACnetCon
 
     readBuffer.closeContext("BACnetConstructedDataOctetStringValuePresentValue");
     // Create the instance
-    return new BACnetConstructedDataOctetStringValuePresentValueBuilderImpl(
-        presentValue, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataOctetStringValuePresentValueBuilderImpl(presentValue);
   }
 
   public static class BACnetConstructedDataOctetStringValuePresentValueBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagOctetString presentValue;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataOctetStringValuePresentValueBuilderImpl(
-        BACnetApplicationTagOctetString presentValue,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagOctetString presentValue) {
       this.presentValue = presentValue;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataOctetStringValuePresentValue build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataOctetStringValuePresentValue
           bACnetConstructedDataOctetStringValuePresentValue =
               new BACnetConstructedDataOctetStringValuePresentValue(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  presentValue,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, presentValue);
       return bACnetConstructedDataOctetStringValuePresentValue;
     }
   }

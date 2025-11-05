@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataBACnetIPMode = (*_BACnetConstructedDataBACnetIPMode)(
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataBACnetIPMode)(nil)
 
 // NewBACnetConstructedDataBACnetIPMode factory function for _BACnetConstructedDataBACnetIPMode
-func NewBACnetConstructedDataBACnetIPMode(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, bacnetIpMode BACnetIPModeTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataBACnetIPMode {
+func NewBACnetConstructedDataBACnetIPMode(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, bacnetIpMode BACnetIPModeTagged) *_BACnetConstructedDataBACnetIPMode {
 	if bacnetIpMode == nil {
 		panic("bacnetIpMode of type BACnetIPModeTagged for BACnetConstructedDataBACnetIPMode must not be nil")
 	}
 	_result := &_BACnetConstructedDataBACnetIPMode{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		BacnetIpMode:                  bacnetIpMode,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataBACnetIPModeBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataBACnetIPModeBuilder) = (*_BACnetConstructedDataBACnetIPModeBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataBACnetIPModeBuilder) WithBacnetIpModeBuilder(buil
 	var err error
 	b.BacnetIpMode, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetIPModeTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetIPModeTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataBACnetIPModeBuilder) Build() (BACnetConstructedDataBACnetIPMode, error) {
 	if b.BacnetIpMode == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'bacnetIpMode' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'bacnetIpMode' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataBACnetIPMode.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataBACnetIPModeBuilder) buildForBACnetConstructedDat
 
 func (b *_BACnetConstructedDataBACnetIPModeBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataBACnetIPModeBuilder().(*_BACnetConstructedDataBACnetIPModeBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataEgressActive = (*_BACnetConstructedDataEgressActive)(
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEgressActive)(nil)
 
 // NewBACnetConstructedDataEgressActive factory function for _BACnetConstructedDataEgressActive
-func NewBACnetConstructedDataEgressActive(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, egressActive BACnetApplicationTagBoolean, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEgressActive {
+func NewBACnetConstructedDataEgressActive(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, egressActive BACnetApplicationTagBoolean) *_BACnetConstructedDataEgressActive {
 	if egressActive == nil {
 		panic("egressActive of type BACnetApplicationTagBoolean for BACnetConstructedDataEgressActive must not be nil")
 	}
 	_result := &_BACnetConstructedDataEgressActive{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		EgressActive:                  egressActive,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataEgressActiveBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEgressActiveBuilder) = (*_BACnetConstructedDataEgressActiveBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataEgressActiveBuilder) WithEgressActiveBuilder(buil
 	var err error
 	b.EgressActive, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagBooleanBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataEgressActiveBuilder) Build() (BACnetConstructedDataEgressActive, error) {
 	if b.EgressActive == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'egressActive' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'egressActive' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEgressActive.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataEgressActiveBuilder) buildForBACnetConstructedDat
 
 func (b *_BACnetConstructedDataEgressActiveBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEgressActiveBuilder().(*_BACnetConstructedDataEgressActiveBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

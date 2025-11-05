@@ -22,6 +22,7 @@ package model
 import (
 	"context"
 	"encoding/binary"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -57,6 +58,10 @@ type AdsSymbolTableEntry interface {
 	// GetDataType returns DataType (property field)
 	GetDataType() uint32
 	// GetFlagMethodDeref returns FlagMethodDeref (property field)
+	// Start: Flags
+	// https://github.com/jisotalo/ads-server/blob/master/src/ads-commons.ts#L631
+	// Order of the bits if read Little-Endian and then accessing the bit flags
+	// 7 6 5 4 3 2 1 0  |  15 14 13 12 11 10 9 8  |  23 22 21 20 19 18 17 16 | 31 30 29 28 27 26 25 24
 	GetFlagMethodDeref() bool
 	// GetFlagItfMethodAccess returns FlagItfMethodAccess (property field)
 	GetFlagItfMethodAccess() bool
@@ -89,6 +94,11 @@ type AdsSymbolTableEntry interface {
 	// GetComment returns Comment (property field)
 	GetComment() string
 	// GetRest returns Rest (property field)
+	// Gobbling up the rest, but it seems there is content in here, when looking
+	// at the data in wireshark, it seems to be related to the flags field.
+	// Will have to continue searching for more details on how to decode this.
+	// I would assume that we'll have some "optional" fields here which depend
+	// on values in the flags section.
 	GetRest() []byte
 	// IsAdsSymbolTableEntry is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsSymbolTableEntry()
@@ -200,7 +210,7 @@ func NewAdsSymbolTableEntryBuilder() AdsSymbolTableEntryBuilder {
 type _AdsSymbolTableEntryBuilder struct {
 	*_AdsSymbolTableEntry
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsSymbolTableEntryBuilder) = (*_AdsSymbolTableEntryBuilder)(nil)
@@ -320,8 +330,8 @@ func (b *_AdsSymbolTableEntryBuilder) WithRest(rest ...byte) AdsSymbolTableEntry
 }
 
 func (b *_AdsSymbolTableEntryBuilder) Build() (AdsSymbolTableEntry, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsSymbolTableEntry.deepCopy(), nil
 }
@@ -336,8 +346,8 @@ func (b *_AdsSymbolTableEntryBuilder) MustBuild() AdsSymbolTableEntry {
 
 func (b *_AdsSymbolTableEntryBuilder) DeepCopy() any {
 	_copy := b.CreateAdsSymbolTableEntryBuilder().(*_AdsSymbolTableEntryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -602,7 +612,7 @@ func AdsSymbolTableEntryParseWithBufferProducer() func(ctx context.Context, read
 }
 
 func AdsSymbolTableEntryParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (AdsSymbolTableEntry, error) {
-	v, err := (&_AdsSymbolTableEntry{}).parse(ctx, readBuffer)
+	v, err := (new(_AdsSymbolTableEntry)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

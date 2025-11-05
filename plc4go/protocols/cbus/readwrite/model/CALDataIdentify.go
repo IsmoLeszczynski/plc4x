@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type CALDataIdentify interface {
 	utils.Copyable
 	CALData
 	// GetAttribute returns Attribute (property field)
+	// Request
 	GetAttribute() Attribute
 	// IsCALDataIdentify is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsCALDataIdentify()
@@ -58,9 +60,9 @@ var _ CALDataIdentify = (*_CALDataIdentify)(nil)
 var _ CALDataRequirements = (*_CALDataIdentify)(nil)
 
 // NewCALDataIdentify factory function for _CALDataIdentify
-func NewCALDataIdentify(commandTypeContainer CALCommandTypeContainer, additionalData CALData, attribute Attribute, requestContext RequestContext) *_CALDataIdentify {
+func NewCALDataIdentify(requestContext RequestContext, commandTypeContainer CALCommandTypeContainer, additionalData CALData, attribute Attribute) *_CALDataIdentify {
 	_result := &_CALDataIdentify{
-		CALDataContract: NewCALData(commandTypeContainer, additionalData, requestContext),
+		CALDataContract: NewCALData(requestContext, commandTypeContainer, additionalData),
 		Attribute:       attribute,
 	}
 	_result.CALDataContract.(*_CALData)._SubType = _result
@@ -97,7 +99,7 @@ type _CALDataIdentifyBuilder struct {
 
 	parentBuilder *_CALDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CALDataIdentifyBuilder) = (*_CALDataIdentifyBuilder)(nil)
@@ -117,8 +119,8 @@ func (b *_CALDataIdentifyBuilder) WithAttribute(attribute Attribute) CALDataIden
 }
 
 func (b *_CALDataIdentifyBuilder) Build() (CALDataIdentify, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CALDataIdentify.deepCopy(), nil
 }
@@ -144,8 +146,8 @@ func (b *_CALDataIdentifyBuilder) buildForCALData() (CALData, error) {
 
 func (b *_CALDataIdentifyBuilder) DeepCopy() any {
 	_copy := b.CreateCALDataIdentifyBuilder().(*_CALDataIdentifyBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

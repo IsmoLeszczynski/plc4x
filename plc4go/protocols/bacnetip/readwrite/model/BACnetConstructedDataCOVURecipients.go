@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataCOVURecipients = (*_BACnetConstructedDataCOVURecipien
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataCOVURecipients)(nil)
 
 // NewBACnetConstructedDataCOVURecipients factory function for _BACnetConstructedDataCOVURecipients
-func NewBACnetConstructedDataCOVURecipients(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, covuRecipients []BACnetRecipient, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataCOVURecipients {
+func NewBACnetConstructedDataCOVURecipients(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, covuRecipients []BACnetRecipient) *_BACnetConstructedDataCOVURecipients {
 	_result := &_BACnetConstructedDataCOVURecipients{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		CovuRecipients:                covuRecipients,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataCOVURecipientsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataCOVURecipientsBuilder) = (*_BACnetConstructedDataCOVURecipientsBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataCOVURecipientsBuilder) WithCovuRecipients(covuRec
 }
 
 func (b *_BACnetConstructedDataCOVURecipientsBuilder) Build() (BACnetConstructedDataCOVURecipients, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataCOVURecipients.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataCOVURecipientsBuilder) buildForBACnetConstructedD
 
 func (b *_BACnetConstructedDataCOVURecipientsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataCOVURecipientsBuilder().(*_BACnetConstructedDataCOVURecipientsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

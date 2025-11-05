@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -42,6 +43,7 @@ type NetworkProtocolControlInformation interface {
 	// GetStackCounter returns StackCounter (property field)
 	GetStackCounter() uint8
 	// GetStackDepth returns StackDepth (property field)
+	// Number of bridges required to transmit information from source to destination
 	GetStackDepth() uint8
 	// IsNetworkProtocolControlInformation is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsNetworkProtocolControlInformation()
@@ -92,7 +94,7 @@ func NewNetworkProtocolControlInformationBuilder() NetworkProtocolControlInforma
 type _NetworkProtocolControlInformationBuilder struct {
 	*_NetworkProtocolControlInformation
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NetworkProtocolControlInformationBuilder) = (*_NetworkProtocolControlInformationBuilder)(nil)
@@ -112,8 +114,8 @@ func (b *_NetworkProtocolControlInformationBuilder) WithStackDepth(stackDepth ui
 }
 
 func (b *_NetworkProtocolControlInformationBuilder) Build() (NetworkProtocolControlInformation, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NetworkProtocolControlInformation.deepCopy(), nil
 }
@@ -128,8 +130,8 @@ func (b *_NetworkProtocolControlInformationBuilder) MustBuild() NetworkProtocolC
 
 func (b *_NetworkProtocolControlInformationBuilder) DeepCopy() any {
 	_copy := b.CreateNetworkProtocolControlInformationBuilder().(*_NetworkProtocolControlInformationBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -210,7 +212,7 @@ func NetworkProtocolControlInformationParseWithBufferProducer() func(ctx context
 }
 
 func NetworkProtocolControlInformationParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (NetworkProtocolControlInformation, error) {
-	v, err := (&_NetworkProtocolControlInformation{}).parse(ctx, readBuffer)
+	v, err := (new(_NetworkProtocolControlInformation)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

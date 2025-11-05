@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ BACnetConstructedDataMultiStateValueFaultValues = (*_BACnetConstructedData
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMultiStateValueFaultValues)(nil)
 
 // NewBACnetConstructedDataMultiStateValueFaultValues factory function for _BACnetConstructedDataMultiStateValueFaultValues
-func NewBACnetConstructedDataMultiStateValueFaultValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, faultValues []BACnetApplicationTagUnsignedInteger, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMultiStateValueFaultValues {
+func NewBACnetConstructedDataMultiStateValueFaultValues(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, faultValues []BACnetApplicationTagUnsignedInteger) *_BACnetConstructedDataMultiStateValueFaultValues {
 	_result := &_BACnetConstructedDataMultiStateValueFaultValues{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		FaultValues:                   faultValues,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -97,7 +98,7 @@ type _BACnetConstructedDataMultiStateValueFaultValuesBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMultiStateValueFaultValuesBuilder) = (*_BACnetConstructedDataMultiStateValueFaultValuesBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_BACnetConstructedDataMultiStateValueFaultValuesBuilder) WithFaultValue
 }
 
 func (b *_BACnetConstructedDataMultiStateValueFaultValuesBuilder) Build() (BACnetConstructedDataMultiStateValueFaultValues, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMultiStateValueFaultValues.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_BACnetConstructedDataMultiStateValueFaultValuesBuilder) buildForBACnet
 
 func (b *_BACnetConstructedDataMultiStateValueFaultValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMultiStateValueFaultValuesBuilder().(*_BACnetConstructedDataMultiStateValueFaultValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

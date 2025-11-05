@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataSubordinateRelationships interface {
 	// GetSubordinateRelationships returns SubordinateRelationships (property field)
 	GetSubordinateRelationships() []BACnetRelationshipTagged
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataSubordinateRelationships is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataSubordinateRelationships()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataSubordinateRelationships = (*_BACnetConstructedDataSu
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataSubordinateRelationships)(nil)
 
 // NewBACnetConstructedDataSubordinateRelationships factory function for _BACnetConstructedDataSubordinateRelationships
-func NewBACnetConstructedDataSubordinateRelationships(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, subordinateRelationships []BACnetRelationshipTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataSubordinateRelationships {
+func NewBACnetConstructedDataSubordinateRelationships(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, subordinateRelationships []BACnetRelationshipTagged) *_BACnetConstructedDataSubordinateRelationships {
 	_result := &_BACnetConstructedDataSubordinateRelationships{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		SubordinateRelationships:      subordinateRelationships,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataSubordinateRelationshipsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataSubordinateRelationshipsBuilder) = (*_BACnetConstructedDataSubordinateRelationshipsBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataSubordinateRelationshipsBuilder) WithOptionalNumb
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataSubordinateRelationshipsBuilder) WithSubordinateR
 }
 
 func (b *_BACnetConstructedDataSubordinateRelationshipsBuilder) Build() (BACnetConstructedDataSubordinateRelationships, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataSubordinateRelationships.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataSubordinateRelationshipsBuilder) buildForBACnetCo
 
 func (b *_BACnetConstructedDataSubordinateRelationshipsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataSubordinateRelationshipsBuilder().(*_BACnetConstructedDataSubordinateRelationshipsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

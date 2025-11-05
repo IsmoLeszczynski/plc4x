@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -40,10 +41,13 @@ type AdsStampHeader interface {
 	utils.Serializable
 	utils.Copyable
 	// GetTimestamp returns Timestamp (property field)
+	// 8 bytes	The timestamp is coded after the Windows FILETIME format. I.e. the value contains the number of the nano seconds, which passed since 1.1.1601. In addition, the local time change is not considered. Thus the time stamp is present as universal Coordinated time (UTC).
 	GetTimestamp() uint64
 	// GetSamples returns Samples (property field)
+	// 4 bytes	Number of elements of type AdsNotificationSample.
 	GetSamples() uint32
 	// GetAdsNotificationSamples returns AdsNotificationSamples (property field)
+	// n bytes	Array with elements of type AdsNotificationSample.
 	GetAdsNotificationSamples() []AdsNotificationSample
 	// IsAdsStampHeader is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsAdsStampHeader()
@@ -95,7 +99,7 @@ func NewAdsStampHeaderBuilder() AdsStampHeaderBuilder {
 type _AdsStampHeaderBuilder struct {
 	*_AdsStampHeader
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (AdsStampHeaderBuilder) = (*_AdsStampHeaderBuilder)(nil)
@@ -120,8 +124,8 @@ func (b *_AdsStampHeaderBuilder) WithAdsNotificationSamples(adsNotificationSampl
 }
 
 func (b *_AdsStampHeaderBuilder) Build() (AdsStampHeader, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._AdsStampHeader.deepCopy(), nil
 }
@@ -136,8 +140,8 @@ func (b *_AdsStampHeaderBuilder) MustBuild() AdsStampHeader {
 
 func (b *_AdsStampHeaderBuilder) DeepCopy() any {
 	_copy := b.CreateAdsStampHeaderBuilder().(*_AdsStampHeaderBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -227,7 +231,7 @@ func AdsStampHeaderParseWithBufferProducer() func(ctx context.Context, readBuffe
 }
 
 func AdsStampHeaderParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (AdsStampHeader, error) {
-	v, err := (&_AdsStampHeader{}).parse(ctx, readBuffer)
+	v, err := (new(_AdsStampHeader)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

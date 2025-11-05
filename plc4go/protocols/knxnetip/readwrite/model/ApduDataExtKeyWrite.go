@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ ApduDataExtKeyWrite = (*_ApduDataExtKeyWrite)(nil)
 var _ ApduDataExtRequirements = (*_ApduDataExtKeyWrite)(nil)
 
 // NewApduDataExtKeyWrite factory function for _ApduDataExtKeyWrite
-func NewApduDataExtKeyWrite(length uint8) *_ApduDataExtKeyWrite {
+func NewApduDataExtKeyWrite() *_ApduDataExtKeyWrite {
 	_result := &_ApduDataExtKeyWrite{
-		ApduDataExtContract: NewApduDataExt(length),
+		ApduDataExtContract: NewApduDataExt(),
 	}
 	_result.ApduDataExtContract.(*_ApduDataExt)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _ApduDataExtKeyWriteBuilder struct {
 
 	parentBuilder *_ApduDataExtBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ApduDataExtKeyWriteBuilder) = (*_ApduDataExtKeyWriteBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_ApduDataExtKeyWriteBuilder) WithMandatoryFields() ApduDataExtKeyWriteB
 }
 
 func (b *_ApduDataExtKeyWriteBuilder) Build() (ApduDataExtKeyWrite, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ApduDataExtKeyWrite.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_ApduDataExtKeyWriteBuilder) buildForApduDataExt() (ApduDataExt, error)
 
 func (b *_ApduDataExtKeyWriteBuilder) DeepCopy() any {
 	_copy := b.CreateApduDataExtKeyWriteBuilder().(*_ApduDataExtKeyWriteBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

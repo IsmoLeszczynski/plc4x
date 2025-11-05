@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _BACnetAccessAuthenticationFactorDisableTagged struct {
 	Header           BACnetTagHeader
 	Value            BACnetAccessAuthenticationFactorDisable
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetAccessAuthenticationFactorDisableTagged = (*_BACnetAccessAuthenticationFactorDisableTagged)(nil)
 
 // NewBACnetAccessAuthenticationFactorDisableTagged factory function for _BACnetAccessAuthenticationFactorDisableTagged
-func NewBACnetAccessAuthenticationFactorDisableTagged(header BACnetTagHeader, value BACnetAccessAuthenticationFactorDisable, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_BACnetAccessAuthenticationFactorDisableTagged {
+func NewBACnetAccessAuthenticationFactorDisableTagged(header BACnetTagHeader, value BACnetAccessAuthenticationFactorDisable, proprietaryValue uint32) *_BACnetAccessAuthenticationFactorDisableTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetAccessAuthenticationFactorDisableTagged must not be nil")
 	}
-	return &_BACnetAccessAuthenticationFactorDisableTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetAccessAuthenticationFactorDisableTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type BACnetAccessAuthenticationFactorDisableTaggedBuilder interface {
 	WithValue(BACnetAccessAuthenticationFactorDisable) BACnetAccessAuthenticationFactorDisableTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) BACnetAccessAuthenticationFactorDisableTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetAccessAuthenticationFactorDisableTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetAccessAuthenticationFactorDisableTaggedBuilder
 	// Build builds the BACnetAccessAuthenticationFactorDisableTagged or returns an error if something is wrong
 	Build() (BACnetAccessAuthenticationFactorDisableTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewBACnetAccessAuthenticationFactorDisableTaggedBuilder() BACnetAccessAuthe
 type _BACnetAccessAuthenticationFactorDisableTaggedBuilder struct {
 	*_BACnetAccessAuthenticationFactorDisableTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetAccessAuthenticationFactorDisableTaggedBuilder) = (*_BACnetAccessAuthenticationFactorDisableTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_BACnetAccessAuthenticationFactorDisableTaggedBuilder) WithHeaderBuilde
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_BACnetAccessAuthenticationFactorDisableTaggedBuilder) WithProprietaryV
 	return b
 }
 
-func (b *_BACnetAccessAuthenticationFactorDisableTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetAccessAuthenticationFactorDisableTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetAccessAuthenticationFactorDisableTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetAccessAuthenticationFactorDisableTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetAccessAuthenticationFactorDisableTaggedBuilder) Build() (BACnetAccessAuthenticationFactorDisableTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetAccessAuthenticationFactorDisableTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_BACnetAccessAuthenticationFactorDisableTaggedBuilder) MustBuild() BACn
 
 func (b *_BACnetAccessAuthenticationFactorDisableTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetAccessAuthenticationFactorDisableTaggedBuilder().(*_BACnetAccessAuthenticationFactorDisableTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func BACnetAccessAuthenticationFactorDisableTaggedParseWithBufferProducer(tagNum
 }
 
 func BACnetAccessAuthenticationFactorDisableTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetAccessAuthenticationFactorDisableTagged, error) {
-	v, err := (&_BACnetAccessAuthenticationFactorDisableTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetAccessAuthenticationFactorDisableTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_BACnetAccessAuthenticationFactorDisableTagged) SerializeWithWriteBuffe
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetAccessAuthenticationFactorDisableTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetAccessAuthenticationFactorDisableTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetAccessAuthenticationFactorDisableTagged) IsBACnetAccessAuthenticationFactorDisableTagged() {
 }
 
@@ -410,8 +375,6 @@ func (m *_BACnetAccessAuthenticationFactorDisableTagged) deepCopy() *_BACnetAcce
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetAccessAuthenticationFactorDisableTaggedCopy
 }

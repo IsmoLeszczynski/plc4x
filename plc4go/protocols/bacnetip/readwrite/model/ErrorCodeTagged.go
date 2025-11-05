@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,20 +59,16 @@ type _ErrorCodeTagged struct {
 	Header           BACnetTagHeader
 	Value            ErrorCode
 	ProprietaryValue uint32
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ ErrorCodeTagged = (*_ErrorCodeTagged)(nil)
 
 // NewErrorCodeTagged factory function for _ErrorCodeTagged
-func NewErrorCodeTagged(header BACnetTagHeader, value ErrorCode, proprietaryValue uint32, tagNumber uint8, tagClass TagClass) *_ErrorCodeTagged {
+func NewErrorCodeTagged(header BACnetTagHeader, value ErrorCode, proprietaryValue uint32) *_ErrorCodeTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for ErrorCodeTagged must not be nil")
 	}
-	return &_ErrorCodeTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue, TagNumber: tagNumber, TagClass: tagClass}
+	return &_ErrorCodeTagged{Header: header, Value: value, ProprietaryValue: proprietaryValue}
 }
 
 ///////////////////////////////////////////////////////////
@@ -92,10 +89,6 @@ type ErrorCodeTaggedBuilder interface {
 	WithValue(ErrorCode) ErrorCodeTaggedBuilder
 	// WithProprietaryValue adds ProprietaryValue (property field)
 	WithProprietaryValue(uint32) ErrorCodeTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) ErrorCodeTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) ErrorCodeTaggedBuilder
 	// Build builds the ErrorCodeTagged or returns an error if something is wrong
 	Build() (ErrorCodeTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +103,7 @@ func NewErrorCodeTaggedBuilder() ErrorCodeTaggedBuilder {
 type _ErrorCodeTaggedBuilder struct {
 	*_ErrorCodeTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ErrorCodeTaggedBuilder) = (*_ErrorCodeTaggedBuilder)(nil)
@@ -129,10 +122,7 @@ func (b *_ErrorCodeTaggedBuilder) WithHeaderBuilder(builderSupplier func(BACnetT
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -147,24 +137,12 @@ func (b *_ErrorCodeTaggedBuilder) WithProprietaryValue(proprietaryValue uint32) 
 	return b
 }
 
-func (b *_ErrorCodeTaggedBuilder) WithArgTagNumber(tagNumber uint8) ErrorCodeTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_ErrorCodeTaggedBuilder) WithArgTagClass(tagClass TagClass) ErrorCodeTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_ErrorCodeTaggedBuilder) Build() (ErrorCodeTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ErrorCodeTagged.deepCopy(), nil
 }
@@ -179,8 +157,8 @@ func (b *_ErrorCodeTaggedBuilder) MustBuild() ErrorCodeTagged {
 
 func (b *_ErrorCodeTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateErrorCodeTaggedBuilder().(*_ErrorCodeTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -282,7 +260,7 @@ func ErrorCodeTaggedParseWithBufferProducer(tagNumber uint8, tagClass TagClass) 
 }
 
 func ErrorCodeTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (ErrorCodeTagged, error) {
-	v, err := (&_ErrorCodeTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_ErrorCodeTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -382,19 +360,6 @@ func (m *_ErrorCodeTagged) SerializeWithWriteBuffer(ctx context.Context, writeBu
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_ErrorCodeTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_ErrorCodeTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_ErrorCodeTagged) IsErrorCodeTagged() {}
 
 func (m *_ErrorCodeTagged) DeepCopy() any {
@@ -409,8 +374,6 @@ func (m *_ErrorCodeTagged) deepCopy() *_ErrorCodeTagged {
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
 		m.ProprietaryValue,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _ErrorCodeTaggedCopy
 }

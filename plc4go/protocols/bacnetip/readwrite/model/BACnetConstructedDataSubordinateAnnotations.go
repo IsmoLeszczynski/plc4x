@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataSubordinateAnnotations interface {
 	// GetSubordinateAnnotations returns SubordinateAnnotations (property field)
 	GetSubordinateAnnotations() []BACnetApplicationTagCharacterString
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataSubordinateAnnotations is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataSubordinateAnnotations()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataSubordinateAnnotations = (*_BACnetConstructedDataSubo
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataSubordinateAnnotations)(nil)
 
 // NewBACnetConstructedDataSubordinateAnnotations factory function for _BACnetConstructedDataSubordinateAnnotations
-func NewBACnetConstructedDataSubordinateAnnotations(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, subordinateAnnotations []BACnetApplicationTagCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataSubordinateAnnotations {
+func NewBACnetConstructedDataSubordinateAnnotations(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, subordinateAnnotations []BACnetApplicationTagCharacterString) *_BACnetConstructedDataSubordinateAnnotations {
 	_result := &_BACnetConstructedDataSubordinateAnnotations{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		SubordinateAnnotations:        subordinateAnnotations,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataSubordinateAnnotationsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataSubordinateAnnotationsBuilder) = (*_BACnetConstructedDataSubordinateAnnotationsBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataSubordinateAnnotationsBuilder) WithOptionalNumber
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataSubordinateAnnotationsBuilder) WithSubordinateAnn
 }
 
 func (b *_BACnetConstructedDataSubordinateAnnotationsBuilder) Build() (BACnetConstructedDataSubordinateAnnotations, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataSubordinateAnnotations.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataSubordinateAnnotationsBuilder) buildForBACnetCons
 
 func (b *_BACnetConstructedDataSubordinateAnnotationsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataSubordinateAnnotationsBuilder().(*_BACnetConstructedDataSubordinateAnnotationsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

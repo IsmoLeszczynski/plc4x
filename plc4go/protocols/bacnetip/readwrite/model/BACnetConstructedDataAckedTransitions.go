@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataAckedTransitions = (*_BACnetConstructedDataAckedTrans
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAckedTransitions)(nil)
 
 // NewBACnetConstructedDataAckedTransitions factory function for _BACnetConstructedDataAckedTransitions
-func NewBACnetConstructedDataAckedTransitions(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ackedTransitions BACnetEventTransitionBitsTagged, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAckedTransitions {
+func NewBACnetConstructedDataAckedTransitions(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, ackedTransitions BACnetEventTransitionBitsTagged) *_BACnetConstructedDataAckedTransitions {
 	if ackedTransitions == nil {
 		panic("ackedTransitions of type BACnetEventTransitionBitsTagged for BACnetConstructedDataAckedTransitions must not be nil")
 	}
 	_result := &_BACnetConstructedDataAckedTransitions{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		AckedTransitions:              ackedTransitions,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataAckedTransitionsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAckedTransitionsBuilder) = (*_BACnetConstructedDataAckedTransitionsBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataAckedTransitionsBuilder) WithAckedTransitionsBuil
 	var err error
 	b.AckedTransitions, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetEventTransitionBitsTaggedBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetEventTransitionBitsTaggedBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataAckedTransitionsBuilder) Build() (BACnetConstructedDataAckedTransitions, error) {
 	if b.AckedTransitions == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'ackedTransitions' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'ackedTransitions' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAckedTransitions.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataAckedTransitionsBuilder) buildForBACnetConstructe
 
 func (b *_BACnetConstructedDataAckedTransitionsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAckedTransitionsBuilder().(*_BACnetConstructedDataAckedTransitionsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

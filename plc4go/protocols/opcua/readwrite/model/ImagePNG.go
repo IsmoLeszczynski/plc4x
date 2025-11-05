@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -78,7 +79,7 @@ func NewImagePNGBuilder() ImagePNGBuilder {
 type _ImagePNGBuilder struct {
 	*_ImagePNG
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (ImagePNGBuilder) = (*_ImagePNGBuilder)(nil)
@@ -88,8 +89,8 @@ func (b *_ImagePNGBuilder) WithMandatoryFields() ImagePNGBuilder {
 }
 
 func (b *_ImagePNGBuilder) Build() (ImagePNG, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._ImagePNG.deepCopy(), nil
 }
@@ -104,8 +105,8 @@ func (b *_ImagePNGBuilder) MustBuild() ImagePNG {
 
 func (b *_ImagePNGBuilder) DeepCopy() any {
 	_copy := b.CreateImagePNGBuilder().(*_ImagePNGBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -159,7 +160,7 @@ func ImagePNGParseWithBufferProducer() func(ctx context.Context, readBuffer util
 }
 
 func ImagePNGParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer) (ImagePNG, error) {
-	v, err := (&_ImagePNG{}).parse(ctx, readBuffer)
+	v, err := (new(_ImagePNG)).parse(ctx, readBuffer)
 	if err != nil {
 		return nil, err
 	}

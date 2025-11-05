@@ -49,21 +49,13 @@ public class BACnetConstructedDataIPDHCPLeaseTime extends BACnetConstructedData 
   // Properties.
   protected final BACnetApplicationTagUnsignedInteger ipDhcpLeaseTime;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataIPDHCPLeaseTime(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagUnsignedInteger ipDhcpLeaseTime,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagUnsignedInteger ipDhcpLeaseTime) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.ipDhcpLeaseTime = ipDhcpLeaseTime;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getIpDhcpLeaseTime() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataIPDHCPLeaseTime extends BACnetConstructedData 
     // Simple Field (ipDhcpLeaseTime)
     writeSimpleField("ipDhcpLeaseTime", ipDhcpLeaseTime, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagUnsignedInteger actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,39 +126,23 @@ public class BACnetConstructedDataIPDHCPLeaseTime extends BACnetConstructedData 
 
     readBuffer.closeContext("BACnetConstructedDataIPDHCPLeaseTime");
     // Create the instance
-    return new BACnetConstructedDataIPDHCPLeaseTimeBuilderImpl(
-        ipDhcpLeaseTime, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataIPDHCPLeaseTimeBuilderImpl(ipDhcpLeaseTime);
   }
 
   public static class BACnetConstructedDataIPDHCPLeaseTimeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger ipDhcpLeaseTime;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataIPDHCPLeaseTimeBuilderImpl(
-        BACnetApplicationTagUnsignedInteger ipDhcpLeaseTime,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetApplicationTagUnsignedInteger ipDhcpLeaseTime) {
       this.ipDhcpLeaseTime = ipDhcpLeaseTime;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataIPDHCPLeaseTime build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataIPDHCPLeaseTime bACnetConstructedDataIPDHCPLeaseTime =
           new BACnetConstructedDataIPDHCPLeaseTime(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              ipDhcpLeaseTime,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, ipDhcpLeaseTime);
       return bACnetConstructedDataIPDHCPLeaseTime;
     }
   }

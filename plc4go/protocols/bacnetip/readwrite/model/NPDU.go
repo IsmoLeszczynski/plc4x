@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -62,10 +63,13 @@ type NPDU interface {
 	// GetApdu returns Apdu (property field)
 	GetApdu() APDU
 	// GetDestinationLengthAddon returns DestinationLengthAddon (virtual field)
+	// (destinationNetworkAddress(16bit) + destinationLength(8bit) + destinationLength)?
 	GetDestinationLengthAddon() uint16
 	// GetSourceLengthAddon returns SourceLengthAddon (virtual field)
+	// (sourceNetworkAddress(16bit) + sourceLength(8bit) + sourceLength)?
 	GetSourceLengthAddon() uint16
 	// GetPayloadSubtraction returns PayloadSubtraction (virtual field)
+	// protocolVersionNumber(8bit) + control(8bit) + sourceLengthAddon + destinationLengthAddon + hopcount
 	GetPayloadSubtraction() uint16
 	// IsNPDU is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsNPDU()
@@ -86,19 +90,16 @@ type _NPDU struct {
 	HopCount                  *uint8
 	Nlm                       NLM
 	Apdu                      APDU
-
-	// Arguments.
-	NpduLength uint16
 }
 
 var _ NPDU = (*_NPDU)(nil)
 
 // NewNPDU factory function for _NPDU
-func NewNPDU(protocolVersionNumber uint8, control NPDUControl, destinationNetworkAddress *uint16, destinationLength *uint8, destinationAddress []uint8, sourceNetworkAddress *uint16, sourceLength *uint8, sourceAddress []uint8, hopCount *uint8, nlm NLM, apdu APDU, npduLength uint16) *_NPDU {
+func NewNPDU(protocolVersionNumber uint8, control NPDUControl, destinationNetworkAddress *uint16, destinationLength *uint8, destinationAddress []uint8, sourceNetworkAddress *uint16, sourceLength *uint8, sourceAddress []uint8, hopCount *uint8, nlm NLM, apdu APDU) *_NPDU {
 	if control == nil {
 		panic("control of type NPDUControl for NPDU must not be nil")
 	}
-	return &_NPDU{ProtocolVersionNumber: protocolVersionNumber, Control: control, DestinationNetworkAddress: destinationNetworkAddress, DestinationLength: destinationLength, DestinationAddress: destinationAddress, SourceNetworkAddress: sourceNetworkAddress, SourceLength: sourceLength, SourceAddress: sourceAddress, HopCount: hopCount, Nlm: nlm, Apdu: apdu, NpduLength: npduLength}
+	return &_NPDU{ProtocolVersionNumber: protocolVersionNumber, Control: control, DestinationNetworkAddress: destinationNetworkAddress, DestinationLength: destinationLength, DestinationAddress: destinationAddress, SourceNetworkAddress: sourceNetworkAddress, SourceLength: sourceLength, SourceAddress: sourceAddress, HopCount: hopCount, Nlm: nlm, Apdu: apdu}
 }
 
 ///////////////////////////////////////////////////////////
@@ -139,8 +140,6 @@ type NPDUBuilder interface {
 	WithOptionalApdu(APDU) NPDUBuilder
 	// WithOptionalApduBuilder adds Apdu (property field) which is build by the builder
 	WithOptionalApduBuilder(func(APDUBuilder) APDUBuilder) NPDUBuilder
-	// WithArgNpduLength sets a parser argument
-	WithArgNpduLength(uint16) NPDUBuilder
 	// Build builds the NPDU or returns an error if something is wrong
 	Build() (NPDU, error)
 	// MustBuild does the same as Build but panics on error
@@ -155,7 +154,7 @@ func NewNPDUBuilder() NPDUBuilder {
 type _NPDUBuilder struct {
 	*_NPDU
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NPDUBuilder) = (*_NPDUBuilder)(nil)
@@ -179,10 +178,7 @@ func (b *_NPDUBuilder) WithControlBuilder(builderSupplier func(NPDUControlBuilde
 	var err error
 	b.Control, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "NPDUControlBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "NPDUControlBuilder failed"))
 	}
 	return b
 }
@@ -232,10 +228,7 @@ func (b *_NPDUBuilder) WithOptionalNlmBuilder(builderSupplier func(NLMBuilder) N
 	var err error
 	b.Nlm, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "NLMBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "NLMBuilder failed"))
 	}
 	return b
 }
@@ -250,28 +243,17 @@ func (b *_NPDUBuilder) WithOptionalApduBuilder(builderSupplier func(APDUBuilder)
 	var err error
 	b.Apdu, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "APDUBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "APDUBuilder failed"))
 	}
-	return b
-}
-
-func (b *_NPDUBuilder) WithArgNpduLength(npduLength uint16) NPDUBuilder {
-	b.NpduLength = npduLength
 	return b
 }
 
 func (b *_NPDUBuilder) Build() (NPDU, error) {
 	if b.Control == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'control' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'control' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NPDU.deepCopy(), nil
 }
@@ -286,8 +268,8 @@ func (b *_NPDUBuilder) MustBuild() NPDU {
 
 func (b *_NPDUBuilder) DeepCopy() any {
 	_copy := b.CreateNPDUBuilder().(*_NPDUBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -521,7 +503,7 @@ func NPDUParseWithBufferProducer(npduLength uint16) func(ctx context.Context, re
 }
 
 func NPDUParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, npduLength uint16) (NPDU, error) {
-	v, err := (&_NPDU{NpduLength: npduLength}).parse(ctx, readBuffer, npduLength)
+	v, err := (new(_NPDU)).parse(ctx, readBuffer, npduLength)
 	if err != nil {
 		return nil, err
 	}
@@ -741,16 +723,6 @@ func (m *_NPDU) SerializeWithWriteBuffer(ctx context.Context, writeBuffer utils.
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_NPDU) GetNpduLength() uint16 {
-	return m.NpduLength
-}
-
-//
-////
-
 func (m *_NPDU) IsNPDU() {}
 
 func (m *_NPDU) DeepCopy() any {
@@ -773,7 +745,6 @@ func (m *_NPDU) deepCopy() *_NPDU {
 		utils.CopyPtr[uint8](m.HopCount),
 		utils.DeepCopy[NLM](m.Nlm),
 		utils.DeepCopy[APDU](m.Apdu),
-		m.NpduLength,
 	}
 	return _NPDUCopy
 }

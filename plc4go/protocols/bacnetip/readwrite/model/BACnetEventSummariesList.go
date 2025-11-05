@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,22 +57,19 @@ type _BACnetEventSummariesList struct {
 	OpeningTag           BACnetOpeningTag
 	ListOfEventSummaries []BACnetEventSummary
 	ClosingTag           BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetEventSummariesList = (*_BACnetEventSummariesList)(nil)
 
 // NewBACnetEventSummariesList factory function for _BACnetEventSummariesList
-func NewBACnetEventSummariesList(openingTag BACnetOpeningTag, listOfEventSummaries []BACnetEventSummary, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetEventSummariesList {
+func NewBACnetEventSummariesList(openingTag BACnetOpeningTag, listOfEventSummaries []BACnetEventSummary, closingTag BACnetClosingTag) *_BACnetEventSummariesList {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetEventSummariesList must not be nil")
 	}
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetEventSummariesList must not be nil")
 	}
-	return &_BACnetEventSummariesList{OpeningTag: openingTag, ListOfEventSummaries: listOfEventSummaries, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetEventSummariesList{OpeningTag: openingTag, ListOfEventSummaries: listOfEventSummaries, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -94,8 +92,6 @@ type BACnetEventSummariesListBuilder interface {
 	WithClosingTag(BACnetClosingTag) BACnetEventSummariesListBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetEventSummariesListBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetEventSummariesListBuilder
 	// Build builds the BACnetEventSummariesList or returns an error if something is wrong
 	Build() (BACnetEventSummariesList, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +106,7 @@ func NewBACnetEventSummariesListBuilder() BACnetEventSummariesListBuilder {
 type _BACnetEventSummariesListBuilder struct {
 	*_BACnetEventSummariesList
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetEventSummariesListBuilder) = (*_BACnetEventSummariesListBuilder)(nil)
@@ -129,10 +125,7 @@ func (b *_BACnetEventSummariesListBuilder) WithOpeningTagBuilder(builderSupplier
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,34 +145,20 @@ func (b *_BACnetEventSummariesListBuilder) WithClosingTagBuilder(builderSupplier
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetEventSummariesListBuilder) WithArgTagNumber(tagNumber uint8) BACnetEventSummariesListBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetEventSummariesListBuilder) Build() (BACnetEventSummariesList, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetEventSummariesList.deepCopy(), nil
 }
@@ -194,8 +173,8 @@ func (b *_BACnetEventSummariesListBuilder) MustBuild() BACnetEventSummariesList 
 
 func (b *_BACnetEventSummariesListBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetEventSummariesListBuilder().(*_BACnetEventSummariesListBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -284,7 +263,7 @@ func BACnetEventSummariesListParseWithBufferProducer(tagNumber uint8) func(ctx c
 }
 
 func BACnetEventSummariesListParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetEventSummariesList, error) {
-	v, err := (&_BACnetEventSummariesList{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetEventSummariesList)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +339,6 @@ func (m *_BACnetEventSummariesList) SerializeWithWriteBuffer(ctx context.Context
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetEventSummariesList) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetEventSummariesList) IsBACnetEventSummariesList() {}
 
 func (m *_BACnetEventSummariesList) DeepCopy() any {
@@ -384,7 +353,6 @@ func (m *_BACnetEventSummariesList) deepCopy() *_BACnetEventSummariesList {
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopySlice[BACnetEventSummary, BACnetEventSummary](m.ListOfEventSummaries),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetEventSummariesListCopy
 }

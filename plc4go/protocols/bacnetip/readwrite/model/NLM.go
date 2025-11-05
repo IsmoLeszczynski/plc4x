@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -51,8 +52,6 @@ type NLM interface {
 type NLMContract interface {
 	// GetIsVendorProprietaryMessage returns IsVendorProprietaryMessage (virtual field)
 	GetIsVendorProprietaryMessage() bool
-	// GetApduLength() returns a parser argument
-	GetApduLength() uint16
 	// IsNLM is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsNLM()
 	// CreateBuilder creates a NLMBuilder
@@ -75,16 +74,13 @@ type _NLM struct {
 		NLMContract
 		NLMRequirements
 	}
-
-	// Arguments.
-	ApduLength uint16
 }
 
 var _ NLMContract = (*_NLM)(nil)
 
 // NewNLM factory function for _NLM
-func NewNLM(apduLength uint16) *_NLM {
-	return &_NLM{ApduLength: apduLength}
+func NewNLM() *_NLM {
+	return &_NLM{}
 }
 
 ///////////////////////////////////////////////////////////
@@ -97,8 +93,6 @@ type NLMBuilder interface {
 	utils.Copyable
 	// WithMandatoryFields adds all mandatory fields (convenience for using multiple builder calls)
 	WithMandatoryFields() NLMBuilder
-	// WithArgApduLength sets a parser argument
-	WithArgApduLength(uint16) NLMBuilder
 	// AsNLMWhoIsRouterToNetwork converts this build to a subType of NLM. It is always possible to return to current builder using Done()
 	AsNLMWhoIsRouterToNetwork() NLMWhoIsRouterToNetworkBuilder
 	// AsNLMIAmRouterToNetwork converts this build to a subType of NLM. It is always possible to return to current builder using Done()
@@ -169,7 +163,7 @@ type _NLMBuilder struct {
 
 	childBuilder _NLMChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NLMBuilder) = (*_NLMBuilder)(nil)
@@ -178,14 +172,9 @@ func (b *_NLMBuilder) WithMandatoryFields() NLMBuilder {
 	return b
 }
 
-func (b *_NLMBuilder) WithArgApduLength(apduLength uint16) NLMBuilder {
-	b.ApduLength = apduLength
-	return b
-}
-
 func (b *_NLMBuilder) PartialBuild() (NLMContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NLM.deepCopy(), nil
 }
@@ -442,8 +431,8 @@ func (b *_NLMBuilder) DeepCopy() any {
 	_copy := b.CreateNLMBuilder().(*_NLMBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_NLMChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -527,7 +516,7 @@ func NLMParseWithBufferProducer[T NLM](apduLength uint16) func(ctx context.Conte
 }
 
 func NLMParseWithBuffer[T NLM](ctx context.Context, readBuffer utils.ReadBuffer, apduLength uint16) (T, error) {
-	v, err := (&_NLM{ApduLength: apduLength}).parse(ctx, readBuffer, apduLength)
+	v, err := (new(_NLM)).parse(ctx, readBuffer, apduLength)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -695,16 +684,6 @@ func (pm *_NLM) serializeParent(ctx context.Context, writeBuffer utils.WriteBuff
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_NLM) GetApduLength() uint16 {
-	return m.ApduLength
-}
-
-//
-////
-
 func (m *_NLM) IsNLM() {}
 
 func (m *_NLM) DeepCopy() any {
@@ -717,7 +696,6 @@ func (m *_NLM) deepCopy() *_NLM {
 	}
 	_NLMCopy := &_NLM{
 		nil, // will be set by child
-		m.ApduLength,
 	}
 	return _NLMCopy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ type CALDataWrite interface {
 	utils.Copyable
 	CALData
 	// GetParamNo returns ParamNo (property field)
+	// Request
 	GetParamNo() Parameter
 	// GetCode returns Code (property field)
 	GetCode() byte
@@ -64,12 +66,12 @@ var _ CALDataWrite = (*_CALDataWrite)(nil)
 var _ CALDataRequirements = (*_CALDataWrite)(nil)
 
 // NewCALDataWrite factory function for _CALDataWrite
-func NewCALDataWrite(commandTypeContainer CALCommandTypeContainer, additionalData CALData, paramNo Parameter, code byte, parameterValue ParameterValue, requestContext RequestContext) *_CALDataWrite {
+func NewCALDataWrite(requestContext RequestContext, commandTypeContainer CALCommandTypeContainer, additionalData CALData, paramNo Parameter, code byte, parameterValue ParameterValue) *_CALDataWrite {
 	if parameterValue == nil {
 		panic("parameterValue of type ParameterValue for CALDataWrite must not be nil")
 	}
 	_result := &_CALDataWrite{
-		CALDataContract: NewCALData(commandTypeContainer, additionalData, requestContext),
+		CALDataContract: NewCALData(requestContext, commandTypeContainer, additionalData),
 		ParamNo:         paramNo,
 		Code:            code,
 		ParameterValue:  parameterValue,
@@ -114,7 +116,7 @@ type _CALDataWriteBuilder struct {
 
 	parentBuilder *_CALDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CALDataWriteBuilder) = (*_CALDataWriteBuilder)(nil)
@@ -148,23 +150,17 @@ func (b *_CALDataWriteBuilder) WithParameterValueBuilder(builderSupplier func(Pa
 	var err error
 	b.ParameterValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "ParameterValueBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "ParameterValueBuilder failed"))
 	}
 	return b
 }
 
 func (b *_CALDataWriteBuilder) Build() (CALDataWrite, error) {
 	if b.ParameterValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'parameterValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'parameterValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CALDataWrite.deepCopy(), nil
 }
@@ -190,8 +186,8 @@ func (b *_CALDataWriteBuilder) buildForCALData() (CALData, error) {
 
 func (b *_CALDataWriteBuilder) DeepCopy() any {
 	_copy := b.CreateCALDataWriteBuilder().(*_CALDataWriteBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

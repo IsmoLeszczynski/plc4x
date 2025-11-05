@@ -49,21 +49,13 @@ public class BACnetConstructedDataMaxActualValue extends BACnetConstructedData i
   // Properties.
   protected final BACnetApplicationTagReal maxActualValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataMaxActualValue(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagReal maxActualValue,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagReal maxActualValue) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.maxActualValue = maxActualValue;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagReal getMaxActualValue() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataMaxActualValue extends BACnetConstructedData i
     // Simple Field (maxActualValue)
     writeSimpleField("maxActualValue", maxActualValue, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagReal actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -132,39 +124,22 @@ public class BACnetConstructedDataMaxActualValue extends BACnetConstructedData i
 
     readBuffer.closeContext("BACnetConstructedDataMaxActualValue");
     // Create the instance
-    return new BACnetConstructedDataMaxActualValueBuilderImpl(
-        maxActualValue, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataMaxActualValueBuilderImpl(maxActualValue);
   }
 
   public static class BACnetConstructedDataMaxActualValueBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagReal maxActualValue;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataMaxActualValueBuilderImpl(
-        BACnetApplicationTagReal maxActualValue,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataMaxActualValueBuilderImpl(BACnetApplicationTagReal maxActualValue) {
       this.maxActualValue = maxActualValue;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataMaxActualValue build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataMaxActualValue bACnetConstructedDataMaxActualValue =
           new BACnetConstructedDataMaxActualValue(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              maxActualValue,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, maxActualValue);
       return bACnetConstructedDataMaxActualValue;
     }
   }

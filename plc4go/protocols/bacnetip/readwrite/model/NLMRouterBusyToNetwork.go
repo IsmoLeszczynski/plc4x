@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,9 +59,9 @@ var _ NLMRouterBusyToNetwork = (*_NLMRouterBusyToNetwork)(nil)
 var _ NLMRequirements = (*_NLMRouterBusyToNetwork)(nil)
 
 // NewNLMRouterBusyToNetwork factory function for _NLMRouterBusyToNetwork
-func NewNLMRouterBusyToNetwork(destinationNetworkAddresses []uint16, apduLength uint16) *_NLMRouterBusyToNetwork {
+func NewNLMRouterBusyToNetwork(destinationNetworkAddresses []uint16) *_NLMRouterBusyToNetwork {
 	_result := &_NLMRouterBusyToNetwork{
-		NLMContract:                 NewNLM(apduLength),
+		NLMContract:                 NewNLM(),
 		DestinationNetworkAddresses: destinationNetworkAddresses,
 	}
 	_result.NLMContract.(*_NLM)._SubType = _result
@@ -97,7 +98,7 @@ type _NLMRouterBusyToNetworkBuilder struct {
 
 	parentBuilder *_NLMBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NLMRouterBusyToNetworkBuilder) = (*_NLMRouterBusyToNetworkBuilder)(nil)
@@ -117,8 +118,8 @@ func (b *_NLMRouterBusyToNetworkBuilder) WithDestinationNetworkAddresses(destina
 }
 
 func (b *_NLMRouterBusyToNetworkBuilder) Build() (NLMRouterBusyToNetwork, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NLMRouterBusyToNetwork.deepCopy(), nil
 }
@@ -144,8 +145,8 @@ func (b *_NLMRouterBusyToNetworkBuilder) buildForNLM() (NLM, error) {
 
 func (b *_NLMRouterBusyToNetworkBuilder) DeepCopy() any {
 	_copy := b.CreateNLMRouterBusyToNetworkBuilder().(*_NLMRouterBusyToNetworkBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -49,21 +49,13 @@ public class BACnetConstructedDataMaxPresValue extends BACnetConstructedData imp
   // Properties.
   protected final BACnetApplicationTagReal maxPresValue;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataMaxPresValue(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagReal maxPresValue,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagReal maxPresValue) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.maxPresValue = maxPresValue;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagReal getMaxPresValue() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataMaxPresValue extends BACnetConstructedData imp
     // Simple Field (maxPresValue)
     writeSimpleField("maxPresValue", maxPresValue, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagReal actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -132,34 +124,22 @@ public class BACnetConstructedDataMaxPresValue extends BACnetConstructedData imp
 
     readBuffer.closeContext("BACnetConstructedDataMaxPresValue");
     // Create the instance
-    return new BACnetConstructedDataMaxPresValueBuilderImpl(
-        maxPresValue, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataMaxPresValueBuilderImpl(maxPresValue);
   }
 
   public static class BACnetConstructedDataMaxPresValueBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagReal maxPresValue;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataMaxPresValueBuilderImpl(
-        BACnetApplicationTagReal maxPresValue,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataMaxPresValueBuilderImpl(BACnetApplicationTagReal maxPresValue) {
       this.maxPresValue = maxPresValue;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataMaxPresValue build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataMaxPresValue bACnetConstructedDataMaxPresValue =
           new BACnetConstructedDataMaxPresValue(
-              openingTag, peekedTagHeader, closingTag, maxPresValue, tagNumber, arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, maxPresValue);
       return bACnetConstructedDataMaxPresValue;
     }
   }

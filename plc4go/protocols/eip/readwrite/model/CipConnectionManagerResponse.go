@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -41,8 +42,10 @@ type CipConnectionManagerResponse interface {
 	utils.Copyable
 	CipService
 	// GetOtConnectionId returns OtConnectionId (property field)
+	// ot = Originator (Client) Target (Server)
 	GetOtConnectionId() uint32
 	// GetToConnectionId returns ToConnectionId (property field)
+	// to = Target (Server) Originator (Client)
 	GetToConnectionId() uint32
 	// GetConnectionSerialNumber returns ConnectionSerialNumber (property field)
 	GetConnectionSerialNumber() uint16
@@ -51,8 +54,10 @@ type CipConnectionManagerResponse interface {
 	// GetOriginatorSerialNumber returns OriginatorSerialNumber (property field)
 	GetOriginatorSerialNumber() uint32
 	// GetOtApi returns OtApi (property field)
+	// ot = Originator (Client) Target (Server)
 	GetOtApi() uint32
 	// GetToApi returns ToApi (property field)
+	// to = Target (Server) Originator (Client)
 	GetToApi() uint32
 	// IsCipConnectionManagerResponse is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsCipConnectionManagerResponse()
@@ -79,9 +84,9 @@ var _ CipConnectionManagerResponse = (*_CipConnectionManagerResponse)(nil)
 var _ CipServiceRequirements = (*_CipConnectionManagerResponse)(nil)
 
 // NewCipConnectionManagerResponse factory function for _CipConnectionManagerResponse
-func NewCipConnectionManagerResponse(otConnectionId uint32, toConnectionId uint32, connectionSerialNumber uint16, originatorVendorId uint16, originatorSerialNumber uint32, otApi uint32, toApi uint32, serviceLen uint16) *_CipConnectionManagerResponse {
+func NewCipConnectionManagerResponse(otConnectionId uint32, toConnectionId uint32, connectionSerialNumber uint16, originatorVendorId uint16, originatorSerialNumber uint32, otApi uint32, toApi uint32) *_CipConnectionManagerResponse {
 	_result := &_CipConnectionManagerResponse{
-		CipServiceContract:     NewCipService(serviceLen),
+		CipServiceContract:     NewCipService(),
 		OtConnectionId:         otConnectionId,
 		ToConnectionId:         toConnectionId,
 		ConnectionSerialNumber: connectionSerialNumber,
@@ -136,7 +141,7 @@ type _CipConnectionManagerResponseBuilder struct {
 
 	parentBuilder *_CipServiceBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CipConnectionManagerResponseBuilder) = (*_CipConnectionManagerResponseBuilder)(nil)
@@ -186,8 +191,8 @@ func (b *_CipConnectionManagerResponseBuilder) WithToApi(toApi uint32) CipConnec
 }
 
 func (b *_CipConnectionManagerResponseBuilder) Build() (CipConnectionManagerResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CipConnectionManagerResponse.deepCopy(), nil
 }
@@ -213,8 +218,8 @@ func (b *_CipConnectionManagerResponseBuilder) buildForCipService() (CipService,
 
 func (b *_CipConnectionManagerResponseBuilder) DeepCopy() any {
 	_copy := b.CreateCipConnectionManagerResponseBuilder().(*_CipConnectionManagerResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

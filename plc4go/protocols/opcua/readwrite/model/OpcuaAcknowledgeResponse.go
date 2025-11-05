@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -61,12 +62,12 @@ var _ OpcuaAcknowledgeResponse = (*_OpcuaAcknowledgeResponse)(nil)
 var _ MessagePDURequirements = (*_OpcuaAcknowledgeResponse)(nil)
 
 // NewOpcuaAcknowledgeResponse factory function for _OpcuaAcknowledgeResponse
-func NewOpcuaAcknowledgeResponse(chunk ChunkType, version uint32, limits OpcuaProtocolLimits, binary bool) *_OpcuaAcknowledgeResponse {
+func NewOpcuaAcknowledgeResponse(chunk ChunkType, version uint32, limits OpcuaProtocolLimits) *_OpcuaAcknowledgeResponse {
 	if limits == nil {
 		panic("limits of type OpcuaProtocolLimits for OpcuaAcknowledgeResponse must not be nil")
 	}
 	_result := &_OpcuaAcknowledgeResponse{
-		MessagePDUContract: NewMessagePDU(chunk, binary),
+		MessagePDUContract: NewMessagePDU(chunk),
 		Version:            version,
 		Limits:             limits,
 	}
@@ -108,7 +109,7 @@ type _OpcuaAcknowledgeResponseBuilder struct {
 
 	parentBuilder *_MessagePDUBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (OpcuaAcknowledgeResponseBuilder) = (*_OpcuaAcknowledgeResponseBuilder)(nil)
@@ -137,23 +138,17 @@ func (b *_OpcuaAcknowledgeResponseBuilder) WithLimitsBuilder(builderSupplier fun
 	var err error
 	b.Limits, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "OpcuaProtocolLimitsBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "OpcuaProtocolLimitsBuilder failed"))
 	}
 	return b
 }
 
 func (b *_OpcuaAcknowledgeResponseBuilder) Build() (OpcuaAcknowledgeResponse, error) {
 	if b.Limits == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'limits' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'limits' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._OpcuaAcknowledgeResponse.deepCopy(), nil
 }
@@ -179,8 +174,8 @@ func (b *_OpcuaAcknowledgeResponseBuilder) buildForMessagePDU() (MessagePDU, err
 
 func (b *_OpcuaAcknowledgeResponseBuilder) DeepCopy() any {
 	_copy := b.CreateOpcuaAcknowledgeResponseBuilder().(*_OpcuaAcknowledgeResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

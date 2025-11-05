@@ -49,21 +49,13 @@ public class BACnetConstructedDataEscalatorMode extends BACnetConstructedData im
   // Properties.
   protected final BACnetEscalatorModeTagged escalatorMode;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataEscalatorMode(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetEscalatorModeTagged escalatorMode,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetEscalatorModeTagged escalatorMode) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.escalatorMode = escalatorMode;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetEscalatorModeTagged getEscalatorMode() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataEscalatorMode extends BACnetConstructedData im
     // Simple Field (escalatorMode)
     writeSimpleField("escalatorMode", escalatorMode, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetEscalatorModeTagged actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -134,39 +126,22 @@ public class BACnetConstructedDataEscalatorMode extends BACnetConstructedData im
 
     readBuffer.closeContext("BACnetConstructedDataEscalatorMode");
     // Create the instance
-    return new BACnetConstructedDataEscalatorModeBuilderImpl(
-        escalatorMode, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataEscalatorModeBuilderImpl(escalatorMode);
   }
 
   public static class BACnetConstructedDataEscalatorModeBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetEscalatorModeTagged escalatorMode;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataEscalatorModeBuilderImpl(
-        BACnetEscalatorModeTagged escalatorMode,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataEscalatorModeBuilderImpl(BACnetEscalatorModeTagged escalatorMode) {
       this.escalatorMode = escalatorMode;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataEscalatorMode build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataEscalatorMode bACnetConstructedDataEscalatorMode =
           new BACnetConstructedDataEscalatorMode(
-              openingTag,
-              peekedTagHeader,
-              closingTag,
-              escalatorMode,
-              tagNumber,
-              arrayIndexArgument);
+              openingTag, peekedTagHeader, closingTag, escalatorMode);
       return bACnetConstructedDataEscalatorMode;
     }
   }

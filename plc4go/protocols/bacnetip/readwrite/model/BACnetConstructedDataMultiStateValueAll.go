@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataMultiStateValueAll = (*_BACnetConstructedDataMultiSta
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataMultiStateValueAll)(nil)
 
 // NewBACnetConstructedDataMultiStateValueAll factory function for _BACnetConstructedDataMultiStateValueAll
-func NewBACnetConstructedDataMultiStateValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataMultiStateValueAll {
+func NewBACnetConstructedDataMultiStateValueAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataMultiStateValueAll {
 	_result := &_BACnetConstructedDataMultiStateValueAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataMultiStateValueAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataMultiStateValueAllBuilder) = (*_BACnetConstructedDataMultiStateValueAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataMultiStateValueAllBuilder) WithMandatoryFields() 
 }
 
 func (b *_BACnetConstructedDataMultiStateValueAllBuilder) Build() (BACnetConstructedDataMultiStateValueAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataMultiStateValueAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataMultiStateValueAllBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataMultiStateValueAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataMultiStateValueAllBuilder().(*_BACnetConstructedDataMultiStateValueAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

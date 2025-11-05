@@ -44,22 +44,21 @@ public class ParameterValueSerialNumber extends ParameterValue implements Messag
 
   // Properties.
   protected final SerialNumber value;
+
+  /** TODO: find out what additional bytes mean here... */
   protected final byte[] data;
 
-  // Arguments.
-  protected final Short numBytes;
-
-  public ParameterValueSerialNumber(SerialNumber value, byte[] data, Short numBytes) {
-    super(numBytes);
+  public ParameterValueSerialNumber(SerialNumber value, byte[] data) {
+    super();
     this.value = value;
     this.data = data;
-    this.numBytes = numBytes;
   }
 
   public SerialNumber getValue() {
     return value;
   }
 
+  /** TODO: find out what additional bytes mean here... */
   public byte[] getData() {
     return data;
   }
@@ -120,25 +119,22 @@ public class ParameterValueSerialNumber extends ParameterValue implements Messag
 
     readBuffer.closeContext("ParameterValueSerialNumber");
     // Create the instance
-    return new ParameterValueSerialNumberBuilderImpl(value, data, numBytes);
+    return new ParameterValueSerialNumberBuilderImpl(value, data);
   }
 
   public static class ParameterValueSerialNumberBuilderImpl
       implements ParameterValue.ParameterValueBuilder {
     private final SerialNumber value;
     private final byte[] data;
-    private final Short numBytes;
 
-    public ParameterValueSerialNumberBuilderImpl(SerialNumber value, byte[] data, Short numBytes) {
+    public ParameterValueSerialNumberBuilderImpl(SerialNumber value, byte[] data) {
       this.value = value;
       this.data = data;
-      this.numBytes = numBytes;
     }
 
-    public ParameterValueSerialNumber build(Short numBytes) {
-
+    public ParameterValueSerialNumber build() {
       ParameterValueSerialNumber parameterValueSerialNumber =
-          new ParameterValueSerialNumber(value, data, numBytes);
+          new ParameterValueSerialNumber(value, data);
       return parameterValueSerialNumber;
     }
   }

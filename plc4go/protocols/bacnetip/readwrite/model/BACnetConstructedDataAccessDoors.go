@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataAccessDoors interface {
 	// GetAccessDoors returns AccessDoors (property field)
 	GetAccessDoors() []BACnetDeviceObjectReference
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataAccessDoors is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataAccessDoors()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataAccessDoors = (*_BACnetConstructedDataAccessDoors)(ni
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataAccessDoors)(nil)
 
 // NewBACnetConstructedDataAccessDoors factory function for _BACnetConstructedDataAccessDoors
-func NewBACnetConstructedDataAccessDoors(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, accessDoors []BACnetDeviceObjectReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataAccessDoors {
+func NewBACnetConstructedDataAccessDoors(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, accessDoors []BACnetDeviceObjectReference) *_BACnetConstructedDataAccessDoors {
 	_result := &_BACnetConstructedDataAccessDoors{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		AccessDoors:                   accessDoors,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataAccessDoorsBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataAccessDoorsBuilder) = (*_BACnetConstructedDataAccessDoorsBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataAccessDoorsBuilder) WithOptionalNumberOfDataEleme
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataAccessDoorsBuilder) WithAccessDoors(accessDoors .
 }
 
 func (b *_BACnetConstructedDataAccessDoorsBuilder) Build() (BACnetConstructedDataAccessDoors, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataAccessDoors.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataAccessDoorsBuilder) buildForBACnetConstructedData
 
 func (b *_BACnetConstructedDataAccessDoorsBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataAccessDoorsBuilder().(*_BACnetConstructedDataAccessDoorsBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

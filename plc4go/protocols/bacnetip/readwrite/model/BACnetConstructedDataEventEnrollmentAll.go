@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataEventEnrollmentAll = (*_BACnetConstructedDataEventEnr
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataEventEnrollmentAll)(nil)
 
 // NewBACnetConstructedDataEventEnrollmentAll factory function for _BACnetConstructedDataEventEnrollmentAll
-func NewBACnetConstructedDataEventEnrollmentAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataEventEnrollmentAll {
+func NewBACnetConstructedDataEventEnrollmentAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataEventEnrollmentAll {
 	_result := &_BACnetConstructedDataEventEnrollmentAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataEventEnrollmentAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataEventEnrollmentAllBuilder) = (*_BACnetConstructedDataEventEnrollmentAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataEventEnrollmentAllBuilder) WithMandatoryFields() 
 }
 
 func (b *_BACnetConstructedDataEventEnrollmentAllBuilder) Build() (BACnetConstructedDataEventEnrollmentAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataEventEnrollmentAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataEventEnrollmentAllBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataEventEnrollmentAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataEventEnrollmentAllBuilder().(*_BACnetConstructedDataEventEnrollmentAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

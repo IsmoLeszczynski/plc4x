@@ -39,7 +39,10 @@ public class Confirmation implements Message {
 
   // Properties.
   protected final Alpha alpha;
+
+  /** TODO: seem like sometimes there are two alphas in a confirmation... check that */
   protected final Alpha secondAlpha;
+
   protected final ConfirmationType confirmationType;
 
   public Confirmation(Alpha alpha, Alpha secondAlpha, ConfirmationType confirmationType) {
@@ -53,6 +56,7 @@ public class Confirmation implements Message {
     return alpha;
   }
 
+  /** TODO: seem like sometimes there are two alphas in a confirmation... check that */
   public Alpha getSecondAlpha() {
     return secondAlpha;
   }
@@ -83,7 +87,7 @@ public class Confirmation implements Message {
         confirmationType,
         writeEnum(ConfirmationType::getValue, ConfirmationType::name, writeByte(writeBuffer, 8)));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     boolean isSuccess = getIsSuccess();
     writeBuffer.writeVirtual("isSuccess", isSuccess);
 

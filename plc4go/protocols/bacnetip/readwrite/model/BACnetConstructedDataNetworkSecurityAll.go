@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,9 +54,9 @@ var _ BACnetConstructedDataNetworkSecurityAll = (*_BACnetConstructedDataNetworkS
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataNetworkSecurityAll)(nil)
 
 // NewBACnetConstructedDataNetworkSecurityAll factory function for _BACnetConstructedDataNetworkSecurityAll
-func NewBACnetConstructedDataNetworkSecurityAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataNetworkSecurityAll {
+func NewBACnetConstructedDataNetworkSecurityAll(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag) *_BACnetConstructedDataNetworkSecurityAll {
 	_result := &_BACnetConstructedDataNetworkSecurityAll{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
 	return _result
@@ -89,7 +90,7 @@ type _BACnetConstructedDataNetworkSecurityAllBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataNetworkSecurityAllBuilder) = (*_BACnetConstructedDataNetworkSecurityAllBuilder)(nil)
@@ -104,8 +105,8 @@ func (b *_BACnetConstructedDataNetworkSecurityAllBuilder) WithMandatoryFields() 
 }
 
 func (b *_BACnetConstructedDataNetworkSecurityAllBuilder) Build() (BACnetConstructedDataNetworkSecurityAll, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataNetworkSecurityAll.deepCopy(), nil
 }
@@ -131,8 +132,8 @@ func (b *_BACnetConstructedDataNetworkSecurityAllBuilder) buildForBACnetConstruc
 
 func (b *_BACnetConstructedDataNetworkSecurityAllBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataNetworkSecurityAllBuilder().(*_BACnetConstructedDataNetworkSecurityAllBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

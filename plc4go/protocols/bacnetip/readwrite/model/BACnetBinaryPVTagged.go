@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetBinaryPVTagged interface {
 type _BACnetBinaryPVTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetBinaryPV
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetBinaryPVTagged = (*_BACnetBinaryPVTagged)(nil)
 
 // NewBACnetBinaryPVTagged factory function for _BACnetBinaryPVTagged
-func NewBACnetBinaryPVTagged(header BACnetTagHeader, value BACnetBinaryPV, tagNumber uint8, tagClass TagClass) *_BACnetBinaryPVTagged {
+func NewBACnetBinaryPVTagged(header BACnetTagHeader, value BACnetBinaryPV) *_BACnetBinaryPVTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetBinaryPVTagged must not be nil")
 	}
-	return &_BACnetBinaryPVTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetBinaryPVTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetBinaryPVTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetBinaryPVTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetBinaryPV) BACnetBinaryPVTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetBinaryPVTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetBinaryPVTaggedBuilder
 	// Build builds the BACnetBinaryPVTagged or returns an error if something is wrong
 	Build() (BACnetBinaryPVTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetBinaryPVTaggedBuilder() BACnetBinaryPVTaggedBuilder {
 type _BACnetBinaryPVTaggedBuilder struct {
 	*_BACnetBinaryPVTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetBinaryPVTaggedBuilder) = (*_BACnetBinaryPVTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetBinaryPVTaggedBuilder) WithHeaderBuilder(builderSupplier func(BA
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetBinaryPVTaggedBuilder) WithValue(value BACnetBinaryPV) BACnetBin
 	return b
 }
 
-func (b *_BACnetBinaryPVTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetBinaryPVTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetBinaryPVTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetBinaryPVTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetBinaryPVTaggedBuilder) Build() (BACnetBinaryPVTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetBinaryPVTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetBinaryPVTaggedBuilder) MustBuild() BACnetBinaryPVTagged {
 
 func (b *_BACnetBinaryPVTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetBinaryPVTaggedBuilder().(*_BACnetBinaryPVTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetBinaryPVTaggedParseWithBufferProducer(tagNumber uint8, tagClass TagCl
 }
 
 func BACnetBinaryPVTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetBinaryPVTagged, error) {
-	v, err := (&_BACnetBinaryPVTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetBinaryPVTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetBinaryPVTagged) SerializeWithWriteBuffer(ctx context.Context, wr
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetBinaryPVTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetBinaryPVTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetBinaryPVTagged) IsBACnetBinaryPVTagged() {}
 
 func (m *_BACnetBinaryPVTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetBinaryPVTagged) deepCopy() *_BACnetBinaryPVTagged {
 	_BACnetBinaryPVTaggedCopy := &_BACnetBinaryPVTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetBinaryPVTaggedCopy
 }

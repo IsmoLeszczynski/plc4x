@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -47,6 +48,7 @@ type NLMSecurityResponse interface {
 	// GetOriginalTimestamp returns OriginalTimestamp (property field)
 	GetOriginalTimestamp() uint32
 	// GetVariableParameters returns VariableParameters (property field)
+	// TODO: type out variable parameters
 	GetVariableParameters() []byte
 	// IsNLMSecurityResponse is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsNLMSecurityResponse()
@@ -67,9 +69,9 @@ var _ NLMSecurityResponse = (*_NLMSecurityResponse)(nil)
 var _ NLMRequirements = (*_NLMSecurityResponse)(nil)
 
 // NewNLMSecurityResponse factory function for _NLMSecurityResponse
-func NewNLMSecurityResponse(responseCode SecurityResponseCode, originalMessageId uint32, originalTimestamp uint32, variableParameters []byte, apduLength uint16) *_NLMSecurityResponse {
+func NewNLMSecurityResponse(responseCode SecurityResponseCode, originalMessageId uint32, originalTimestamp uint32, variableParameters []byte) *_NLMSecurityResponse {
 	_result := &_NLMSecurityResponse{
-		NLMContract:        NewNLM(apduLength),
+		NLMContract:        NewNLM(),
 		ResponseCode:       responseCode,
 		OriginalMessageId:  originalMessageId,
 		OriginalTimestamp:  originalTimestamp,
@@ -115,7 +117,7 @@ type _NLMSecurityResponseBuilder struct {
 
 	parentBuilder *_NLMBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (NLMSecurityResponseBuilder) = (*_NLMSecurityResponseBuilder)(nil)
@@ -150,8 +152,8 @@ func (b *_NLMSecurityResponseBuilder) WithVariableParameters(variableParameters 
 }
 
 func (b *_NLMSecurityResponseBuilder) Build() (NLMSecurityResponse, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._NLMSecurityResponse.deepCopy(), nil
 }
@@ -177,8 +179,8 @@ func (b *_NLMSecurityResponseBuilder) buildForNLM() (NLM, error) {
 
 func (b *_NLMSecurityResponseBuilder) DeepCopy() any {
 	_copy := b.CreateNLMSecurityResponseBuilder().(*_NLMSecurityResponseBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

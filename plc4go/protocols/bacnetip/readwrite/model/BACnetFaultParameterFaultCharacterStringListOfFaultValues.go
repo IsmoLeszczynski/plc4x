@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -56,22 +57,19 @@ type _BACnetFaultParameterFaultCharacterStringListOfFaultValues struct {
 	OpeningTag        BACnetOpeningTag
 	ListOfFaultValues []BACnetApplicationTagCharacterString
 	ClosingTag        BACnetClosingTag
-
-	// Arguments.
-	TagNumber uint8
 }
 
 var _ BACnetFaultParameterFaultCharacterStringListOfFaultValues = (*_BACnetFaultParameterFaultCharacterStringListOfFaultValues)(nil)
 
 // NewBACnetFaultParameterFaultCharacterStringListOfFaultValues factory function for _BACnetFaultParameterFaultCharacterStringListOfFaultValues
-func NewBACnetFaultParameterFaultCharacterStringListOfFaultValues(openingTag BACnetOpeningTag, listOfFaultValues []BACnetApplicationTagCharacterString, closingTag BACnetClosingTag, tagNumber uint8) *_BACnetFaultParameterFaultCharacterStringListOfFaultValues {
+func NewBACnetFaultParameterFaultCharacterStringListOfFaultValues(openingTag BACnetOpeningTag, listOfFaultValues []BACnetApplicationTagCharacterString, closingTag BACnetClosingTag) *_BACnetFaultParameterFaultCharacterStringListOfFaultValues {
 	if openingTag == nil {
 		panic("openingTag of type BACnetOpeningTag for BACnetFaultParameterFaultCharacterStringListOfFaultValues must not be nil")
 	}
 	if closingTag == nil {
 		panic("closingTag of type BACnetClosingTag for BACnetFaultParameterFaultCharacterStringListOfFaultValues must not be nil")
 	}
-	return &_BACnetFaultParameterFaultCharacterStringListOfFaultValues{OpeningTag: openingTag, ListOfFaultValues: listOfFaultValues, ClosingTag: closingTag, TagNumber: tagNumber}
+	return &_BACnetFaultParameterFaultCharacterStringListOfFaultValues{OpeningTag: openingTag, ListOfFaultValues: listOfFaultValues, ClosingTag: closingTag}
 }
 
 ///////////////////////////////////////////////////////////
@@ -94,8 +92,6 @@ type BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder interface 
 	WithClosingTag(BACnetClosingTag) BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder
 	// WithClosingTagBuilder adds ClosingTag (property field) which is build by the builder
 	WithClosingTagBuilder(func(BACnetClosingTagBuilder) BACnetClosingTagBuilder) BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder
 	// Build builds the BACnetFaultParameterFaultCharacterStringListOfFaultValues or returns an error if something is wrong
 	Build() (BACnetFaultParameterFaultCharacterStringListOfFaultValues, error)
 	// MustBuild does the same as Build but panics on error
@@ -110,7 +106,7 @@ func NewBACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder() BACne
 type _BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder struct {
 	*_BACnetFaultParameterFaultCharacterStringListOfFaultValues
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder) = (*_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder)(nil)
@@ -129,10 +125,7 @@ func (b *_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder) With
 	var err error
 	b.OpeningTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetOpeningTagBuilder failed"))
 	}
 	return b
 }
@@ -152,34 +145,20 @@ func (b *_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder) With
 	var err error
 	b.ClosingTag, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetClosingTagBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetClosingTagBuilder failed"))
 	}
-	return b
-}
-
-func (b *_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder) WithArgTagNumber(tagNumber uint8) BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder {
-	b.TagNumber = tagNumber
 	return b
 }
 
 func (b *_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder) Build() (BACnetFaultParameterFaultCharacterStringListOfFaultValues, error) {
 	if b.OpeningTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'openingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'openingTag' not set"))
 	}
 	if b.ClosingTag == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'closingTag' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'closingTag' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetFaultParameterFaultCharacterStringListOfFaultValues.deepCopy(), nil
 }
@@ -194,8 +173,8 @@ func (b *_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder) Must
 
 func (b *_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder().(*_BACnetFaultParameterFaultCharacterStringListOfFaultValuesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -284,7 +263,7 @@ func BACnetFaultParameterFaultCharacterStringListOfFaultValuesParseWithBufferPro
 }
 
 func BACnetFaultParameterFaultCharacterStringListOfFaultValuesParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8) (BACnetFaultParameterFaultCharacterStringListOfFaultValues, error) {
-	v, err := (&_BACnetFaultParameterFaultCharacterStringListOfFaultValues{TagNumber: tagNumber}).parse(ctx, readBuffer, tagNumber)
+	v, err := (new(_BACnetFaultParameterFaultCharacterStringListOfFaultValues)).parse(ctx, readBuffer, tagNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +339,6 @@ func (m *_BACnetFaultParameterFaultCharacterStringListOfFaultValues) SerializeWi
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetFaultParameterFaultCharacterStringListOfFaultValues) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-
-//
-////
-
 func (m *_BACnetFaultParameterFaultCharacterStringListOfFaultValues) IsBACnetFaultParameterFaultCharacterStringListOfFaultValues() {
 }
 
@@ -385,7 +354,6 @@ func (m *_BACnetFaultParameterFaultCharacterStringListOfFaultValues) deepCopy() 
 		utils.DeepCopy[BACnetOpeningTag](m.OpeningTag),
 		utils.DeepCopySlice[BACnetApplicationTagCharacterString, BACnetApplicationTagCharacterString](m.ListOfFaultValues),
 		utils.DeepCopy[BACnetClosingTag](m.ClosingTag),
-		m.TagNumber,
 	}
 	return _BACnetFaultParameterFaultCharacterStringListOfFaultValuesCopy
 }

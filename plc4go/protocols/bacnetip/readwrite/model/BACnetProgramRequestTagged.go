@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -53,20 +54,16 @@ type BACnetProgramRequestTagged interface {
 type _BACnetProgramRequestTagged struct {
 	Header BACnetTagHeader
 	Value  BACnetProgramRequest
-
-	// Arguments.
-	TagNumber uint8
-	TagClass  TagClass
 }
 
 var _ BACnetProgramRequestTagged = (*_BACnetProgramRequestTagged)(nil)
 
 // NewBACnetProgramRequestTagged factory function for _BACnetProgramRequestTagged
-func NewBACnetProgramRequestTagged(header BACnetTagHeader, value BACnetProgramRequest, tagNumber uint8, tagClass TagClass) *_BACnetProgramRequestTagged {
+func NewBACnetProgramRequestTagged(header BACnetTagHeader, value BACnetProgramRequest) *_BACnetProgramRequestTagged {
 	if header == nil {
 		panic("header of type BACnetTagHeader for BACnetProgramRequestTagged must not be nil")
 	}
-	return &_BACnetProgramRequestTagged{Header: header, Value: value, TagNumber: tagNumber, TagClass: tagClass}
+	return &_BACnetProgramRequestTagged{Header: header, Value: value}
 }
 
 ///////////////////////////////////////////////////////////
@@ -85,10 +82,6 @@ type BACnetProgramRequestTaggedBuilder interface {
 	WithHeaderBuilder(func(BACnetTagHeaderBuilder) BACnetTagHeaderBuilder) BACnetProgramRequestTaggedBuilder
 	// WithValue adds Value (property field)
 	WithValue(BACnetProgramRequest) BACnetProgramRequestTaggedBuilder
-	// WithArgTagNumber sets a parser argument
-	WithArgTagNumber(uint8) BACnetProgramRequestTaggedBuilder
-	// WithArgTagClass sets a parser argument
-	WithArgTagClass(TagClass) BACnetProgramRequestTaggedBuilder
 	// Build builds the BACnetProgramRequestTagged or returns an error if something is wrong
 	Build() (BACnetProgramRequestTagged, error)
 	// MustBuild does the same as Build but panics on error
@@ -103,7 +96,7 @@ func NewBACnetProgramRequestTaggedBuilder() BACnetProgramRequestTaggedBuilder {
 type _BACnetProgramRequestTaggedBuilder struct {
 	*_BACnetProgramRequestTagged
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetProgramRequestTaggedBuilder) = (*_BACnetProgramRequestTaggedBuilder)(nil)
@@ -122,10 +115,7 @@ func (b *_BACnetProgramRequestTaggedBuilder) WithHeaderBuilder(builderSupplier f
 	var err error
 	b.Header, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetTagHeaderBuilder failed"))
 	}
 	return b
 }
@@ -135,24 +125,12 @@ func (b *_BACnetProgramRequestTaggedBuilder) WithValue(value BACnetProgramReques
 	return b
 }
 
-func (b *_BACnetProgramRequestTaggedBuilder) WithArgTagNumber(tagNumber uint8) BACnetProgramRequestTaggedBuilder {
-	b.TagNumber = tagNumber
-	return b
-}
-func (b *_BACnetProgramRequestTaggedBuilder) WithArgTagClass(tagClass TagClass) BACnetProgramRequestTaggedBuilder {
-	b.TagClass = tagClass
-	return b
-}
-
 func (b *_BACnetProgramRequestTaggedBuilder) Build() (BACnetProgramRequestTagged, error) {
 	if b.Header == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'header' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'header' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetProgramRequestTagged.deepCopy(), nil
 }
@@ -167,8 +145,8 @@ func (b *_BACnetProgramRequestTaggedBuilder) MustBuild() BACnetProgramRequestTag
 
 func (b *_BACnetProgramRequestTaggedBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetProgramRequestTaggedBuilder().(*_BACnetProgramRequestTaggedBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -246,7 +224,7 @@ func BACnetProgramRequestTaggedParseWithBufferProducer(tagNumber uint8, tagClass
 }
 
 func BACnetProgramRequestTaggedParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, tagNumber uint8, tagClass TagClass) (BACnetProgramRequestTagged, error) {
-	v, err := (&_BACnetProgramRequestTagged{TagNumber: tagNumber, TagClass: tagClass}).parse(ctx, readBuffer, tagNumber, tagClass)
+	v, err := (new(_BACnetProgramRequestTagged)).parse(ctx, readBuffer, tagNumber, tagClass)
 	if err != nil {
 		return nil, err
 	}
@@ -322,19 +300,6 @@ func (m *_BACnetProgramRequestTagged) SerializeWithWriteBuffer(ctx context.Conte
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_BACnetProgramRequestTagged) GetTagNumber() uint8 {
-	return m.TagNumber
-}
-func (m *_BACnetProgramRequestTagged) GetTagClass() TagClass {
-	return m.TagClass
-}
-
-//
-////
-
 func (m *_BACnetProgramRequestTagged) IsBACnetProgramRequestTagged() {}
 
 func (m *_BACnetProgramRequestTagged) DeepCopy() any {
@@ -348,8 +313,6 @@ func (m *_BACnetProgramRequestTagged) deepCopy() *_BACnetProgramRequestTagged {
 	_BACnetProgramRequestTaggedCopy := &_BACnetProgramRequestTagged{
 		utils.DeepCopy[BACnetTagHeader](m.Header),
 		m.Value,
-		m.TagNumber,
-		m.TagClass,
 	}
 	return _BACnetProgramRequestTaggedCopy
 }

@@ -52,23 +52,15 @@ public class BACnetConstructedDataChannelListOfObjectPropertyReferences
   protected final BACnetApplicationTagUnsignedInteger numberOfDataElements;
   protected final List<BACnetDeviceObjectPropertyReference> references;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataChannelListOfObjectPropertyReferences(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
       BACnetApplicationTagUnsignedInteger numberOfDataElements,
-      List<BACnetDeviceObjectPropertyReference> references,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      List<BACnetDeviceObjectPropertyReference> references) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.numberOfDataElements = numberOfDataElements;
     this.references = references;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagUnsignedInteger getNumberOfDataElements() {
@@ -79,6 +71,7 @@ public class BACnetConstructedDataChannelListOfObjectPropertyReferences
     return references;
   }
 
+  /** TODO: uint 64 ---> big int in java == boom */
   public BigInteger getZero() {
     Object o = 0L;
     if (o instanceof BigInteger) return (BigInteger) o;
@@ -92,16 +85,12 @@ public class BACnetConstructedDataChannelListOfObjectPropertyReferences
     boolean _lastItem = ThreadLocalHelper.lastItemThreadLocal.get();
     writeBuffer.pushContext("BACnetConstructedDataChannelListOfObjectPropertyReferences");
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BigInteger zero = getZero();
     writeBuffer.writeVirtual("zero", zero);
 
     // Optional Field (numberOfDataElements) (Can be skipped, if the value is null)
-    writeOptionalField(
-        "numberOfDataElements",
-        numberOfDataElements,
-        writeComplex(writeBuffer),
-        ((arrayIndexArgument) != (null)) && ((arrayIndexArgument.getActualValue()) == (getZero())));
+    writeOptionalField("numberOfDataElements", numberOfDataElements, writeComplex(writeBuffer));
 
     // Array Field (references)
     writeComplexTypeArrayField("references", references, writeBuffer);
@@ -172,43 +161,27 @@ public class BACnetConstructedDataChannelListOfObjectPropertyReferences
     readBuffer.closeContext("BACnetConstructedDataChannelListOfObjectPropertyReferences");
     // Create the instance
     return new BACnetConstructedDataChannelListOfObjectPropertyReferencesBuilderImpl(
-        numberOfDataElements, references, tagNumber, arrayIndexArgument);
+        numberOfDataElements, references);
   }
 
   public static class BACnetConstructedDataChannelListOfObjectPropertyReferencesBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagUnsignedInteger numberOfDataElements;
     private final List<BACnetDeviceObjectPropertyReference> references;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
     public BACnetConstructedDataChannelListOfObjectPropertyReferencesBuilderImpl(
         BACnetApplicationTagUnsignedInteger numberOfDataElements,
-        List<BACnetDeviceObjectPropertyReference> references,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        List<BACnetDeviceObjectPropertyReference> references) {
       this.numberOfDataElements = numberOfDataElements;
       this.references = references;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataChannelListOfObjectPropertyReferences build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataChannelListOfObjectPropertyReferences
           bACnetConstructedDataChannelListOfObjectPropertyReferences =
               new BACnetConstructedDataChannelListOfObjectPropertyReferences(
-                  openingTag,
-                  peekedTagHeader,
-                  closingTag,
-                  numberOfDataElements,
-                  references,
-                  tagNumber,
-                  arrayIndexArgument);
+                  openingTag, peekedTagHeader, closingTag, numberOfDataElements, references);
       return bACnetConstructedDataChannelListOfObjectPropertyReferences;
     }
   }

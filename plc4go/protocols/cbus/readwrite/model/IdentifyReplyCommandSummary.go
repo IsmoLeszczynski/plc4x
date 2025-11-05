@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -64,9 +65,9 @@ var _ IdentifyReplyCommandSummary = (*_IdentifyReplyCommandSummary)(nil)
 var _ IdentifyReplyCommandRequirements = (*_IdentifyReplyCommandSummary)(nil)
 
 // NewIdentifyReplyCommandSummary factory function for _IdentifyReplyCommandSummary
-func NewIdentifyReplyCommandSummary(partName string, unitServiceType byte, version string, numBytes uint8) *_IdentifyReplyCommandSummary {
+func NewIdentifyReplyCommandSummary(partName string, unitServiceType byte, version string) *_IdentifyReplyCommandSummary {
 	_result := &_IdentifyReplyCommandSummary{
-		IdentifyReplyCommandContract: NewIdentifyReplyCommand(numBytes),
+		IdentifyReplyCommandContract: NewIdentifyReplyCommand(),
 		PartName:                     partName,
 		UnitServiceType:              unitServiceType,
 		Version:                      version,
@@ -109,7 +110,7 @@ type _IdentifyReplyCommandSummaryBuilder struct {
 
 	parentBuilder *_IdentifyReplyCommandBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (IdentifyReplyCommandSummaryBuilder) = (*_IdentifyReplyCommandSummaryBuilder)(nil)
@@ -139,8 +140,8 @@ func (b *_IdentifyReplyCommandSummaryBuilder) WithVersion(version string) Identi
 }
 
 func (b *_IdentifyReplyCommandSummaryBuilder) Build() (IdentifyReplyCommandSummary, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._IdentifyReplyCommandSummary.deepCopy(), nil
 }
@@ -166,8 +167,8 @@ func (b *_IdentifyReplyCommandSummaryBuilder) buildForIdentifyReplyCommand() (Id
 
 func (b *_IdentifyReplyCommandSummaryBuilder) DeepCopy() any {
 	_copy := b.CreateIdentifyReplyCommandSummaryBuilder().(*_IdentifyReplyCommandSummaryBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

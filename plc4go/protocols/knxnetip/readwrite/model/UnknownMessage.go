@@ -22,6 +22,7 @@ package model
 import (
 	"context"
 	"encoding/binary"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -54,16 +55,13 @@ type UnknownMessage interface {
 type _UnknownMessage struct {
 	KnxNetIpMessageContract
 	UnknownData []byte
-
-	// Arguments.
-	TotalLength uint16
 }
 
 var _ UnknownMessage = (*_UnknownMessage)(nil)
 var _ KnxNetIpMessageRequirements = (*_UnknownMessage)(nil)
 
 // NewUnknownMessage factory function for _UnknownMessage
-func NewUnknownMessage(unknownData []byte, totalLength uint16) *_UnknownMessage {
+func NewUnknownMessage(unknownData []byte) *_UnknownMessage {
 	_result := &_UnknownMessage{
 		KnxNetIpMessageContract: NewKnxNetIpMessage(),
 		UnknownData:             unknownData,
@@ -84,8 +82,6 @@ type UnknownMessageBuilder interface {
 	WithMandatoryFields(unknownData []byte) UnknownMessageBuilder
 	// WithUnknownData adds UnknownData (property field)
 	WithUnknownData(...byte) UnknownMessageBuilder
-	// WithArgTotalLength sets a parser argument
-	WithArgTotalLength(uint16) UnknownMessageBuilder
 	// Done is used to finish work on this child and return (or create one if none) to the parent builder
 	Done() KnxNetIpMessageBuilder
 	// Build builds the UnknownMessage or returns an error if something is wrong
@@ -104,7 +100,7 @@ type _UnknownMessageBuilder struct {
 
 	parentBuilder *_KnxNetIpMessageBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (UnknownMessageBuilder) = (*_UnknownMessageBuilder)(nil)
@@ -123,14 +119,9 @@ func (b *_UnknownMessageBuilder) WithUnknownData(unknownData ...byte) UnknownMes
 	return b
 }
 
-func (b *_UnknownMessageBuilder) WithArgTotalLength(totalLength uint16) UnknownMessageBuilder {
-	b.TotalLength = totalLength
-	return b
-}
-
 func (b *_UnknownMessageBuilder) Build() (UnknownMessage, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._UnknownMessage.deepCopy(), nil
 }
@@ -156,8 +147,8 @@ func (b *_UnknownMessageBuilder) buildForKnxNetIpMessage() (KnxNetIpMessage, err
 
 func (b *_UnknownMessageBuilder) DeepCopy() any {
 	_copy := b.CreateUnknownMessageBuilder().(*_UnknownMessageBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -291,16 +282,6 @@ func (m *_UnknownMessage) SerializeWithWriteBuffer(ctx context.Context, writeBuf
 	return m.KnxNetIpMessageContract.(*_KnxNetIpMessage).serializeParent(ctx, writeBuffer, m, ser)
 }
 
-////
-// Arguments Getter
-
-func (m *_UnknownMessage) GetTotalLength() uint16 {
-	return m.TotalLength
-}
-
-//
-////
-
 func (m *_UnknownMessage) IsUnknownMessage() {}
 
 func (m *_UnknownMessage) DeepCopy() any {
@@ -314,7 +295,6 @@ func (m *_UnknownMessage) deepCopy() *_UnknownMessage {
 	_UnknownMessageCopy := &_UnknownMessage{
 		m.KnxNetIpMessageContract.(*_KnxNetIpMessage).deepCopy(),
 		utils.DeepCopySlice[byte, byte](m.UnknownData),
-		m.TotalLength,
 	}
 	_UnknownMessageCopy.KnxNetIpMessageContract.(*_KnxNetIpMessage)._SubType = m
 	return _UnknownMessageCopy

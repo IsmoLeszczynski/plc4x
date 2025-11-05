@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -49,16 +50,17 @@ type CALData interface {
 
 // CALDataContract provides a set of functions which can be overwritten by a sub struct
 type CALDataContract interface {
+	// GetRequestContext returns RequestContext (property field)
+	GetRequestContext() RequestContext
 	// GetCommandTypeContainer returns CommandTypeContainer (property field)
 	GetCommandTypeContainer() CALCommandTypeContainer
 	// GetAdditionalData returns AdditionalData (property field)
+	// Note: we omit the request context as it is only useful for the first element
 	GetAdditionalData() CALData
 	// GetCommandType returns CommandType (virtual field)
 	GetCommandType() CALCommandType
 	// GetSendIdentifyRequestBefore returns SendIdentifyRequestBefore (virtual field)
 	GetSendIdentifyRequestBefore() bool
-	// GetRequestContext() returns a parser argument
-	GetRequestContext() RequestContext
 	// IsCALData is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsCALData()
 	// CreateBuilder creates a CALDataBuilder
@@ -81,18 +83,16 @@ type _CALData struct {
 		CALDataContract
 		CALDataRequirements
 	}
+	RequestContext       RequestContext
 	CommandTypeContainer CALCommandTypeContainer
 	AdditionalData       CALData
-
-	// Arguments.
-	RequestContext RequestContext
 }
 
 var _ CALDataContract = (*_CALData)(nil)
 
 // NewCALData factory function for _CALData
-func NewCALData(commandTypeContainer CALCommandTypeContainer, additionalData CALData, requestContext RequestContext) *_CALData {
-	return &_CALData{CommandTypeContainer: commandTypeContainer, AdditionalData: additionalData, RequestContext: requestContext}
+func NewCALData(requestContext RequestContext, commandTypeContainer CALCommandTypeContainer, additionalData CALData) *_CALData {
+	return &_CALData{RequestContext: requestContext, CommandTypeContainer: commandTypeContainer, AdditionalData: additionalData}
 }
 
 ///////////////////////////////////////////////////////////
@@ -104,15 +104,17 @@ func NewCALData(commandTypeContainer CALCommandTypeContainer, additionalData CAL
 type CALDataBuilder interface {
 	utils.Copyable
 	// WithMandatoryFields adds all mandatory fields (convenience for using multiple builder calls)
-	WithMandatoryFields(commandTypeContainer CALCommandTypeContainer) CALDataBuilder
+	WithMandatoryFields(requestContext RequestContext, commandTypeContainer CALCommandTypeContainer) CALDataBuilder
+	// WithRequestContext adds RequestContext (property field)
+	WithRequestContext(RequestContext) CALDataBuilder
+	// WithRequestContextBuilder adds RequestContext (property field) which is build by the builder
+	WithRequestContextBuilder(func(RequestContextBuilder) RequestContextBuilder) CALDataBuilder
 	// WithCommandTypeContainer adds CommandTypeContainer (property field)
 	WithCommandTypeContainer(CALCommandTypeContainer) CALDataBuilder
 	// WithAdditionalData adds AdditionalData (property field)
 	WithOptionalAdditionalData(CALData) CALDataBuilder
 	// WithOptionalAdditionalDataBuilder adds AdditionalData (property field) which is build by the builder
 	WithOptionalAdditionalDataBuilder(func(CALDataBuilder) CALDataBuilder) CALDataBuilder
-	// WithArgRequestContext sets a parser argument
-	WithArgRequestContext(RequestContext) CALDataBuilder
 	// AsCALDataReset converts this build to a subType of CALData. It is always possible to return to current builder using Done()
 	AsCALDataReset() CALDataResetBuilder
 	// AsCALDataRecall converts this build to a subType of CALData. It is always possible to return to current builder using Done()
@@ -159,13 +161,28 @@ type _CALDataBuilder struct {
 
 	childBuilder _CALDataChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CALDataBuilder) = (*_CALDataBuilder)(nil)
 
-func (b *_CALDataBuilder) WithMandatoryFields(commandTypeContainer CALCommandTypeContainer) CALDataBuilder {
-	return b.WithCommandTypeContainer(commandTypeContainer)
+func (b *_CALDataBuilder) WithMandatoryFields(requestContext RequestContext, commandTypeContainer CALCommandTypeContainer) CALDataBuilder {
+	return b.WithRequestContext(requestContext).WithCommandTypeContainer(commandTypeContainer)
+}
+
+func (b *_CALDataBuilder) WithRequestContext(requestContext RequestContext) CALDataBuilder {
+	b.RequestContext = requestContext
+	return b
+}
+
+func (b *_CALDataBuilder) WithRequestContextBuilder(builderSupplier func(RequestContextBuilder) RequestContextBuilder) CALDataBuilder {
+	builder := builderSupplier(b.RequestContext.CreateRequestContextBuilder())
+	var err error
+	b.RequestContext, err = builder.Build()
+	if err != nil {
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "RequestContextBuilder failed"))
+	}
+	return b
 }
 
 func (b *_CALDataBuilder) WithCommandTypeContainer(commandTypeContainer CALCommandTypeContainer) CALDataBuilder {
@@ -183,22 +200,17 @@ func (b *_CALDataBuilder) WithOptionalAdditionalDataBuilder(builderSupplier func
 	var err error
 	b.AdditionalData, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "CALDataBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "CALDataBuilder failed"))
 	}
 	return b
 }
 
-func (b *_CALDataBuilder) WithArgRequestContext(requestContext RequestContext) CALDataBuilder {
-	b.RequestContext = requestContext
-	return b
-}
-
 func (b *_CALDataBuilder) PartialBuild() (CALDataContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if b.RequestContext == nil {
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'requestContext' not set"))
+	}
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CALData.deepCopy(), nil
 }
@@ -335,8 +347,8 @@ func (b *_CALDataBuilder) DeepCopy() any {
 	_copy := b.CreateCALDataBuilder().(*_CALDataBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_CALDataChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -358,6 +370,10 @@ func (b *_CALData) CreateCALDataBuilder() CALDataBuilder {
 ///////////////////////////////////////////////////////////
 /////////////////////// Accessors for property fields.
 ///////////////////////
+
+func (m *_CALData) GetRequestContext() RequestContext {
+	return m.RequestContext
+}
 
 func (m *_CALData) GetCommandTypeContainer() CALCommandTypeContainer {
 	return m.CommandTypeContainer
@@ -456,7 +472,7 @@ func CALDataParseWithBufferProducer[T CALData](requestContext RequestContext) fu
 }
 
 func CALDataParseWithBuffer[T CALData](ctx context.Context, readBuffer utils.ReadBuffer, requestContext RequestContext) (T, error) {
-	v, err := (&_CALData{RequestContext: requestContext}).parse(ctx, readBuffer, requestContext)
+	v, err := (new(_CALData)).parse(ctx, readBuffer, requestContext)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -477,6 +493,7 @@ func (m *_CALData) parse(ctx context.Context, readBuffer utils.ReadBuffer, reque
 	}
 	currentPos := positionAware.GetPos()
 	_ = currentPos
+	m.RequestContext = requestContext
 
 	// Validation
 	if !(KnowsCALCommandTypeContainer(ctx, readBuffer)) {
@@ -608,16 +625,6 @@ func (pm *_CALData) serializeParent(ctx context.Context, writeBuffer utils.Write
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_CALData) GetRequestContext() RequestContext {
-	return m.RequestContext
-}
-
-//
-////
-
 func (m *_CALData) IsCALData() {}
 
 func (m *_CALData) DeepCopy() any {
@@ -630,9 +637,9 @@ func (m *_CALData) deepCopy() *_CALData {
 	}
 	_CALDataCopy := &_CALData{
 		nil, // will be set by child
+		utils.DeepCopy[RequestContext](m.RequestContext),
 		m.CommandTypeContainer,
 		utils.DeepCopy[CALData](m.AdditionalData),
-		m.RequestContext,
 	}
 	return _CALDataCopy
 }

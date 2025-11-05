@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -59,16 +60,13 @@ type _CIPAttributes struct {
 	NumberAvailable *uint16
 	NumberActive    *uint16
 	Data            []byte
-
-	// Arguments.
-	PacketLength uint16
 }
 
 var _ CIPAttributes = (*_CIPAttributes)(nil)
 
 // NewCIPAttributes factory function for _CIPAttributes
-func NewCIPAttributes(classId []uint16, numberAvailable *uint16, numberActive *uint16, data []byte, packetLength uint16) *_CIPAttributes {
-	return &_CIPAttributes{ClassId: classId, NumberAvailable: numberAvailable, NumberActive: numberActive, Data: data, PacketLength: packetLength}
+func NewCIPAttributes(classId []uint16, numberAvailable *uint16, numberActive *uint16, data []byte) *_CIPAttributes {
+	return &_CIPAttributes{ClassId: classId, NumberAvailable: numberAvailable, NumberActive: numberActive, Data: data}
 }
 
 ///////////////////////////////////////////////////////////
@@ -89,8 +87,6 @@ type CIPAttributesBuilder interface {
 	WithOptionalNumberActive(uint16) CIPAttributesBuilder
 	// WithData adds Data (property field)
 	WithData(...byte) CIPAttributesBuilder
-	// WithArgPacketLength sets a parser argument
-	WithArgPacketLength(uint16) CIPAttributesBuilder
 	// Build builds the CIPAttributes or returns an error if something is wrong
 	Build() (CIPAttributes, error)
 	// MustBuild does the same as Build but panics on error
@@ -105,7 +101,7 @@ func NewCIPAttributesBuilder() CIPAttributesBuilder {
 type _CIPAttributesBuilder struct {
 	*_CIPAttributes
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (CIPAttributesBuilder) = (*_CIPAttributesBuilder)(nil)
@@ -134,14 +130,9 @@ func (b *_CIPAttributesBuilder) WithData(data ...byte) CIPAttributesBuilder {
 	return b
 }
 
-func (b *_CIPAttributesBuilder) WithArgPacketLength(packetLength uint16) CIPAttributesBuilder {
-	b.PacketLength = packetLength
-	return b
-}
-
 func (b *_CIPAttributesBuilder) Build() (CIPAttributes, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._CIPAttributes.deepCopy(), nil
 }
@@ -156,8 +147,8 @@ func (b *_CIPAttributesBuilder) MustBuild() CIPAttributes {
 
 func (b *_CIPAttributesBuilder) DeepCopy() any {
 	_copy := b.CreateCIPAttributesBuilder().(*_CIPAttributesBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -260,7 +251,7 @@ func CIPAttributesParseWithBufferProducer(packetLength uint16) func(ctx context.
 }
 
 func CIPAttributesParseWithBuffer(ctx context.Context, readBuffer utils.ReadBuffer, packetLength uint16) (CIPAttributes, error) {
-	v, err := (&_CIPAttributes{PacketLength: packetLength}).parse(ctx, readBuffer, packetLength)
+	v, err := (new(_CIPAttributes)).parse(ctx, readBuffer, packetLength)
 	if err != nil {
 		return nil, err
 	}
@@ -360,16 +351,6 @@ func (m *_CIPAttributes) SerializeWithWriteBuffer(ctx context.Context, writeBuff
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_CIPAttributes) GetPacketLength() uint16 {
-	return m.PacketLength
-}
-
-//
-////
-
 func (m *_CIPAttributes) IsCIPAttributes() {}
 
 func (m *_CIPAttributes) DeepCopy() any {
@@ -385,7 +366,6 @@ func (m *_CIPAttributes) deepCopy() *_CIPAttributes {
 		utils.CopyPtr[uint16](m.NumberAvailable),
 		utils.CopyPtr[uint16](m.NumberActive),
 		utils.DeepCopySlice[byte, byte](m.Data),
-		m.PacketLength,
 	}
 	return _CIPAttributesCopy
 }

@@ -49,21 +49,13 @@ public class BACnetConstructedDataSetpoint extends BACnetConstructedData impleme
   // Properties.
   protected final BACnetApplicationTagReal setpoint;
 
-  // Arguments.
-  protected final Short tagNumber;
-  protected final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
-
   public BACnetConstructedDataSetpoint(
       BACnetOpeningTag openingTag,
       BACnetTagHeader peekedTagHeader,
       BACnetClosingTag closingTag,
-      BACnetApplicationTagReal setpoint,
-      Short tagNumber,
-      BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
-    super(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument);
+      BACnetApplicationTagReal setpoint) {
+    super(openingTag, peekedTagHeader, closingTag);
     this.setpoint = setpoint;
-    this.tagNumber = tagNumber;
-    this.arrayIndexArgument = arrayIndexArgument;
   }
 
   public BACnetApplicationTagReal getSetpoint() {
@@ -84,7 +76,7 @@ public class BACnetConstructedDataSetpoint extends BACnetConstructedData impleme
     // Simple Field (setpoint)
     writeSimpleField("setpoint", setpoint, writeComplex(writeBuffer));
 
-    // Virtual field (doesn't actually serialize anything, just makes the value available)
+    // Virtual field (doesn't serialize anything, just makes the value available)
     BACnetApplicationTagReal actualValue = getActualValue();
     writeBuffer.writeVirtual("actualValue", actualValue);
 
@@ -132,33 +124,21 @@ public class BACnetConstructedDataSetpoint extends BACnetConstructedData impleme
 
     readBuffer.closeContext("BACnetConstructedDataSetpoint");
     // Create the instance
-    return new BACnetConstructedDataSetpointBuilderImpl(setpoint, tagNumber, arrayIndexArgument);
+    return new BACnetConstructedDataSetpointBuilderImpl(setpoint);
   }
 
   public static class BACnetConstructedDataSetpointBuilderImpl
       implements BACnetConstructedData.BACnetConstructedDataBuilder {
     private final BACnetApplicationTagReal setpoint;
-    private final Short tagNumber;
-    private final BACnetTagPayloadUnsignedInteger arrayIndexArgument;
 
-    public BACnetConstructedDataSetpointBuilderImpl(
-        BACnetApplicationTagReal setpoint,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+    public BACnetConstructedDataSetpointBuilderImpl(BACnetApplicationTagReal setpoint) {
       this.setpoint = setpoint;
-      this.tagNumber = tagNumber;
-      this.arrayIndexArgument = arrayIndexArgument;
     }
 
     public BACnetConstructedDataSetpoint build(
-        BACnetOpeningTag openingTag,
-        BACnetTagHeader peekedTagHeader,
-        BACnetClosingTag closingTag,
-        Short tagNumber,
-        BACnetTagPayloadUnsignedInteger arrayIndexArgument) {
+        BACnetOpeningTag openingTag, BACnetTagHeader peekedTagHeader, BACnetClosingTag closingTag) {
       BACnetConstructedDataSetpoint bACnetConstructedDataSetpoint =
-          new BACnetConstructedDataSetpoint(
-              openingTag, peekedTagHeader, closingTag, setpoint, tagNumber, arrayIndexArgument);
+          new BACnetConstructedDataSetpoint(openingTag, peekedTagHeader, closingTag, setpoint);
       return bACnetConstructedDataSetpoint;
     }
   }

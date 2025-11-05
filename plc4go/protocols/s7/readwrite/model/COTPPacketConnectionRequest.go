@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -64,9 +65,9 @@ var _ COTPPacketConnectionRequest = (*_COTPPacketConnectionRequest)(nil)
 var _ COTPPacketRequirements = (*_COTPPacketConnectionRequest)(nil)
 
 // NewCOTPPacketConnectionRequest factory function for _COTPPacketConnectionRequest
-func NewCOTPPacketConnectionRequest(parameters []COTPParameter, payload S7Message, destinationReference uint16, sourceReference uint16, protocolClass COTPProtocolClass, cotpLen uint16) *_COTPPacketConnectionRequest {
+func NewCOTPPacketConnectionRequest(parameters []COTPParameter, payload S7Message, destinationReference uint16, sourceReference uint16, protocolClass COTPProtocolClass) *_COTPPacketConnectionRequest {
 	_result := &_COTPPacketConnectionRequest{
-		COTPPacketContract:   NewCOTPPacket(parameters, payload, cotpLen),
+		COTPPacketContract:   NewCOTPPacket(parameters, payload),
 		DestinationReference: destinationReference,
 		SourceReference:      sourceReference,
 		ProtocolClass:        protocolClass,
@@ -109,7 +110,7 @@ type _COTPPacketConnectionRequestBuilder struct {
 
 	parentBuilder *_COTPPacketBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (COTPPacketConnectionRequestBuilder) = (*_COTPPacketConnectionRequestBuilder)(nil)
@@ -139,8 +140,8 @@ func (b *_COTPPacketConnectionRequestBuilder) WithProtocolClass(protocolClass CO
 }
 
 func (b *_COTPPacketConnectionRequestBuilder) Build() (COTPPacketConnectionRequest, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._COTPPacketConnectionRequest.deepCopy(), nil
 }
@@ -166,8 +167,8 @@ func (b *_COTPPacketConnectionRequestBuilder) buildForCOTPPacket() (COTPPacket, 
 
 func (b *_COTPPacketConnectionRequestBuilder) DeepCopy() any {
 	_copy := b.CreateCOTPPacketConnectionRequestBuilder().(*_COTPPacketConnectionRequestBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -45,6 +46,7 @@ type BACnetConstructedDataSubordinateList interface {
 	// GetSubordinateList returns SubordinateList (property field)
 	GetSubordinateList() []BACnetDeviceObjectReference
 	// GetZero returns Zero (virtual field)
+	// TODO: uint 64 ---> big int in java == boom
 	GetZero() uint64
 	// IsBACnetConstructedDataSubordinateList is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsBACnetConstructedDataSubordinateList()
@@ -63,9 +65,9 @@ var _ BACnetConstructedDataSubordinateList = (*_BACnetConstructedDataSubordinate
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataSubordinateList)(nil)
 
 // NewBACnetConstructedDataSubordinateList factory function for _BACnetConstructedDataSubordinateList
-func NewBACnetConstructedDataSubordinateList(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, subordinateList []BACnetDeviceObjectReference, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataSubordinateList {
+func NewBACnetConstructedDataSubordinateList(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, numberOfDataElements BACnetApplicationTagUnsignedInteger, subordinateList []BACnetDeviceObjectReference) *_BACnetConstructedDataSubordinateList {
 	_result := &_BACnetConstructedDataSubordinateList{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		NumberOfDataElements:          numberOfDataElements,
 		SubordinateList:               subordinateList,
 	}
@@ -107,7 +109,7 @@ type _BACnetConstructedDataSubordinateListBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataSubordinateListBuilder) = (*_BACnetConstructedDataSubordinateListBuilder)(nil)
@@ -131,10 +133,7 @@ func (b *_BACnetConstructedDataSubordinateListBuilder) WithOptionalNumberOfDataE
 	var err error
 	b.NumberOfDataElements, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagUnsignedIntegerBuilder failed"))
 	}
 	return b
 }
@@ -145,8 +144,8 @@ func (b *_BACnetConstructedDataSubordinateListBuilder) WithSubordinateList(subor
 }
 
 func (b *_BACnetConstructedDataSubordinateListBuilder) Build() (BACnetConstructedDataSubordinateList, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataSubordinateList.deepCopy(), nil
 }
@@ -172,8 +171,8 @@ func (b *_BACnetConstructedDataSubordinateListBuilder) buildForBACnetConstructed
 
 func (b *_BACnetConstructedDataSubordinateListBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataSubordinateListBuilder().(*_BACnetConstructedDataSubordinateListBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

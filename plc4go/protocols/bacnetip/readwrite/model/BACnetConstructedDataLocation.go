@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -60,12 +61,12 @@ var _ BACnetConstructedDataLocation = (*_BACnetConstructedDataLocation)(nil)
 var _ BACnetConstructedDataRequirements = (*_BACnetConstructedDataLocation)(nil)
 
 // NewBACnetConstructedDataLocation factory function for _BACnetConstructedDataLocation
-func NewBACnetConstructedDataLocation(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, location BACnetApplicationTagCharacterString, tagNumber uint8, arrayIndexArgument BACnetTagPayloadUnsignedInteger) *_BACnetConstructedDataLocation {
+func NewBACnetConstructedDataLocation(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, location BACnetApplicationTagCharacterString) *_BACnetConstructedDataLocation {
 	if location == nil {
 		panic("location of type BACnetApplicationTagCharacterString for BACnetConstructedDataLocation must not be nil")
 	}
 	_result := &_BACnetConstructedDataLocation{
-		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag, tagNumber, arrayIndexArgument),
+		BACnetConstructedDataContract: NewBACnetConstructedData(openingTag, peekedTagHeader, closingTag),
 		Location:                      location,
 	}
 	_result.BACnetConstructedDataContract.(*_BACnetConstructedData)._SubType = _result
@@ -104,7 +105,7 @@ type _BACnetConstructedDataLocationBuilder struct {
 
 	parentBuilder *_BACnetConstructedDataBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetConstructedDataLocationBuilder) = (*_BACnetConstructedDataLocationBuilder)(nil)
@@ -128,23 +129,17 @@ func (b *_BACnetConstructedDataLocationBuilder) WithLocationBuilder(builderSuppl
 	var err error
 	b.Location, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagCharacterStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetConstructedDataLocationBuilder) Build() (BACnetConstructedDataLocation, error) {
 	if b.Location == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'location' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'location' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetConstructedDataLocation.deepCopy(), nil
 }
@@ -170,8 +165,8 @@ func (b *_BACnetConstructedDataLocationBuilder) buildForBACnetConstructedData() 
 
 func (b *_BACnetConstructedDataLocationBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetConstructedDataLocationBuilder().(*_BACnetConstructedDataLocationBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

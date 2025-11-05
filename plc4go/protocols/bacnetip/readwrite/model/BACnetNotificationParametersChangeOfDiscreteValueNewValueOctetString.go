@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -58,12 +59,12 @@ var _ BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString = (*_
 var _ BACnetNotificationParametersChangeOfDiscreteValueNewValueRequirements = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString)(nil)
 
 // NewBACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString factory function for _BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString
-func NewBACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, octetStringValue BACnetApplicationTagOctetString, tagNumber uint8) *_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString {
+func NewBACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString(openingTag BACnetOpeningTag, peekedTagHeader BACnetTagHeader, closingTag BACnetClosingTag, octetStringValue BACnetApplicationTagOctetString) *_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString {
 	if octetStringValue == nil {
 		panic("octetStringValue of type BACnetApplicationTagOctetString for BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString must not be nil")
 	}
 	_result := &_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString{
-		BACnetNotificationParametersChangeOfDiscreteValueNewValueContract: NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag, peekedTagHeader, closingTag, tagNumber),
+		BACnetNotificationParametersChangeOfDiscreteValueNewValueContract: NewBACnetNotificationParametersChangeOfDiscreteValueNewValue(openingTag, peekedTagHeader, closingTag),
 		OctetStringValue: octetStringValue,
 	}
 	_result.BACnetNotificationParametersChangeOfDiscreteValueNewValueContract.(*_BACnetNotificationParametersChangeOfDiscreteValueNewValue)._SubType = _result
@@ -102,7 +103,7 @@ type _BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBuilde
 
 	parentBuilder *_BACnetNotificationParametersChangeOfDiscreteValueNewValueBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBuilder) = (*_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBuilder)(nil)
@@ -126,23 +127,17 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBu
 	var err error
 	b.OctetStringValue, err = builder.Build()
 	if err != nil {
-		if b.err == nil {
-			b.err = &utils.MultiError{MainError: errors.New("sub builder failed")}
-		}
-		b.err.Append(errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
+		b.collectedErr = append(b.collectedErr, errors.Wrap(err, "BACnetApplicationTagOctetStringBuilder failed"))
 	}
 	return b
 }
 
 func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBuilder) Build() (BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString, error) {
 	if b.OctetStringValue == nil {
-		if b.err == nil {
-			b.err = new(utils.MultiError)
-		}
-		b.err.Append(errors.New("mandatory field 'octetStringValue' not set"))
+		b.collectedErr = append(b.collectedErr, errors.New("mandatory field 'octetStringValue' not set"))
 	}
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetString.deepCopy(), nil
 }
@@ -168,8 +163,8 @@ func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBu
 
 func (b *_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBuilder) DeepCopy() any {
 	_copy := b.CreateBACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBuilder().(*_BACnetNotificationParametersChangeOfDiscreteValueNewValueOctetStringBuilder)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }

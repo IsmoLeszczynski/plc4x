@@ -21,6 +21,7 @@ package model
 
 import (
 	"context"
+	stdErrors "errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -49,8 +50,6 @@ type FirmataCommand interface {
 
 // FirmataCommandContract provides a set of functions which can be overwritten by a sub struct
 type FirmataCommandContract interface {
-	// GetResponse() returns a parser argument
-	GetResponse() bool
 	// IsFirmataCommand is a marker method to prevent unintentional type checks (interfaces of same signature)
 	IsFirmataCommand()
 	// CreateBuilder creates a FirmataCommandBuilder
@@ -71,16 +70,13 @@ type _FirmataCommand struct {
 		FirmataCommandContract
 		FirmataCommandRequirements
 	}
-
-	// Arguments.
-	Response bool
 }
 
 var _ FirmataCommandContract = (*_FirmataCommand)(nil)
 
 // NewFirmataCommand factory function for _FirmataCommand
-func NewFirmataCommand(response bool) *_FirmataCommand {
-	return &_FirmataCommand{Response: response}
+func NewFirmataCommand() *_FirmataCommand {
+	return &_FirmataCommand{}
 }
 
 ///////////////////////////////////////////////////////////
@@ -93,8 +89,6 @@ type FirmataCommandBuilder interface {
 	utils.Copyable
 	// WithMandatoryFields adds all mandatory fields (convenience for using multiple builder calls)
 	WithMandatoryFields() FirmataCommandBuilder
-	// WithArgResponse sets a parser argument
-	WithArgResponse(bool) FirmataCommandBuilder
 	// AsFirmataCommandSysex converts this build to a subType of FirmataCommand. It is always possible to return to current builder using Done()
 	AsFirmataCommandSysex() FirmataCommandSysexBuilder
 	// AsFirmataCommandSetPinMode converts this build to a subType of FirmataCommand. It is always possible to return to current builder using Done()
@@ -131,7 +125,7 @@ type _FirmataCommandBuilder struct {
 
 	childBuilder _FirmataCommandChildBuilder
 
-	err *utils.MultiError
+	collectedErr []error
 }
 
 var _ (FirmataCommandBuilder) = (*_FirmataCommandBuilder)(nil)
@@ -140,14 +134,9 @@ func (b *_FirmataCommandBuilder) WithMandatoryFields() FirmataCommandBuilder {
 	return b
 }
 
-func (b *_FirmataCommandBuilder) WithArgResponse(response bool) FirmataCommandBuilder {
-	b.Response = response
-	return b
-}
-
 func (b *_FirmataCommandBuilder) PartialBuild() (FirmataCommandContract, error) {
-	if b.err != nil {
-		return nil, errors.Wrap(b.err, "error occurred during build")
+	if err := stdErrors.Join(b.collectedErr...); err != nil {
+		return nil, errors.Wrap(err, "error occurred during build")
 	}
 	return b._FirmataCommand.deepCopy(), nil
 }
@@ -234,8 +223,8 @@ func (b *_FirmataCommandBuilder) DeepCopy() any {
 	_copy := b.CreateFirmataCommandBuilder().(*_FirmataCommandBuilder)
 	_copy.childBuilder = b.childBuilder.DeepCopy().(_FirmataCommandChildBuilder)
 	_copy.childBuilder.setParent(_copy)
-	if b.err != nil {
-		_copy.err = b.err.DeepCopy().(*utils.MultiError)
+	if b.collectedErr != nil {
+		copy(_copy.collectedErr, b.collectedErr)
 	}
 	return _copy
 }
@@ -300,7 +289,7 @@ func FirmataCommandParseWithBufferProducer[T FirmataCommand](response bool) func
 }
 
 func FirmataCommandParseWithBuffer[T FirmataCommand](ctx context.Context, readBuffer utils.ReadBuffer, response bool) (T, error) {
-	v, err := (&_FirmataCommand{Response: response}).parse(ctx, readBuffer, response)
+	v, err := (new(_FirmataCommand)).parse(ctx, readBuffer, response)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -388,16 +377,6 @@ func (pm *_FirmataCommand) serializeParent(ctx context.Context, writeBuffer util
 	return nil
 }
 
-////
-// Arguments Getter
-
-func (m *_FirmataCommand) GetResponse() bool {
-	return m.Response
-}
-
-//
-////
-
 func (m *_FirmataCommand) IsFirmataCommand() {}
 
 func (m *_FirmataCommand) DeepCopy() any {
@@ -410,7 +389,6 @@ func (m *_FirmataCommand) deepCopy() *_FirmataCommand {
 	}
 	_FirmataCommandCopy := &_FirmataCommand{
 		nil, // will be set by child
-		m.Response,
 	}
 	return _FirmataCommandCopy
 }
