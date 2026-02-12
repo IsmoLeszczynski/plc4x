@@ -136,7 +136,16 @@ public class Plc4xNettyWrapper<T> extends MessageToMessageCodec<T, Object> {
 
     @Override
     public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+        logger.trace("close.. context: {}", ctx.name());
         super.close(ctx, promise);
+        timeoutManager.stop();
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        logger.trace("channelInactive.. context: {}", ctx.name());
+        super.channelInactive(ctx);
+        this.protocolBase.channelInactive(new DefaultConversationContext<>(this::registerHandler, ctx, authentication, passive));
         timeoutManager.stop();
     }
 

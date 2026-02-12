@@ -900,6 +900,11 @@ public class OpcuaProtocolLogic extends Plc4xProtocolBase<OpcuaAPU> implements H
         return new GuidValue(0L, 0, 0, data4, data5);
     }
 
+    @Override
+    public void channelInactive(ConversationContext<OpcuaAPU> context) {
+        tm.shutdown();
+    }
+
     private static <T> void bridge(RequestTransaction transaction, CompletableFuture<T> future, T response, Throwable error) {
         if (error != null) {
             future.completeExceptionally(error);
