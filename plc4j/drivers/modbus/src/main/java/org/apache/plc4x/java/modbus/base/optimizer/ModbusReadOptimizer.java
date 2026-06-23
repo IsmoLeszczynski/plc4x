@@ -31,7 +31,7 @@ import org.apache.plc4x.java.spi.buffers.bytebased.ReadBufferByteBased;
 import org.apache.plc4x.java.spi.buffers.bytebased.WithByteBasedOption;
 import org.apache.plc4x.java.spi.drivers.messages.items.DefaultPlcResponseItem;
 import org.apache.plc4x.java.spi.drivers.messages.items.PlcResponseItem;
-import org.apache.plc4x.java.spi.values.PlcBOOL;
+import org.apache.plc4x.java.spi.values.PlcBOOL;import org.apache.plc4x.java.spi.values.PlcList;
 
 import java.util.*;
 
@@ -108,11 +108,20 @@ public class ModbusReadOptimizer {
             try {
                 if (blockTag instanceof ModbusTagCoil || blockTag instanceof ModbusTagDiscreteInput) {
                     // Coils/discrete inputs: bit-level extraction
-                    int bitPosition = originalTag.getAddress() - blockTag.getAddress();
-                    int bytePosition = bitPosition / 8;
-                    int bitPositionInByte = bitPosition % 8;
-                    boolean isBitSet = (blockData[bytePosition] & (1 << bitPositionInByte)) != 0;
-                    result.put(tagName, new DefaultPlcResponseItem<>(PlcResponseCode.OK, new PlcBOOL(isBitSet)));
+
+                    // Check if we're dealing with an array of Coils or Discrete Inputs
+                    if (blockTag.getNumberOfElements() > 1) {
+                        PlcList bitResults = new PlcList();
+                        for (int i = 0; i < blockTag.getNumberOfElements(); i++) {
+                            int bitPosition = originalTag.getAddress() + i;
+                            bitResults.add(getBitResult(blockData, bitPosition));
+                        }
+                        result.put(tagName, new DefaultPlcResponseItem<>(PlcResponseCode.OK, bitResults));
+                    } else {
+                        int bitPosition = originalTag.getAddress() - blockTag.getAddress();
+                        PlcBOOL bitResult = getBitResult(blockData, bitPosition);
+                        result.put(tagName, new DefaultPlcResponseItem<>(PlcResponseCode.OK, bitResult));
+                    }
                 } else {
                     // Registers: byte-level extraction
                     int byteOffset = (originalTag.getAddress() - blockTag.getAddress()) * 2;
@@ -150,7 +159,11 @@ public class ModbusReadOptimizer {
             }
         }
         return result;
-    }
+    } private static PlcBOOL getBitResult(byte[] blockData, int bitPosition) {
+    int bytePosition = bitPosition / 8;
+                    int bitPositionInByte = bitPosition % 8;
+                    boolean isBitSet = (blockData[bytePosition] & (1 << bitPositionInByte)) != 0;
+                    PlcBOOL bitResult = new PlcBOOL(isBitSet);return bitResult;}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Internal
