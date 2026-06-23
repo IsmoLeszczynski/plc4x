@@ -579,14 +579,12 @@ public class ModbusRtuConnection extends PollingSubscriptionConnectionBase<Modbu
             if (tag instanceof ModbusTagCoil) {
                 return fromPlcValueCoil(plcValue, byteOrder);
             }
-            boolean bigEndian = (byteOrder == ModbusByteOrder.BIG_ENDIAN || byteOrder == ModbusByteOrder.BIG_ENDIAN_BYTE_SWAP);
+            boolean bigEndian = byteOrder.isBigEndian();
             int size = ModbusRegisterCodec.lengthInBytes(plcValue, tagDataType, plcValue.getLength(), tagStringLength);
             WriteBufferByteBased writeBuffer = createWriteBuffer(size, byteOrder);
             ModbusRegisterCodec.serialize(writeBuffer, plcValue, tagDataType, plcValue.getLength(), bigEndian, tagStringLength);
             byte[] data = writeBuffer.getBytes();
-            if (byteOrder == ModbusByteOrder.BIG_ENDIAN_BYTE_SWAP || byteOrder == ModbusByteOrder.LITTLE_ENDIAN_BYTE_SWAP) {
-                data = byteSwap(data);
-            }
+            data = byteOrder.swap(data);
             if (((ModbusTag) tag).getDataType() == ModbusDataType.BOOL) {
                 // Reverse bits in each byte for coil-style BOOL arrays
                 byte[] bytes = new byte[data.length];
@@ -620,9 +618,7 @@ public class ModbusRtuConnection extends PollingSubscriptionConnectionBase<Modbu
                 wb.writeBit(((PlcBOOL) value).getBoolean());
             }
             byte[] bytes = wb.getBytes();
-            if (byteOrder == ModbusByteOrder.BIG_ENDIAN_BYTE_SWAP || byteOrder == ModbusByteOrder.LITTLE_ENDIAN_BYTE_SWAP) {
-                bytes = byteSwap(bytes);
-            }
+            bytes = byteOrder.swap(bytes);
             ArrayUtils.reverse(bytes);
             return bytes;
         }
@@ -658,24 +654,11 @@ public class ModbusRtuConnection extends PollingSubscriptionConnectionBase<Modbu
 
     private WriteBufferByteBased createWriteBuffer(int size, ModbusByteOrder byteOrder) {
         return switch (byteOrder) {
-            case LITTLE_ENDIAN, LITTLE_ENDIAN_BYTE_SWAP ->
+            case LITTLE_ENDIAN, LITTLE_ENDIAN_BYTE_SWAP, LITTLE_ENDIAN_WORD_SWAP, LITTLE_ENDIAN_WORD_SWAP_BYTE_SWAP ->
                 new WriteBufferByteBased(new byte[size], WithByteBasedOption.WithByteOrder("LITTLE_ENDIAN"));
             default ->
                 new WriteBufferByteBased(new byte[size]);
         };
-    }
-
-    private static byte[] byteSwap(byte[] in) {
-        byte[] out = new byte[in.length];
-        for (int i = 0; i < out.length - 1; i += 2) {
-            out[i] = in[i + 1];
-            out[i + 1] = in[i];
-        }
-        // Handle odd-length arrays
-        if (in.length % 2 != 0) {
-            out[in.length - 1] = in[in.length - 1];
-        }
-        return out;
     }
 
     private static byte reverseBitsOfByte(byte b) {

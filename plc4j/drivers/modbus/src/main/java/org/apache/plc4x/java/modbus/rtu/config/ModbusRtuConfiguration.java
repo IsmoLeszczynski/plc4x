@@ -50,7 +50,11 @@ public class ModbusRtuConfiguration implements Configuration {
         " - BIG_ENDIAN\n" +
         " - LITTLE_ENDIAN\n" +
         " - BIG_ENDIAN_BYTE_SWAP\n" +
-        " - LITTLE_ENDIAN_BYTE_SWAP\n")
+        " - LITTLE_ENDIAN_BYTE_SWAP\n" +
+        " - BIG_ENDIAN_WORD_SWAP\n" +
+        " - LITTLE_ENDIAN_WORD_SWAP\n" +
+        " - BIG_ENDIAN_WORD_SWAP_BYTE_SWAP\n" +
+        " - LITTLE_ENDIAN_WORD_SWAP_BYTE_SWAP\n")
     @Since("0.13.0")
     private ModbusByteOrder defaultPayloadByteOrder;
 

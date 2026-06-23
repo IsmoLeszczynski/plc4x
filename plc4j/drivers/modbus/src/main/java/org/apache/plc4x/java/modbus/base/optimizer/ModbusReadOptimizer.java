@@ -18,6 +18,7 @@
  */
 package org.apache.plc4x.java.modbus.base.optimizer;
 
+import org.apache.plc4x.java.api.exceptions.PlcRuntimeException;import org.apache.plc4x.java.api.model.PlcTag;
 import org.apache.plc4x.java.api.types.PlcResponseCode;
 import org.apache.plc4x.java.api.value.PlcValue;
 import org.apache.plc4x.java.modbus.base.tag.*;
@@ -163,10 +164,8 @@ public class ModbusReadOptimizer {
                     System.arraycopy(blockData, byteOffset, tagData, 0, byteLength);
 
                     ModbusByteOrder byteOrder = originalTag.getByteOrder() != null ? originalTag.getByteOrder() : defaultByteOrder;
-                    if (byteOrder == ModbusByteOrder.BIG_ENDIAN_BYTE_SWAP || byteOrder == ModbusByteOrder.LITTLE_ENDIAN_BYTE_SWAP) {
-                        tagData = byteSwap(tagData);
-                    }
-                    boolean bigEndian = (byteOrder == ModbusByteOrder.BIG_ENDIAN || byteOrder == ModbusByteOrder.BIG_ENDIAN_BYTE_SWAP);
+
+                    boolean bigEndian = byteOrder.isBigEndian();
 
                     ReadBufferByteBased readBuffer;
                     if (!bigEndian) {
@@ -332,18 +331,6 @@ public class ModbusReadOptimizer {
 
     private static ModbusTag createExtendedRegister(int address, int count, ModbusDataType dataType, Map<String, String> config) {
         return new ModbusTagExtendedRegister(address, count, dataType, config);
-    }
-
-    private static byte[] byteSwap(byte[] in) {
-        byte[] out = new byte[in.length];
-        for (int i = 0; i < out.length - 1; i += 2) {
-            out[i] = in[i + 1];
-            out[i + 1] = in[i];
-        }
-        if (in.length % 2 != 0) {
-            out[in.length - 1] = in[in.length - 1];
-        }
-        return out;
     }
 
     /**

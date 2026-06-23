@@ -27,10 +27,14 @@ class ModbusByteOrderTest {
     @Test
     void testEnumValues() {
         ModbusByteOrder[] values = ModbusByteOrder.values();
-        assertEquals(4, values.length);
+        assertEquals(8, values.length);
         assertNotNull(ModbusByteOrder.valueOf("BIG_ENDIAN"));
         assertNotNull(ModbusByteOrder.valueOf("LITTLE_ENDIAN"));
         assertNotNull(ModbusByteOrder.valueOf("BIG_ENDIAN_BYTE_SWAP"));
         assertNotNull(ModbusByteOrder.valueOf("LITTLE_ENDIAN_BYTE_SWAP"));
+        assertNotNull(ModbusByteOrder.valueOf("BIG_ENDIAN_WORD_SWAP"));
+        assertNotNull(ModbusByteOrder.valueOf("LITTLE_ENDIAN_WORD_SWAP"));
+        assertNotNull(ModbusByteOrder.valueOf("BIG_ENDIAN_WORD_SWAP_BYTE_SWAP"));
+        assertNotNull(ModbusByteOrder.valueOf("LITTLE_ENDIAN_WORD_SWAP_BYTE_SWAP"));
     }
 }
