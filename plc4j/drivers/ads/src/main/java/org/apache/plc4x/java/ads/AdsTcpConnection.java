@@ -199,14 +199,22 @@ public class AdsTcpConnection extends ConnectionBase<AdsConfiguration> {
                 readDeviceInfoResponse.getMinorVersion(), readDeviceInfoResponse.getVersion());
             deviceName = new String(readDeviceInfoResponse.getDevice()).trim();
 
-            // Read online version (sym-by-name "TwinCAT_SystemInfoVarList._AppInfo.OnlineChangeCnt")
-            AmsPacket readOnlineVersionRequest = new AdsReadWriteRequest(
-                getConfiguration().getTargetAmsNetId(), getConfiguration().getTargetAmsPort(),
-                getConfiguration().getSourceAmsNetId(), getConfiguration().getSourceAmsPort(), ReturnCode.OK, getInvokeId(),
-                ReservedIndexGroups.ADSIGRP_SYM_VALBYNAME.getValue(), 0L, 4L, null,
-                "TwinCAT_SystemInfoVarList._AppInfo.OnlineChangeCnt".getBytes(StandardCharsets.UTF_8));
-            return sendAmsRequest(readOnlineVersionRequest, AdsReadWriteResponse.class);
-        }).thenCompose(readOnlineVersionResponse -> {
+            // Skip onlineVersion and symbolVersion for TwinCAT2 devices as they aren't supported
+            if (adsVersion.startsWith("2")) {
+                return readSymbolTableAndDatatypeTable();
+            }
+            return readVersionInfoAndTables();
+        });
+    }
+
+    private CompletableFuture<Void> readVersionInfoAndTables() {
+        // Read online version (sym-by-name "TwinCAT_SystemInfoVarList._AppInfo.OnlineChangeCnt")
+        AmsPacket readOnlineVersionRequest = new AdsReadWriteRequest(
+            getConfiguration().getTargetAmsNetId(), getConfiguration().getTargetAmsPort(),
+            getConfiguration().getSourceAmsNetId(), getConfiguration().getSourceAmsPort(), ReturnCode.OK, getInvokeId(),
+            ReservedIndexGroups.ADSIGRP_SYM_VALBYNAME.getValue(), 0L, 4L, null,
+            "TwinCAT_SystemInfoVarList._AppInfo.OnlineChangeCnt".getBytes(StandardCharsets.UTF_8));
+        return sendAmsRequest(readOnlineVersionRequest, AdsReadWriteResponse.class).thenCompose(readOnlineVersionResponse -> {
             if (readOnlineVersionResponse.getResult() != ReturnCode.OK) {
                 return CompletableFuture.failedFuture(new PlcConnectionException(
                     "Error reading online version number. Got: " + readOnlineVersionResponse.getResult()));
@@ -282,6 +290,13 @@ public class AdsTcpConnection extends ConnectionBase<AdsConfiguration> {
                     }
                 }
 
+                // TC2: inject the built-in primitive data types that TwinCAT2 devices don't expose.
+                if (adsVersion.startsWith("2")) {
+                    for (Map.Entry<String, AdsDataTypeTableEntry> dataTypeEntry : Tc2DataTypes.ALL.entrySet()) {
+                        dataTypeTable.putIfAbsent(dataTypeEntry.getKey(), dataTypeEntry.getValue());
+                    }
+                }
+
                 // Read symbol table
                 AmsPacket symbolRequest = new AdsReadRequest(
                     getConfiguration().getTargetAmsNetId(), getConfiguration().getTargetAmsPort(),
@@ -300,6 +315,12 @@ public class AdsTcpConnection extends ConnectionBase<AdsConfiguration> {
                         } catch (BufferException e) {
                             return CompletableFuture.failedFuture(new RuntimeException(e));
                         }
+                    }
+
+                    // TC2 doesn't support the online-/symbol-version symbols, so skip the
+                    // invalidation subscription and consider the table load complete.
+                    if (adsVersion.startsWith("2")) {
+                        return CompletableFuture.<Void>completedFuture(null);
                     }
 
                     // Subscribe to online + symbol version invalidation events.
