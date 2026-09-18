@@ -51,6 +51,30 @@ public class EipTagTest {
         assertTag("%myTag:REAL", "%myTag", CIPDataTypeCode.REAL, 1);
     }
 
+    /** Any member of the path may be indexed, not just the last one. */
+    @Test
+    public void testArrayNotationInsideTagName() {
+        assertTag("My.Tags[1].Value", "My.Tags[1].Value", CIPDataTypeCode.DINT, 1);
+        assertTag("My.Tags[1].Value:REAL", "My.Tags[1].Value", CIPDataTypeCode.REAL, 1);
+        assertTag("My.Tags[1].Value[0..7]", "My.Tags[1].Value[0..7]", CIPDataTypeCode.DINT, 8);
+        assertTag("My.Tags[1].Value[0..3]:REAL", "My.Tags[1].Value[0..3]", CIPDataTypeCode.REAL, 4);
+        assertTag("My.Tags[1].Sub[2].Value", "My.Tags[1].Sub[2].Value", CIPDataTypeCode.DINT, 1);
+        assertTag("%My.Tags[1].Value:REAL", "%My.Tags[1].Value", CIPDataTypeCode.REAL, 1);
+    }
+
+    /**
+     * Addresses that are structurally broken have to be rejected instead of being turned into a
+     * tag with a corrupt name.
+     */
+    @Test
+    public void testMalformedAddressesAreRejected() {
+        for (String address : new String[]{"", "myTag:", "myTag[", "myTag[]", "myTag[1", ":REAL",
+            "my-tag", "myTag:REAL:", "myTag:4:REAL", "My.Tags[].Value", "My.Tags[0..3].Value"}) {
+            Assertions.assertFalse(EipTag.matches(address), address);
+            Assertions.assertNull(EipTag.of(address), address);
+        }
+    }
+
     private void assertTag(String address, String tag, CIPDataTypeCode type, int elementNb) {
         EipTag eipTag = EipTag.of(address);
         Assertions.assertNotNull(eipTag, address);
