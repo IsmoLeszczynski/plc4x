@@ -56,7 +56,7 @@ public class UdpTransportInstance implements AsyncTransportInstance<UdpTransport
     private final InetSocketAddress remoteAddress;
     private final SharedUdpSocketManager.SharedSocket sharedSocket; // null if not shared
     private final RingBuffer ringBuffer;
-    private final ByteBuffer readBuffer;  // Pre-allocated direct buffer for zero-copy I/O
+    private final ByteBuffer readBuffer;  // Pre-allocated buffer for channel reads
     private final int maxPacketSize;
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
@@ -84,7 +84,8 @@ public class UdpTransportInstance implements AsyncTransportInstance<UdpTransport
         // to be able to hold the largest one we are willing to accept.
         int readBufferSize = Math.max(this.maxPacketSize, DEFAULT_BUFFER_SIZE);
         this.ringBuffer = new RingBuffer(Math.max(ringSize, this.maxPacketSize));
-        this.readBuffer = ByteBuffer.allocateDirect(readBufferSize);
+        // Heap, not direct: see TcpTransportInstance.
+        this.readBuffer = ByteBuffer.allocate(readBufferSize);
 
         try {
             DatagramChannel tempChannel;
