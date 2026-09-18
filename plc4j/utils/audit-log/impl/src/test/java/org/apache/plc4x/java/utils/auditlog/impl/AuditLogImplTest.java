@@ -185,6 +185,41 @@ class AuditLogImplTest {
     }
 
     @Test
+    void testInstancesDoNotAccumulateLoggers() {
+        ch.qos.logback.classic.LoggerContext context =
+            (ch.qos.logback.classic.LoggerContext) org.slf4j.LoggerFactory.getILoggerFactory();
+        // Whatever the implementation names once exists after this.
+        newLog("warm-up", tempDir.resolve("warm-up.log")).close();
+        int before = context.getLoggerList().size();
+
+        for (int i = 0; i < 10; i++) {
+            AuditLog log = newLog("source-" + i, tempDir.resolve("audit-" + i + ".log"));
+            log.write(AuditLogEventType.SYSTEM, "message " + i);
+            log.close();
+        }
+
+        // Logback never removes a logger, so a logger per instance grew the context per connection.
+        assertEquals(before, context.getLoggerList().size());
+    }
+
+    @Test
+    void testReopeningTheSameFile_keepsLogging() throws IOException {
+        // A reconnecting driver opens a new audit log on the same file each time.
+        for (int i = 0; i < 3; i++) {
+            AuditLog log = newLog("connection-" + i, auditLogFile);
+            log.write(AuditLogEventType.SYSTEM, "message " + i);
+            log.close();
+        }
+
+        List<String> lines = Files.readAllLines(auditLogFile);
+        assertEquals(3, lines.size(), "every reopened instance should have written its line: " + lines);
+    }
+
+    private static AuditLog newLog(String source, Path file) {
+        return AuditLog.builder().withSource(source).withAuditLogFile(file.toString()).build();
+    }
+
+    @Test
     void testWriteAfterClose() throws IOException {
         auditLog = AuditLog.builder()
             .withSource("test")

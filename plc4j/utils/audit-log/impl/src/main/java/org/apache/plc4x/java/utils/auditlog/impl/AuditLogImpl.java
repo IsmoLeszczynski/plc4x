@@ -24,6 +24,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
@@ -52,7 +53,8 @@ public class AuditLogImpl extends AuditLog {
 
     private static final org.slf4j.Logger slf4jLogger = LoggerFactory.getLogger(AuditLog.class);
 
-    private final Logger logger;
+    // Only names the events handed to the appender; no appender is ever attached to it.
+    private final Logger eventLogger;
     private final RollingFileAppender<ILoggingEvent> fileAppender;
     private final LoggerContext loggerContext;
     private final ObjectMapper objectMapper;
@@ -71,14 +73,11 @@ public class AuditLogImpl extends AuditLog {
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         objectMapper.configure(SerializationFeature.INDENT_OUTPUT, false); // Compact JSON for logs
 
-        // Create a unique logger for this audit log instance
-        String loggerName = "AuditLog-" + System.identityHashCode(this);
-
+        // Events go straight to this instance's appender. A logger per instance stayed in the
+        // LoggerContext for good (Logback cannot remove one); a logger per file would fan every
+        // instance's events out to every appender on that file.
         loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        logger = loggerContext.getLogger(loggerName);
-
-        // Don't inherit appenders from root logger
-        logger.setAdditive(false);
+        eventLogger = loggerContext.getLogger(AuditLogImpl.class);
 
         // Ensure parent directory exists
         ensureParentDirectoryExists(config.auditLogFile);
@@ -110,9 +109,6 @@ public class AuditLogImpl extends AuditLog {
         fileAppender.setEncoder(encoder);
         fileAppender.start();
 
-        logger.addAppender(fileAppender);
-        logger.setLevel(Level.INFO);
-
         slf4jLogger.info("Audit log initialized for file: {}", config.auditLogFile);
     }
 
@@ -128,7 +124,7 @@ public class AuditLogImpl extends AuditLog {
         String formattedMessage = String.format("[%s] [%s] [%s] %s",
             timestamp, eventType, source, message);
 
-        logger.info(formattedMessage);
+        append(formattedMessage);
     }
 
     @Override
@@ -153,18 +149,18 @@ public class AuditLogImpl extends AuditLog {
         String formattedMessage = String.format("[%s] [%s] [%s] %s: %s",
             timestamp, eventType, source, message, jsonData);
 
-        logger.info(formattedMessage);
+        append(formattedMessage);
+    }
+
+    private void append(String formattedMessage) {
+        // A stopped appender drops the event, so writing after close() is a harmless no-op.
+        fileAppender.doAppend(new LoggingEvent(AuditLogImpl.class.getName(), eventLogger, Level.INFO,
+            formattedMessage, null, null));
     }
 
     @Override
     public void close() {
-        if (fileAppender != null) {
-            fileAppender.stop();
-        }
-        if (logger != null) {
-            logger.detachAndStopAllAppenders();
-        }
-
+        fileAppender.stop();
         slf4jLogger.info("Audit log closed");
     }
 

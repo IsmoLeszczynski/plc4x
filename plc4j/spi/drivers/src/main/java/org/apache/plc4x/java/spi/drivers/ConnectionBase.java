@@ -197,6 +197,8 @@ public abstract class ConnectionBase<C extends Configuration> implements PlcConn
         if (auditLog.isEnabled()) {
             auditLog.write(AuditLogEventType.CLOSE, "Connection closed");
         }
+        // Created for this connection by DriverBase; nothing else releases it.
+        auditLog.close();
     }
 
     protected abstract PlcTagHandler getTagHandler();
