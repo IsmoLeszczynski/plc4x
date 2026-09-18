@@ -347,6 +347,55 @@ class PskTlsTransportInstanceTest {
     }
 
     @Test
+    void testServerClose_releasesSocket_andCloseStillRuns() throws Exception {
+        Future<TlsServerProtocol> serverFuture = acceptPskConnection();
+
+        PskTlsTransportInstance instance = new PskTlsTransportInstance(
+            new InetSocketAddress("127.0.0.1", serverPort),
+            createPskConfig(), AuditLog.builder().build());
+
+        TlsServerProtocol server = serverFuture.get(10, TimeUnit.SECONDS);
+        CountDownLatch disconnected = new CountDownLatch(1);
+        instance.registerDisconnectListener(cause -> disconnected.countDown());
+
+        server.close();
+
+        assertTrue(disconnected.await(5, TimeUnit.SECONDS), "Disconnect listener should have been called");
+        // The reader loop releases the socket itself; it used to only clear `open`.
+        assertFalse(instance.isSocketOpen(), "Socket should be closed once the server has gone away");
+        // close() used to return early here because `open` was already false.
+        assertDoesNotThrow(instance::close);
+        assertFalse(instance.isOpen());
+    }
+
+    @Test
+    void testClose_fromDisconnectListener_returnsPromptly() throws Exception {
+        Future<TlsServerProtocol> serverFuture = acceptPskConnection();
+
+        PskTlsTransportInstance instance = new PskTlsTransportInstance(
+            new InetSocketAddress("127.0.0.1", serverPort),
+            createPskConfig(), AuditLog.builder().build());
+
+        TlsServerProtocol server = serverFuture.get(10, TimeUnit.SECONDS);
+        CountDownLatch closedFromListener = new CountDownLatch(1);
+        instance.registerDisconnectListener(cause -> {
+            try {
+                instance.close();
+                closedFromListener.countDown();
+            } catch (TransportException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        server.close();
+
+        // Runs on the reader thread: close() must skip the self-join.
+        assertTrue(closedFromListener.await(2, TimeUnit.SECONDS),
+            "close() called from the disconnect listener should return without stalling");
+        assertFalse(instance.isSocketOpen());
+    }
+
+    @Test
     void testDisconnectListenerThatThrowsException() throws Exception {
         Future<TlsServerProtocol> serverFuture = acceptPskConnection();
 
