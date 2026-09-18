@@ -227,24 +227,34 @@ public abstract class DriverBase implements PlcDriver {
             throw new PlcConnectionException("Unable to create transport instance", e);
         }
 
-        // Create the configuration object for the protocol itself.
-        Configuration configuration = configurationFactory.createConfiguration(getConfigurationClass(), paramString);
-        if (configuration == null) {
-            throw new PlcConnectionException("Unsupported configuration");
-        }
+        try {
+            // Create the configuration object for the protocol itself.
+            Configuration configuration = configurationFactory.createConfiguration(getConfigurationClass(), paramString);
+            if (configuration == null) {
+                throw new PlcConnectionException("Unsupported configuration");
+            }
 
-        if (auditLog.isEnabled()) {
-            auditLog.write(AuditLogEventType.CONFIG, "Starting connection using configuration: " + configuration);
-        }
+            if (auditLog.isEnabled()) {
+                auditLog.write(AuditLogEventType.CONFIG, "Starting connection using configuration: " + configuration);
+            }
 
-        // Initialize the PlcConnection instance.
-        ConnectionBase<?> connection = getConnection(configuration, transportInstance, auditLog);
-        connection.setConnectionInfo(getProtocolCode(), getProtocolName(),
-            transport.getTransportCode(), transport.getTransportName());
-        // Hand the caller-supplied authentication to the connection; previously it was accepted
-        // by this method but never propagated, so programmatic credentials were silently ignored.
-        connection.setAuthentication(plcAuthentication);
-        return connection;
+            // Initialize the PlcConnection instance.
+            ConnectionBase<?> connection = getConnection(configuration, transportInstance, auditLog);
+            connection.setConnectionInfo(getProtocolCode(), getProtocolName(),
+                transport.getTransportCode(), transport.getTransportName());
+            // Hand the caller-supplied authentication to the connection; previously it was accepted
+            // by this method but never propagated, so programmatic credentials were silently ignored.
+            connection.setAuthentication(plcAuthentication);
+            return connection;
+        } catch (PlcConnectionException | RuntimeException e) {
+            // Until a connection owns it, the open transport leaves with the exception.
+            try {
+                transportInstance.close();
+            } catch (TransportException closeException) {
+                e.addSuppressed(closeException);
+            }
+            throw e;
+        }
     }
 
     /**
