@@ -223,3 +223,6 @@ DartConfiguration.tcl
 /plc4c/.idea/.name
 
 /website/node_modules/
+/plc4j/.mvn
+plc4j/mvnw
+plc4j/mvnw.cmd
