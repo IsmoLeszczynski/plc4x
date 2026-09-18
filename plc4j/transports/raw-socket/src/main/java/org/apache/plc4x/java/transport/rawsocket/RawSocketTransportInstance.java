@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -94,6 +95,9 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
     private volatile boolean open = true;
+    // Once-only guard for close(): the unlocked check on `open` let two concurrent closers both
+    // release the (possibly shared) handle.
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     private volatile Thread captureThread;
 
     // Async support
@@ -582,7 +586,7 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
 
     @Override
     public void close() throws TransportException {
-        if (!open) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
 

@@ -597,6 +597,33 @@ class RawSocketTransportInstanceMockTest {
     }
 
     @Test
+    void testClose_concurrentCalls_closeHandleOnce() throws Exception {
+        instance = createDedicatedInstance();
+        handleOpen.set(false);
+
+        // The old check on `open` was outside the locks, so two closers could both pass it.
+        java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+        Runnable closer = () -> {
+            try {
+                start.await();
+                instance.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+        Thread first = new Thread(closer);
+        Thread second = new Thread(closer);
+        first.start();
+        second.start();
+        start.countDown();
+        first.join(5000);
+        second.join(5000);
+
+        verify(mockHandle, times(1)).close();
+        assertFalse(instance.isOpen());
+    }
+
+    @Test
     void testClose_idempotent() throws Exception {
         instance = createDedicatedInstance();
 

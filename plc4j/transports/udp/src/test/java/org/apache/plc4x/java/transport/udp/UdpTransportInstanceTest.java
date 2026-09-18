@@ -302,6 +302,54 @@ class UdpTransportInstanceTest {
     }
 
     @Test
+    void testClose_sharedSocket_closesSelector() throws Exception {
+        UdpTransportInstance shared = newSharedInstance(new SharedUdpSocketManager());
+        assertTrue(shared.isSelectorOpen());
+
+        shared.close();
+
+        // The selector is per instance even when the socket is shared; it used to stay open.
+        assertFalse(shared.isSelectorOpen());
+        assertFalse(shared.isOpen());
+    }
+
+    @Test
+    void testClose_sharedSocket_repeatedCycles_doNotLeakFileDescriptors() throws Exception {
+        java.lang.management.OperatingSystemMXBean rawOsBean =
+            java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            rawOsBean instanceof com.sun.management.UnixOperatingSystemMXBean,
+            "Open file descriptor count not available on this platform");
+        com.sun.management.UnixOperatingSystemMXBean osBean =
+            (com.sun.management.UnixOperatingSystemMXBean) rawOsBean;
+
+        // Warm-up so lazily created JVM resources don't count as growth.
+        newSharedInstance(new SharedUdpSocketManager()).close();
+
+        int cycles = 30;
+        long before = osBean.getOpenFileDescriptorCount();
+        for (int i = 0; i < cycles; i++) {
+            // A fresh manager per cycle, so the shared channel is released along with the instance.
+            newSharedInstance(new SharedUdpSocketManager()).close();
+        }
+        long after = osBean.getOpenFileDescriptorCount();
+
+        // Used to leak one selector per cycle; slack for whatever else the JVM opens.
+        assertTrue(after - before < cycles / 2,
+            "Open file descriptor count grew from " + before + " to " + after + " over " + cycles
+                + " shared-socket open/close cycles (selector leaked on close)");
+    }
+
+    private UdpTransportInstance newSharedInstance(SharedUdpSocketManager manager) throws Exception {
+        UdpTransportConfiguration config = new UdpTransportConfiguration();
+        config.shareSocket = true;
+        config.localAddress = "localhost";
+        int serverPort = ((InetSocketAddress) serverChannel.getLocalAddress()).getPort();
+        return new UdpTransportInstance(new InetSocketAddress("localhost", serverPort), config, manager,
+            AuditLog.builder().build());
+    }
+
+    @Test
     void testClose_idempotent() throws TransportException {
         transportInstance.close();
         assertFalse(transportInstance.isOpen());

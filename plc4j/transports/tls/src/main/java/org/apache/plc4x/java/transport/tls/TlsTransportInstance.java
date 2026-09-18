@@ -46,6 +46,7 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
@@ -72,6 +73,9 @@ public class TlsTransportInstance extends BaseTransportInstance<TlsTransportConf
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
     private volatile boolean open = true;
+    // Once-only guard for close(). Not `open`: the reader loop clears that on a disconnect, which
+    // made close() return early and leak the socket.
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     // Async support
     private volatile Runnable dataListener;
@@ -584,7 +588,7 @@ public class TlsTransportInstance extends BaseTransportInstance<TlsTransportConf
 
     @Override
     public void close() throws TransportException {
-        if (!open) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
 
@@ -613,8 +617,8 @@ public class TlsTransportInstance extends BaseTransportInstance<TlsTransportConf
                     LOGGER.debug("Error closing SSL socket", e);
                 }
 
-                // Wait for reader thread to finish
-                if (readerThread != null) {
+                // Wait for reader thread to finish, unless close() runs on it
+                if (readerThread != null && Thread.currentThread() != readerThread) {
                     try {
                         readerThread.join(1000);
                     } catch (InterruptedException e) {
@@ -714,8 +718,23 @@ public class TlsTransportInstance extends BaseTransportInstance<TlsTransportConf
         }
         if (open) {
             open = false;
+            closeSocketQuietly();
             notifyDisconnect(null);
         }
+    }
+
+    /** Releases the socket once the reader loop has seen the connection end, without waiting for close(). */
+    private void closeSocketQuietly() {
+        try {
+            sslSocket.close();
+        } catch (IOException e) {
+            LOGGER.debug("Closing the socket after a disconnect failed: {}", e.getMessage());
+        }
+    }
+
+    /** Test hook. */
+    boolean isSocketOpen() {
+        return !sslSocket.isClosed();
     }
 
     private void runReaderLoopInternal() {
@@ -761,6 +780,7 @@ public class TlsTransportInstance extends BaseTransportInstance<TlsTransportConf
                     getAuditLog().write(AuditLogEventType.SYSTEM,
                         "TLS connection closed gracefully by remote host");
                     open = false;
+                    closeSocketQuietly();
                     notifyDisconnect(null);  // null indicates graceful close
                     break;
                 }
@@ -769,6 +789,7 @@ public class TlsTransportInstance extends BaseTransportInstance<TlsTransportConf
                     LOGGER.error("Error reading from TLS socket", e);
                     getAuditLog().write(AuditLogEventType.ERROR, "TLS read error: " + e.getMessage());
                     open = false;
+                    closeSocketQuietly();
                     notifyDisconnect(e);
                 }
                 break;

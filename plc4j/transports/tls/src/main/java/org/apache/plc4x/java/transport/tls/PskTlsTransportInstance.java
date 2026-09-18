@@ -38,6 +38,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
@@ -64,6 +65,9 @@ public class PskTlsTransportInstance extends BaseTransportInstance<PskTlsTranspo
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
     private volatile boolean open = true;
+    // Once-only guard for close(). Not `open`: the reader loop clears that on a disconnect, which
+    // made close() return early and leak the socket.
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     // Async support
     private volatile Runnable dataListener;
@@ -406,7 +410,7 @@ public class PskTlsTransportInstance extends BaseTransportInstance<PskTlsTranspo
 
     @Override
     public void close() throws TransportException {
-        if (!open) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
 
@@ -440,7 +444,8 @@ public class PskTlsTransportInstance extends BaseTransportInstance<PskTlsTranspo
                     LOGGER.debug("Error closing socket", e);
                 }
 
-                if (readerThread != null) {
+                // Not when close() runs on the reader thread itself
+                if (readerThread != null && Thread.currentThread() != readerThread) {
                     try {
                         readerThread.join(1000);
                     } catch (InterruptedException e) {
@@ -529,8 +534,14 @@ public class PskTlsTransportInstance extends BaseTransportInstance<PskTlsTranspo
         }
         if (open) {
             open = false;
+            closeSocketQuietly();
             notifyDisconnect(null);
         }
+    }
+
+    /** Test hook. */
+    boolean isSocketOpen() {
+        return !plainSocket.isClosed();
     }
 
     private void runReaderLoopInternal() {
@@ -573,6 +584,7 @@ public class PskTlsTransportInstance extends BaseTransportInstance<PskTlsTranspo
                     getAuditLog().write(AuditLogEventType.SYSTEM,
                         "TLS-PSK connection closed gracefully by remote host");
                     open = false;
+                    closeSocketQuietly();
                     notifyDisconnect(null);
                     break;
                 }
@@ -581,6 +593,7 @@ public class PskTlsTransportInstance extends BaseTransportInstance<PskTlsTranspo
                     LOGGER.error("Error reading from TLS-PSK socket", e);
                     getAuditLog().write(AuditLogEventType.ERROR, "TLS-PSK read error: " + e.getMessage());
                     open = false;
+                    closeSocketQuietly();
                     notifyDisconnect(e);
                 }
                 break;

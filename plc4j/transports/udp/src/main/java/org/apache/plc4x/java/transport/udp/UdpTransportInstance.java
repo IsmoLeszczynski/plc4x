@@ -35,6 +35,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -61,6 +62,9 @@ public class UdpTransportInstance implements AsyncTransportInstance<UdpTransport
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
     private volatile boolean open = true;
+    // Once-only guard for close(). Not `open`: the selector loop clears that when it fails, which
+    // made close() return early and leak the socket and selector.
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     // Async support
     private final Selector selector;
@@ -285,7 +289,7 @@ public class UdpTransportInstance implements AsyncTransportInstance<UdpTransport
 
     @Override
     public void close() throws TransportException {
-        if (!open) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
 
@@ -295,28 +299,26 @@ public class UdpTransportInstance implements AsyncTransportInstance<UdpTransport
             try {
                 open = false;
 
-                // Wake up selector
-                selector.wakeup();
+                // The selector is this instance's own in both modes; only the channel may be shared.
+                // Leaving it open in shared mode leaked a selector per instance.
+                selector.close();
 
                 if (sharedSocket != null) {
                     // Release shared socket (may not close if other instances use it)
                     sharedUdpSocketManager.releaseSocket(sharedSocket);
                     LOGGER.debug("Released shared UDP socket");
                 } else {
-                    // Close channel and selector
                     channel.close();
-                    selector.close();
-
-                    // Wait for selector thread to finish
-                    if (selectorThread != null) {
-                        try {
-                            selectorThread.join(1000);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-
                     LOGGER.debug("Closed dedicated UDP socket");
+                }
+
+                // Wait for the selector thread to finish, unless close() runs on it
+                if (selectorThread != null && Thread.currentThread() != selectorThread) {
+                    try {
+                        selectorThread.join(1000);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
 
             } catch (IOException e) {
@@ -327,6 +329,11 @@ public class UdpTransportInstance implements AsyncTransportInstance<UdpTransport
         } finally {
             writeLock.unlock();
         }
+    }
+
+    /** Test hook. */
+    boolean isSelectorOpen() {
+        return selector.isOpen();
     }
 
     /**
