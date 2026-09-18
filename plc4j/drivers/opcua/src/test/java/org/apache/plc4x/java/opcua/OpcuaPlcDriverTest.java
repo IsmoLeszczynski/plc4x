@@ -228,6 +228,7 @@ public class OpcuaPlcDriverTest {
     private final String discoveryCorruptedParamWrongName = "diskovery=false";
 
     private String tcpConnectionAddress;
+    private String untrustedTcpConnectionAddress;
     private List<String> connectionStringValidSet;
 
     final List<String> discoveryParamValidSet = List.of(discoveryValidParamTrue, discoveryValidParamFalse);
@@ -235,7 +236,23 @@ public class OpcuaPlcDriverTest {
 
     @BeforeEach
     public void startUp() throws Exception {
-        tcpConnectionAddress = String.format(opcPattern + miloLocalAddress, milo.getHost(), milo.getMappedPort(12686)) + "?endpoint-port=12686";
+        // The test server is a container with a self-signed certificate and no anchor we could
+        // trust, so these connections say so. The driver's default policy signs and encrypts, and
+        // that needs the server's certificate to be trusted one way or another.
+        // The driver's default policy signs and encrypts, which needs both a client key pair to
+        // sign with and a way to trust the server's certificate. The test server is a container
+        // with a self-signed certificate, hence pinning it rather than a trust store.
+        //
+        // Kept separate from the address itself, because a test that asserts what happens without
+        // a trust anchor has to be able to leave the anchor out.
+        untrustedTcpConnectionAddress =
+            String.format(opcPattern + miloLocalAddress, milo.getHost(), milo.getMappedPort(12686))
+                + "?endpoint-port=12686"
+                + "&tls.keystore=" + CLIENT_KEY_STORE.getAbsoluteFile().toString().replace("\\", "/")
+                + "&tls.keystore-password=changeit"
+                + "&tls.keystore-type=pkcs12";
+        tcpConnectionAddress = untrustedTcpConnectionAddress
+            + "&server-certificate-file=" + SERVER_CERTIFICATE.toString().replace("\\", "/");
         connectionStringValidSet = List.of(tcpConnectionAddress);
     }
 
@@ -325,6 +342,29 @@ public class OpcuaPlcDriverTest {
             // variables carry a resolved data type, and array variables expose their dimensions.
             assertThat(all).anyMatch(i -> i.getOptions().containsKey("data-type"));
             assertThat(all).anyMatch(i -> !i.getArrayInformation().isEmpty());
+        }
+    }
+
+    /**
+     * A browse walks whatever tree the server describes, and the driver cannot know how large that
+     * is before walking it. With the depth held at one level, the folder is still discovered but
+     * nothing below it is expanded - the same folder that carries children when the depth is left
+     * at its default.
+     */
+    @Test
+    void browseDepthLimitStopsTheRecursion() throws Exception {
+        try (PlcConnection connection = new DefaultPlcDriverManager()
+            .getConnection(tcpConnectionAddress + "&browse-max-depth=1")) {
+            org.apache.plc4x.java.api.messages.PlcBrowseResponse response = connection.browseRequestBuilder()
+                .addQuery("hw", "ns=2;s=HelloWorld")
+                .build().execute().get(30, TimeUnit.SECONDS);
+            assertThat(response.getResponseCode("hw")).isEqualTo(PlcResponseCode.OK);
+
+            org.apache.plc4x.java.api.messages.PlcBrowseItem scalarTypes = response.getValues("hw").stream()
+                .filter(i -> "ScalarTypes".equals(i.getName())).findFirst().orElse(null);
+            assertThat(scalarTypes).as("ScalarTypes folder").isNotNull();
+            assertThat(scalarTypes.getChildren())
+                .as("nothing below the first level is expanded").isEmpty();
         }
     }
 
@@ -907,9 +947,9 @@ public class OpcuaPlcDriverTest {
             String options = params(
                 entry("discovery", "false"),
                 entry("server-certificate-file", SERVER_CERTIFICATE.toString().replace("\\", "/")),
-                entry("key-store-file", CLIENT_KEY_STORE.toString().replace("\\", "/")), // handle windows paths
-                entry("key-store-password", "changeit"),
-                entry("key-store-type", "pkcs12"),
+                entry("tls.keystore", CLIENT_KEY_STORE.toString().replace("\\", "/")), // handle windows paths
+                entry("tls.keystore-password", "changeit"),
+                entry("tls.keystore-type", "pkcs12"),
                 entry("security-policy", SecurityPolicy.Basic256Sha256.name()),
                 entry("message-security", MessageSecurity.SIGN.name())
             );
@@ -928,36 +968,62 @@ public class OpcuaPlcDriverTest {
             }
         }
 
+        /**
+         * Discovery runs unprotected, because the certificate a protected channel needs is what
+         * discovery fetches. Carrying on from there gives a session with neither signing nor
+         * encryption while the configuration asked for both - so it has to stop, and say how to
+         * proceed. A certificate learned from the peer it authenticates cannot establish trust in
+         * that peer, so discovery cannot be the answer either.
+         */
+        @Test
+        void securedConnectionRelyingOnDiscoveryIsRejected() {
+            String options = params(
+                entry("discovery", "true"),
+                entry("tls.keystore", CLIENT_KEY_STORE.toString().replace("\\", "/")),
+                entry("tls.keystore-password", "changeit"),
+                entry("tls.keystore-type", "pkcs12"),
+                entry("security-policy", SecurityPolicy.Basic256Sha256.name()),
+                entry("message-security", MessageSecurity.SIGN_ENCRYPT.name())
+            );
+            assertThatThrownBy(() ->
+                new DefaultPlcDriverManager().getConnection(
+                    untrustedTcpConnectionAddress + PARAM_DIVIDER + options))
+                // Distinctive to the refusal itself: rejecting the discovered certificate for want
+                // of an anchor names 'server-certificate-file' too, so that would prove nothing.
+                .hasStackTraceContaining("would fall back to an unprotected channel");
+        }
+
         @Test
         void securedConnectionWithoutTrustAnchorIsRejected() {
-            // No trust-store-file and no server-certificate-file: the driver must fail
+            // No tls.trust-store and no server-certificate-file: the driver must fail
             // closed rather than blindly trusting whatever certificate the server presents.
             String options = params(
                 entry("discovery", "false"),
-                entry("key-store-file", CLIENT_KEY_STORE.toString().replace("\\", "/")),
-                entry("key-store-password", "changeit"),
-                entry("key-store-type", "pkcs12"),
+                entry("tls.keystore", CLIENT_KEY_STORE.toString().replace("\\", "/")),
+                entry("tls.keystore-password", "changeit"),
+                entry("tls.keystore-type", "pkcs12"),
                 entry("security-policy", SecurityPolicy.Basic256Sha256.name()),
                 entry("message-security", MessageSecurity.SIGN.name())
             );
             assertThatThrownBy(() ->
-                new DefaultPlcDriverManager().getConnection(tcpConnectionAddress + PARAM_DIVIDER + options))
+                new DefaultPlcDriverManager().getConnection(
+                    untrustedTcpConnectionAddress + PARAM_DIVIDER + options))
                 .isInstanceOf(Exception.class);
         }
 
         @Test
         void securedConnectionWithInsecureVerificationConnects() throws Exception {
-            // With insecure-certificate-verification the driver must use the permissive verifier
+            // With verification turned off the driver must use the permissive verifier
             // (it wins over pinning), so trust is not checked. The server certificate is still
             // supplied because an encrypted policy needs the server's public key to encrypt the
             // OpenSecureChannel; only its trust verification is bypassed here.
             String options = params(
                 entry("discovery", "false"),
-                entry("key-store-file", CLIENT_KEY_STORE.toString().replace("\\", "/")),
-                entry("key-store-password", "changeit"),
-                entry("key-store-type", "pkcs12"),
+                entry("tls.keystore", CLIENT_KEY_STORE.toString().replace("\\", "/")),
+                entry("tls.keystore-password", "changeit"),
+                entry("tls.keystore-type", "pkcs12"),
                 entry("server-certificate-file", SERVER_CERTIFICATE.toString().replace("\\", "/")),
-                entry("insecure-certificate-verification", "true"),
+                entry("tls.verify", "false"),
                 entry("security-policy", SecurityPolicy.Basic256Sha256.name()),
                 entry("message-security", MessageSecurity.SIGN.name())
             );
@@ -986,9 +1052,9 @@ public class OpcuaPlcDriverTest {
         @MethodSource("org.apache.plc4x.java.opcua.OpcuaPlcDriverTest#getSecuredConnectionSecurityPolicies")
         public void connectsWith4096BitClientCertificate(SecurityPolicy policy, MessageSecurity messageSecurity) throws Exception {
             String connectionString = tcpConnectionAddress + PARAM_DIVIDER + params(
-                entry("key-store-file", CLIENT_KEY_STORE_4096.getAbsoluteFile().toString().replace("\\", "/")),
-                entry("key-store-password", "changeit"),
-                entry("key-store-type", "pkcs12"),
+                entry("tls.keystore", CLIENT_KEY_STORE_4096.getAbsoluteFile().toString().replace("\\", "/")),
+                entry("tls.keystore-password", "changeit"),
+                entry("tls.keystore-type", "pkcs12"),
                 entry("server-certificate-file", SERVER_CERTIFICATE.toString().replace("\\", "/")),
                 entry("security-policy", policy.name()),
                 entry("message-security", messageSecurity.name()));
@@ -1354,9 +1420,9 @@ public class OpcuaPlcDriverTest {
             case Aes128_Sha256_RsaOaep:
             case Aes256_Sha256_RsaPss:
                 String connectionParams = params(
-                    entry("key-store-file", CLIENT_KEY_STORE.getAbsoluteFile().toString().replace("\\", "/")), // handle windows paths
-                    entry("key-store-password", "changeit"),
-                    entry("key-store-type", "pkcs12"),
+                    entry("tls.keystore", CLIENT_KEY_STORE.getAbsoluteFile().toString().replace("\\", "/")), // handle windows paths
+                    entry("tls.keystore-password", "changeit"),
+                    entry("tls.keystore-type", "pkcs12"),
                     // Pin trust to the server certificate; the driver rejects unknown certs by default.
                     entry("server-certificate-file", SERVER_CERTIFICATE.toString().replace("\\", "/")),
                     entry("security-policy", policy.name()),

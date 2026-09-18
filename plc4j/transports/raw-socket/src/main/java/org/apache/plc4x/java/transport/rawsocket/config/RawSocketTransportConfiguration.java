@@ -30,9 +30,12 @@ public class RawSocketTransportConfiguration implements TransportConfiguration {
     /**
      * Network interface name to use (e.g., "eth0", "en0", "\\Device\\NPF_{GUID}" on Windows)
      * If not specified, will use the first available interface.
+     * <p>
+     * The interface is normally named by the address segment of the connection string
+     * ({@code raw-socket://en0}), which takes precedence over this parameter.
      */
     @ConfigurationParameter( "interface-name")
-    @Description("Network interface name to use (e.g., \"eth0\", \"en0\", \"\\\\Device\\\\NPF_{GUID}\" on Windows). If not specified, will use the first available interface.")
+    @Description("Network interface name to use (e.g., \"eth0\", \"en0\", \"\\\\Device\\\\NPF_{GUID}\" on Windows). Alternative to naming the interface in the address segment of the connection string, which takes precedence. If neither names one, the first available interface is used.")
     public String interfaceName;
 
     /**
@@ -91,6 +94,19 @@ public class RawSocketTransportConfiguration implements TransportConfiguration {
     public int bufferSize;
 
     /**
+     * How many bytes of captured frames may wait for a consumer.
+     *
+     * <p>A raw socket accepts whatever matches its filter, and nothing obliges anything to drain
+     * what it captures. Counted in bytes rather than frames because frames are not one size and
+     * memory is what runs out. Frames arriving past this are dropped whole, and the count of what
+     * was dropped is logged.</p>
+     */
+    @ConfigurationParameter("receive-queue-size")
+    @Description("Bytes of captured frames that may wait for a consumer before frames are dropped.")
+    @IntDefaultValue(1048576)
+    public int receiveQueueSize;
+
+    /**
      * VLAN ID (0 means no VLAN tag). Range: 0-4095
      */
     @ConfigurationParameter( "vlan-id")
@@ -135,7 +151,7 @@ public class RawSocketTransportConfiguration implements TransportConfiguration {
     /**
      * Read timeout for blocking reads in milliseconds. 0 means no timeout.
      */
-    @ConfigurationParameter( "read-timeout")
+    @ConfigurationParameter( "read-timeout-ms")
     @Description( "Read timeout for blocking reads in milliseconds.")
     @IntDefaultValue(0)
     public int readTimeout;

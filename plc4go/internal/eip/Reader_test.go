@@ -31,10 +31,10 @@ import (
 // TestSliceServiceHappyPath exercises a valid 2-entry MultipleServiceResponse
 // offset table, so the reversed-table test below isn't the only case covered.
 func TestSliceServiceHappyPath(t *testing.T) {
-	service1, err := readWriteModel.NewCipReadResponse(0, 0,
+	service1, err := readWriteModel.NewCipReadResponse(0, nil,
 		readWriteModel.NewCIPData(readWriteModel.CIPDataTypeCode_DINT, []byte{0x01, 0x00, 0x00, 0x00})).Serialize()
 	require.NoError(t, err)
-	service2, err := readWriteModel.NewCipReadResponse(0, 0,
+	service2, err := readWriteModel.NewCipReadResponse(0, nil,
 		readWriteModel.NewCIPData(readWriteModel.CIPDataTypeCode_DINT, []byte{0x02, 0x00, 0x00, 0x00})).Serialize()
 	require.NoError(t, err)
 
@@ -150,4 +150,53 @@ func TestToAnsi(t *testing.T) {
 			assert.Equal(t, tt.expected, actual)
 		})
 	}
+}
+
+// An array index rides in a MemberID, whose instance field the mspec declares as uint 8, so it
+// holds 0 to 255. A larger index used to be converted with uint8(...), which wraps silently -
+// a[300] addressed element 44 and produced a request that looked entirely valid. The Java
+// driver rejects the same address when it serializes ("Value 300 is out of range for 8 bits"),
+// so this reports it too rather than reading the wrong element.
+func TestToAnsiRejectsOutOfRangeIndex(t *testing.T) {
+	for _, tag := range []string{"a[256]", "a[300]", "myArray[1000]"} {
+		t.Run(tag, func(t *testing.T) {
+			_, err := toAnsi(tag)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "255")
+		})
+	}
+}
+
+func TestToAnsiAcceptsTheLargestIndex(t *testing.T) {
+	actual, err := toAnsi("a[255]")
+	require.NoError(t, err)
+	assert.Equal(t, []byte{0x91, 0x01, 0x61, 0x00, 0x28, 0xFF}, actual)
+}
+
+// The CIP path carries a member segment only when the selection starts past the first element.
+// A selection starting at 0 is what a request without a member segment already means, so
+// emitting MemberID(0) would add two bytes that say nothing - and every address that used to be
+// written "%rate:DINT:4" was sent without one. Feature 002 found this the hard way: the extra
+// segment broke a recorded exchange that no unit test covered.
+func TestCipPathOmitsAZeroMemberSegment(t *testing.T) {
+	handler := NewTagHandler()
+
+	countFromTheStart, err := handler.ParseTag("%rate[0..3]:DINT")
+	require.NoError(t, err)
+	fromStart, err := cipPathOf(countFromTheStart.(PlcTag))
+	require.NoError(t, err)
+
+	scalar, err := handler.ParseTag("%rate:DINT")
+	require.NoError(t, err)
+	bare, err := cipPathOf(scalar.(PlcTag))
+	require.NoError(t, err)
+
+	assert.Equal(t, bare, fromStart, "a selection starting at 0 encodes the same path as none")
+
+	offset, err := handler.ParseTag("%rate[2..3]:DINT")
+	require.NoError(t, err)
+	withOffset, err := cipPathOf(offset.(PlcTag))
+	require.NoError(t, err)
+	assert.Equal(t, append(append([]byte{}, bare...), 0x28, 0x02), withOffset,
+		"a selection starting at 2 adds MemberID(2)")
 }
