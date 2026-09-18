@@ -58,7 +58,7 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
 
     private final SocketChannel socketChannel;
     private final RingBuffer ringBuffer;
-    private final ByteBuffer readBuffer;  // Reused per-connection direct buffer for channel reads (confined to the read thread)
+    private final ByteBuffer readBuffer;  // Reused per-connection buffer for channel reads (confined to the read thread)
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
     private final AtomicBoolean open = new AtomicBoolean(true);
@@ -75,7 +75,9 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
         super(configuration, auditLog);
         LOGGER.debug("TcpTransportInstance");
         this.ringBuffer = new RingBuffer(configuration.receiveBufferSize);
-        this.readBuffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE);  // Reused direct buffer for channel reads
+        // Heap, not direct: the JDK reads via a per-carrier-thread direct buffer, so native memory is
+        // bounded by carrier count rather than one slab per connection freed only by GC.
+        this.readBuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
         // Opened into a local first, only promoted to the final `socketChannel` field once every
         // setup step (bind, socket options, connect) has succeeded.
