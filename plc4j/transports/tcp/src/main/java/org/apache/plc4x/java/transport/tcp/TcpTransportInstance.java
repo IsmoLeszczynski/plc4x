@@ -62,6 +62,9 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
     private final AtomicBoolean open = new AtomicBoolean(true);
+    // Once-only guard for close(). Not `open`: the read loop clears that on a remote disconnect,
+    // which made close() return early and leak the channel.
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     // Async support
     private volatile Runnable dataListener;
@@ -265,7 +268,8 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
             }
         } catch (AsynchronousCloseException e) {
             // A concurrent close() closed the channel while we were parked in write(): normal shutdown.
-            if (!open.get()) {
+            // A channel closed by the read loop on a remote disconnect is a failure and still throws.
+            if (closed.get()) {
                 return;
             }
             getAuditLog().write(AuditLogEventType.ERROR, "Error in write: " + e.getMessage());
@@ -281,13 +285,15 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
     @Override
     public void close() throws TransportException {
         // CAS so concurrent/repeated close() calls run the shutdown exactly once.
-        if (!open.compareAndSet(true, false)) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
+        open.set(false);
 
         // Intentionally takes NO locks: closing the channel is what unblocks a parked read()/write().
         // Acquiring writeLock first would deadlock against a writer parked in a blocking write().
         try {
+            // No-op if the read loop already closed it on a remote disconnect.
             socketChannel.close();
             // Only log/audit a successful close here; on failure the catch reports ERROR
             // and rethrows, so emitting CLOSE in finally would falsely signal a clean close.
@@ -378,6 +384,23 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
     }
 
     /**
+     * Releases the socket once the read loop has seen the remote end go away. A peer's FIN/RST does
+     * not close the local socket; left to close(), it sits in CLOSE_WAIT holding its fd.
+     */
+    private void closeChannelQuietly() {
+        try {
+            socketChannel.close();
+        } catch (IOException e) {
+            LOGGER.debug("Closing the channel after a remote disconnect failed: {}", e.getMessage());
+        }
+    }
+
+    /** Test hook. */
+    boolean isChannelOpen() {
+        return socketChannel.isOpen();
+    }
+
+    /**
      * Per-connection read loop on a virtual thread: blocking read into the ring buffer, then
      * notify the data listener. No selector, no polling.
      */
@@ -403,6 +426,7 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
                     // Connection closed gracefully by remote
                     LOGGER.info("Connection closed by remote");
                     open.set(false);
+                    closeChannelQuietly();
                     notifyDisconnect(null);
                     break;
                 }
@@ -429,6 +453,7 @@ public class TcpTransportInstance extends BaseTransportInstance<TcpTransportConf
                 getAuditLog().write(AuditLogEventType.ERROR, "Error in runReadLoop: " + e.getMessage());
                 LOGGER.error("Error in read loop", e);
                 open.set(false);
+                closeChannelQuietly();
                 notifyDisconnect(e);
             }
         }
