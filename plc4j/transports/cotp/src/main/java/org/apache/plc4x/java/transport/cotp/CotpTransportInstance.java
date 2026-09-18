@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
@@ -71,7 +72,11 @@ public class CotpTransportInstance extends BaseTransportInstance<CotpTransportCo
 
     private final TcpTransportInstance tcpTransport;
     private final RingBuffer payloadBuffer;
-    private boolean connected = false;
+    // Cleared by the TCP read thread on a disconnect.
+    private volatile boolean connected = false;
+    // Once-only guard for close(). Not `connected`: a TCP disconnect clears that, which made
+    // close() return early and leave the TCP transport open.
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     // Async support - propagate events from the TCP layer
     private volatile Runnable dataListener;
@@ -79,15 +84,17 @@ public class CotpTransportInstance extends BaseTransportInstance<CotpTransportCo
 
     public CotpTransportInstance(String host, int port, CotpTransportConfiguration configuration, AuditLog auditLog)
             throws TransportException {
+        this(openTcpTransport(host, port, configuration, auditLog), configuration, auditLog);
+    }
+
+    /** Package-private so tests can supply the TCP transport. */
+    CotpTransportInstance(TcpTransportInstance tcpTransport, CotpTransportConfiguration configuration, AuditLog auditLog)
+            throws TransportException {
         super(configuration, auditLog);
         this.payloadBuffer = new RingBuffer(DEFAULT_BUFFER_SIZE);
+        this.tcpTransport = tcpTransport;
 
         try {
-            // Create underlying TCP transport
-            TcpTransport tcpTransportFactory = new TcpTransport();
-            this.tcpTransport = (TcpTransportInstance) tcpTransportFactory.createTransportInstance(
-                host + ":" + port, configuration, auditLog);
-
             // Set up async event propagation from the TCP layer
             setupAsyncEventPropagation();
 
@@ -95,9 +102,28 @@ public class CotpTransportInstance extends BaseTransportInstance<CotpTransportCo
             performCotpConnection();
 
         } catch (Exception e) {
+            String errorMsg = String.format("Failed to establish COTP connection to %s - %s",
+                tcpTransport.getRemoteAddress(), e.getMessage());
+            // A failed handshake used to leave the TCP socket and its read thread behind.
+            try {
+                tcpTransport.close();
+            } catch (TransportException closeException) {
+                e.addSuppressed(closeException);
+            }
+            getAuditLog().write(AuditLogEventType.ERROR, "Error in constructor: " + errorMsg);
+            throw new TransportException("Failed to establish COTP connection", e);
+        }
+    }
+
+    private static TcpTransportInstance openTcpTransport(String host, int port,
+            CotpTransportConfiguration configuration, AuditLog auditLog) throws TransportException {
+        try {
+            return (TcpTransportInstance) new TcpTransport().createTransportInstance(
+                host + ":" + port, configuration, auditLog);
+        } catch (TransportException e) {
             String errorMsg = String.format("Failed to establish COTP connection to %s:%d - %s",
                 host, port, e.getMessage());
-            getAuditLog().write(AuditLogEventType.ERROR, "Error in constructor: " + errorMsg);
+            auditLog.write(AuditLogEventType.ERROR, "Error in constructor: " + errorMsg);
             throw new TransportException("Failed to establish COTP connection", e);
         }
     }
@@ -490,33 +516,34 @@ public class CotpTransportInstance extends BaseTransportInstance<CotpTransportCo
 
     @Override
     public void close() throws TransportException {
-        if (!connected) {
+        if (!closed.compareAndSet(false, true)) {
             return;
         }
 
         try {
-            // Send Disconnect Request using generated classes
-            LOGGER.debug("Sending COTP Disconnect Request");
+            // Only the Disconnect Request needs a live connection; the TCP close below does not.
+            if (connected) {
+                // Send Disconnect Request using generated classes
+                LOGGER.debug("Sending COTP Disconnect Request");
 
-            COTPPacketDisconnectRequest disconnectRequest = new COTPPacketDisconnectRequest(
-                new ArrayList<>(),
-                new byte[0],
-                0x0000,  // Destination reference
-                0x0001,  // Source reference
-                COTPProtocolClass.CLASS_0
-            );
+                COTPPacketDisconnectRequest disconnectRequest = new COTPPacketDisconnectRequest(
+                    new ArrayList<>(),
+                    new byte[0],
+                    0x0000,  // Destination reference
+                    0x0001,  // Source reference
+                    COTPProtocolClass.CLASS_0
+                );
 
-            TPKTPacket tpktPacket = new TPKTPacket(disconnectRequest);
-            WriteBuffer writeBuffer = new WriteBufferByteBased(new byte[32]);
-            tpktPacket.serialize(writeBuffer);
+                TPKTPacket tpktPacket = new TPKTPacket(disconnectRequest);
+                WriteBuffer writeBuffer = new WriteBufferByteBased(new byte[32]);
+                tpktPacket.serialize(writeBuffer);
 
-            tcpTransport.write(writeBuffer.getBytes());
-
-            connected = false;
-
+                tcpTransport.write(writeBuffer.getBytes());
+            }
         } catch (Exception e) {
             LOGGER.warn("Error sending disconnect request", e);
         } finally {
+            connected = false;
             tcpTransport.close();
             LOGGER.debug("COTP transport closed");
             getAuditLog().write(AuditLogEventType.CLOSE, "COTP transport closed");
