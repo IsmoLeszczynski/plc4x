@@ -85,12 +85,14 @@ lot easier, as you do not need to specify the Datatype for reading.
 {tagname}:{DataType}
 {tagname}[{selection}]
 {tagname}[{selection}]:{DataType}
+{tagname}[{index}].{member}
+{tagname}[{index}].{member}[{selection}]:{DataType}
 ----
 
 [cols="2" ,options="header"]
 |===
 |Name |Description
-|Tagname |symbolic name of the data. May optionally be prefixed with `%`.
+|Tagname |symbolic name of the data. May optionally be prefixed with `%`. Members of a structured tag are separated by dots, and any member may carry a single index, e.g. `My.Tags[1].Value`.
 |Selection (optional)|which elements of an array to read - a single index or an inclusive range. It follows the tag name, before the data type. See xref:array-notation.adoc[Addressing arrays].
 |DataType (optional)|the data type of the value. Defaults to `DINT` when omitted, so for anything that is not a 32-bit integer it should be given explicitly - also when reading.
 |===
@@ -151,4 +153,6 @@ driver; reading such a tag results in a response code of `INTERNAL_ERROR` rather
 |`myArray[3]:DINT` |element 3 of `myArray`
 |`myArray[0..3]:DINT` |elements 0 to 3 of `myArray`, returned as a list
 |`%myTag:REAL` |a single element of `myTag`, decoded as `REAL` - the `%` prefix is optional
+|`My.Tags[1].Value:REAL` |the `Value` member of element 1 of the array `My.Tags`, decoded as `REAL`
+|`My.Tags[1].Value[0..3]:REAL` |elements 0 to 3 of that `Value` member, returned as a list
 |===

@@ -41,8 +41,13 @@ import java.util.regex.Pattern;
 
 public class EipTag implements PlcTag, Serializable {
 
+    private static final String IDENTIFIER = "[a-zA-Z_0-9]+";
+    /** A member on the way to the addressed one, e.g. {@code Tags[1].}; a bare index only, never a range. */
+    private static final String INNER_MEMBER = IDENTIFIER + "(?:\\[[0-9]+])?\\.";
+
+    /** {@code path[selection][:type]}, where any member of the path may be indexed. */
     private static final Pattern ADDRESS_PATTERN = Pattern.compile(
-        "^(?<tag>[%a-zA-Z_.0-9]+)"
+        "^(?<tag>%?(?:" + INNER_MEMBER + ")*" + IDENTIFIER + ")"
             + ArrayNotationParser.ARRAY_GROUP
             + "(?::(?<dataType>[A-Z]+))?$");
 
@@ -77,6 +82,9 @@ public class EipTag implements PlcTag, Serializable {
 
     /** A CIP request carries its element count in 16 bits. */
     private static final long MAX_ELEMENTS = 65535L;
+
+    /** A MemberID carries its instance in 8 bits. */
+    private static final int MAX_MEMBER_INDEX = 255;
 
     private final String tag;
     private final CIPDataTypeCode type;
@@ -170,7 +178,7 @@ public class EipTag implements PlcTag, Serializable {
             if ("[".equals(matcher.group(1))) {
                 // An index written inside the path rather than as a trailing selection, as in
                 // "a[2].b". It addresses one element, so it is a member segment like any other.
-                elements.add(new MemberElement(Short.parseShort(matcher.group(2))));
+                elements.add(new MemberElement(memberIndex(tag, matcher.group(2))));
             } else {
                 elements.add(new SymbolElement(matcher.group(2)));
             }
@@ -187,6 +195,15 @@ public class EipTag implements PlcTag, Serializable {
             }
         }
         return Collections.unmodifiableList(elements);
+    }
+
+    /** An index inside the path bypasses {@link #CONSTRAINTS}, so its limit is checked here. */
+    private static short memberIndex(String tag, String index) {
+        if (index.length() > 3 || Integer.parseInt(index) > MAX_MEMBER_INDEX) {
+            throw new PlcInvalidTagException("Tag '" + tag + "' indexes a member at " + index
+                + ", past the " + MAX_MEMBER_INDEX + " a CIP MemberID can address.");
+        }
+        return Short.parseShort(index);
     }
 
     @Override

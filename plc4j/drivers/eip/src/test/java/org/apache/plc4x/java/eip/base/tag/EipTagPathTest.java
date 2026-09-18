@@ -83,16 +83,31 @@ class EipTagPathTest {
 
     /**
      * The decomposition keeps the members in the order they were written, including an index
-     * that is not the last element. The address pattern only accepts a trailing index, so
-     * of() never produces this - but a tag built directly still describes a valid CIP path.
+     * that is not the last element. of() and the constructor describe the same path.
      */
     @Test
     void indexBeforeAFurtherMemberKeepsItsPosition() {
-        assertNull(EipTag.of("a[2].b:DINT"), "precondition: the address pattern rejects this form");
+        List<PathElement> expected =
+            List.of(new SymbolElement("a"), new MemberElement((short) 2), new SymbolElement("b"));
 
+        assertEquals(expected, path("a[2].b:DINT"));
+        assertEquals(expected, new EipTag("a[2].b", CIPDataTypeCode.DINT).getPathElements());
+    }
+
+    @Test
+    void innerIndexAndTrailingSelectionCombine() {
         assertEquals(
-            List.of(new SymbolElement("a"), new MemberElement((short) 2), new SymbolElement("b")),
-            new EipTag("a[2].b", CIPDataTypeCode.DINT).getPathElements());
+            List.of(new SymbolElement("My"), new SymbolElement("Tags"), new MemberElement((short) 1),
+                new SymbolElement("Value"), new MemberElement((short) 4)),
+            path("My.Tags[1].Value[4..7]:REAL"));
+        assertEquals(4, EipTag.of("My.Tags[1].Value[4..7]:REAL").getElementNb());
+    }
+
+    /** Only the addressed member may select a range. */
+    @Test
+    void rangeInsideThePathIsRejected() {
+        assertNull(EipTag.of("a[0..3].b:DINT"));
+        assertFalse(EipTag.matches("a[0..3].b:DINT"));
     }
 
     /** Empty brackets name no element and are rejected rather than quietly ignored. */
@@ -154,6 +169,16 @@ class EipTagPathTest {
         assertEquals(
             List.of(new SymbolElement("a"), new MemberElement((short) 255)),
             path("a[255]:DINT"));
+    }
+
+    @Test
+    void innerIndexBeyondAMemberIdIsRejected() {
+        assertThrows(PlcInvalidTagException.class, () -> EipTag.of("a[256].b:DINT"));
+        assertThrows(PlcInvalidTagException.class, () -> EipTag.of("a[99999].b:DINT"));
+
+        assertEquals(
+            List.of(new SymbolElement("a"), new MemberElement((short) 255), new SymbolElement("b")),
+            path("a[255].b:DINT"));
     }
 
     // --- what a consumer sees ---
