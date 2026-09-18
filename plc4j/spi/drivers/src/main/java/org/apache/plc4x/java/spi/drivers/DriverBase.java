@@ -224,6 +224,7 @@ public abstract class DriverBase implements PlcDriver {
         try {
             transportInstance = transport.createTransportInstance(transportConfig, transportConfiguration, auditLog);
         } catch (TransportException e) {
+            auditLog.close();
             throw new PlcConnectionException("Unable to create transport instance", e);
         }
 
@@ -247,12 +248,13 @@ public abstract class DriverBase implements PlcDriver {
             connection.setAuthentication(plcAuthentication);
             return connection;
         } catch (PlcConnectionException | RuntimeException e) {
-            // Until a connection owns it, the open transport leaves with the exception.
+            // Until a connection owns them, the open transport and the audit log leave with the exception.
             try {
                 transportInstance.close();
             } catch (TransportException closeException) {
                 e.addSuppressed(closeException);
             }
+            auditLog.close();
             throw e;
         }
     }
