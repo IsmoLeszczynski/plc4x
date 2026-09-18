@@ -351,6 +351,100 @@ class TcpTransportInstanceTest {
         assertFalse(transportInstance.isOpen());
     }
 
+    // ========== Remote disconnect / fd release ==========
+
+    @Test
+    void testRemoteClose_releasesChannelWithoutClose() throws Exception {
+        CountDownLatch disconnected = new CountDownLatch(1);
+        transportInstance.registerDisconnectListener(cause -> disconnected.countDown());
+
+        serverSideChannel.close();
+
+        assertTrue(disconnected.await(5, TimeUnit.SECONDS),
+            "Disconnect listener should fire when the remote end closes");
+        assertFalse(transportInstance.isOpen());
+        // The read loop closes the channel itself; it used to only clear `open`.
+        assertFalse(transportInstance.isChannelOpen(),
+            "SocketChannel should be closed once the remote end has gone away");
+    }
+
+    @Test
+    void testClose_afterRemoteClose_stillClosesChannel() throws Exception {
+        CountDownLatch disconnected = new CountDownLatch(1);
+        transportInstance.registerDisconnectListener(cause -> disconnected.countDown());
+        serverSideChannel.close();
+        assertTrue(disconnected.await(5, TimeUnit.SECONDS));
+
+        // close() used to return early here because the read loop had already cleared `open`.
+        assertDoesNotThrow(() -> transportInstance.close());
+        assertFalse(transportInstance.isOpen());
+        assertFalse(transportInstance.isChannelOpen());
+    }
+
+    @Test
+    void testClose_fromDisconnectListener_returnsPromptly() throws Exception {
+        CountDownLatch closedFromListener = new CountDownLatch(1);
+        transportInstance.registerDisconnectListener(cause -> {
+            try {
+                transportInstance.close();
+                closedFromListener.countDown();
+            } catch (TransportException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        serverSideChannel.close();
+
+        // Runs on the read thread: close() must skip the self-join.
+        assertTrue(closedFromListener.await(2, TimeUnit.SECONDS),
+            "close() called from the disconnect listener should return without stalling");
+        assertFalse(transportInstance.isChannelOpen());
+    }
+
+    @Test
+    void testRemoteClose_repeatedCycles_doNotLeakFileDescriptors() throws Exception {
+        java.lang.management.OperatingSystemMXBean rawOsBean =
+            java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            rawOsBean instanceof com.sun.management.UnixOperatingSystemMXBean,
+            "Open file descriptor count not available on this platform");
+        com.sun.management.UnixOperatingSystemMXBean osBean =
+            (com.sun.management.UnixOperatingSystemMXBean) rawOsBean;
+
+        int serverPort = ((InetSocketAddress) serverChannel.getLocalAddress()).getPort();
+        InetSocketAddress remoteAddress = new InetSocketAddress("localhost", serverPort);
+        TcpTransportConfiguration config = new TcpTransportConfiguration();
+        config.receiveBufferSize = 81920;
+
+        // Warm-up so lazily created JVM resources don't count as growth.
+        remoteCloseCycle(remoteAddress, config);
+
+        int cycles = 30;
+        long before = osBean.getOpenFileDescriptorCount();
+        for (int i = 0; i < cycles; i++) {
+            remoteCloseCycle(remoteAddress, config);
+        }
+        long after = osBean.getOpenFileDescriptorCount();
+
+        // Used to grow by one CLOSE_WAIT socket per cycle; slack for whatever else the JVM opens.
+        assertTrue(after - before < cycles / 2,
+            "Open file descriptor count grew from " + before + " to " + after + " over " + cycles
+                + " remote-close cycles (SocketChannel leaked on remote disconnect)");
+    }
+
+    /** Connect, remote close, await disconnect, close(). */
+    private void remoteCloseCycle(InetSocketAddress remoteAddress, TcpTransportConfiguration config)
+            throws Exception {
+        TcpTransportInstance instance = new TcpTransportInstance(remoteAddress, config, AuditLog.builder().build());
+        SocketChannel accepted = serverChannel.accept();  // connect already completed via the backlog
+        CountDownLatch disconnected = new CountDownLatch(1);
+        instance.registerDisconnectListener(cause -> disconnected.countDown());
+        accepted.close();
+        assertTrue(disconnected.await(5, TimeUnit.SECONDS),
+            "Disconnect listener should fire when the remote end closes");
+        instance.close();
+    }
+
     // ========== Async Transport Tests ==========
 
     @Test
