@@ -58,6 +58,8 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
     private static final int DEFAULT_BUFFER_SIZE = 8192;
     /** Minimum capture timeout to ensure the capture thread can check the open flag regularly */
     private static final int MIN_CAPTURE_TIMEOUT_MS = 100;
+    /** How long to wait for a pcap handle to actually close before giving up on it */
+    private static final int CLOSE_TIMEOUT_MS = 500;
 
     private final SharedRawSocketManager sharedRawSocketManager;
     private final PcapHandle handle;
@@ -66,6 +68,28 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
     private final MacAddress remoteMac;
     private final SharedRawSocketManager.SharedHandle sharedHandle; // null if not shared
     private final BlockingQueue<byte[]> receiveQueue;
+
+    /**
+     * How many bytes may sit in the receive queue waiting for a consumer.
+     *
+     * <p>Counted in bytes rather than frames because frames are not one size, and the thing that
+     * runs out is memory. The queue was unbounded: a capture that keeps matching the filter while
+     * nothing drains it grows until the heap does, and the frames doing it need only match a filter
+     * - they are not addressed to us and nobody has to accept them.</p>
+     */
+    private final int receiveQueueByteBudget;
+
+    /** Bytes currently queued, so the budget can be applied without walking the queue. */
+    private final java.util.concurrent.atomic.AtomicInteger receiveQueueBytes =
+        new java.util.concurrent.atomic.AtomicInteger();
+
+    /** Frames dropped for want of room, so the loss is a number somebody can see. */
+    private final java.util.concurrent.atomic.AtomicLong droppedFrames =
+        new java.util.concurrent.atomic.AtomicLong();
+
+    /** Bytes dropped for want of room. */
+    private final java.util.concurrent.atomic.AtomicLong droppedBytes =
+        new java.util.concurrent.atomic.AtomicLong();
     private final RingBuffer ringBuffer;
     private final Lock readLock = new ReentrantLock();
     private final Lock writeLock = new ReentrantLock();
@@ -81,6 +105,9 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
         LOGGER.debug("RawSocketTransportInstance: Pre Java 21 version");
         this.sharedRawSocketManager = sharedRawSocketManager;
         this.receiveQueue = new LinkedBlockingQueue<>();
+        this.receiveQueueByteBudget = getConfiguration().receiveQueueSize > 0
+            ? getConfiguration().receiveQueueSize
+            : DEFAULT_BUFFER_SIZE;
         this.ringBuffer = new RingBuffer(DEFAULT_BUFFER_SIZE);
 
         try {
@@ -283,6 +310,12 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
                 LOGGER.debug("Packet capture thread stopped");
             }
         });
+        // "pcap_next_ex" blocks inside the native library until a packet arrives. On Linux the
+        // capture timeout is not honored for that call, so on a quiet interface the thread cannot
+        // be woken - neither by "interrupt()" nor by closing the handle. Making it a daemon thread
+        // keeps such a thread from stopping the JVM from exiting.
+        captureThread.setDaemon(true);
+        captureThread.setName("plc4x-rawsocket-capture-" + networkInterface.getName());
         captureThread.start();
     }
 
@@ -294,7 +327,20 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
             if (matchesFilter(ethPacket)) {
                 byte[] payload = extractPayload(ethPacket);
                 if (payload != null && payload.length > 0) {
+                    if (receiveQueueBytes.get() + payload.length > receiveQueueByteBudget) {
+                        // Whole frames only: half of one is indistinguishable from a whole one to
+                        // whatever reads this, and it would be read at the wrong offset.
+                        long frames = droppedFrames.incrementAndGet();
+                        droppedBytes.addAndGet(payload.length);
+                        if (frames == 1 || frames % 1000 == 0) {
+                            LOGGER.warn("Receive queue is full at {} bytes; dropped {} frames "
+                                + "({} bytes) with nothing draining it",
+                                receiveQueueBytes.get(), frames, droppedBytes.get());
+                        }
+                        return;
+                    }
                     receiveQueue.offer(payload);
+                    receiveQueueBytes.addAndGet(payload.length);
                     LOGGER.trace("Captured packet: {} bytes from {}", payload.length,
                         ethPacket.getHeader().getSrcAddr());
 
@@ -571,36 +617,65 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
             }
         }
 
-        // Close the handle outside locks to avoid deadlock
+        // Close the handle outside locks to avoid deadlock.
+        //
+        // "PcapHandle.close()" needs the write lock of the handle, which the capture thread holds
+        // for the whole duration of its "getNextPacketEx()" call. If that call is stuck in the
+        // native library (see "startCaptureThread"), the close would never return, so both
+        // variants hand the actual close to a watchdog thread and give up after a timeout.
         if (isShared) {
             // Release shared handle
-            sharedRawSocketManager.releaseHandle(sharedHandle);
-            LOGGER.debug("Released shared pcap handle");
-        } else {
-            // Close dedicated handle in a separate thread with timeout
-            // This works around a known pcap issue on some platforms where close() can hang
-            Thread closeThread = new Thread(() -> {
-                try {
-                    handle.close();
-                    LOGGER.debug("Closed dedicated pcap handle");
-                } catch (Exception e) {
-                    LOGGER.warn("Error closing pcap handle: {}", e.getMessage());
-                }
+            closeWithTimeout("shared pcap handle", () -> {
+                sharedRawSocketManager.releaseHandle(sharedHandle);
+                LOGGER.debug("Released shared pcap handle");
             });
-            closeThread.start();
-
-            try {
-                closeThread.join(500); // Wait max 500ms for close
-                if (closeThread.isAlive()) {
-                    LOGGER.warn("Pcap handle close timed out, handle will be garbage collected");
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                LOGGER.warn("Interrupted while closing pcap handle");
-            }
+        } else {
+            closeWithTimeout("dedicated pcap handle", () -> {
+                handle.close();
+                LOGGER.debug("Closed dedicated pcap handle");
+            });
         }
 
         getAuditLog().write(AuditLogEventType.CLOSE, "Closed");
+    }
+
+    /**
+     * Runs a close operation that may block indefinitely in the native pcap library on a daemon
+     * thread and waits at most {@link #CLOSE_TIMEOUT_MS} for it to finish. If it does not, the
+     * handle is left to the garbage collector rather than blocking the caller forever.
+     *
+     * @param description what is being closed, for the log message
+     * @param closeAction the close operation itself
+     */
+    private void closeWithTimeout(String description, ThrowingRunnable closeAction) {
+        Thread closeThread = new Thread(() -> {
+            try {
+                closeAction.run();
+            } catch (Exception e) {
+                LOGGER.warn("Error closing {}: {}", description, e.getMessage());
+            }
+        });
+        closeThread.setDaemon(true);
+        closeThread.setName("plc4x-rawsocket-close-" + networkInterface.getName());
+        closeThread.start();
+
+        try {
+            closeThread.join(CLOSE_TIMEOUT_MS);
+            if (closeThread.isAlive()) {
+                LOGGER.warn("Closing the {} timed out after {}ms, it will be garbage collected. "
+                    + "This happens if the capture thread is blocked in the native pcap library, "
+                    + "which cannot be interrupted.", description, CLOSE_TIMEOUT_MS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.warn("Interrupted while closing {}", description);
+        }
+    }
+
+    /** A {@link Runnable} that is allowed to throw, so close operations can be passed around. */
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws Exception;
     }
 
     /**
@@ -620,6 +695,7 @@ public class RawSocketTransportInstance extends BaseTransportInstance<RawSocketT
                     // Timeout or interrupted
                     break;
                 }
+                receiveQueueBytes.addAndGet(-packet.length);
 
                 // Write packet data to the ring-buffer
                 int written = ringBuffer.write(packet);

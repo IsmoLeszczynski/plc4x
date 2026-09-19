@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.security.GeneralSecurityException;
 import java.security.Signature;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Comparator;
@@ -96,6 +97,13 @@ public class SecureChannel {
     private ScheduledFuture<?> keepAlive;
     private double sessionTimeout;
     private long revisedLifetime;
+
+    /**
+     * Set once the server's lifetime has been raised to the configured minimum, so the warning is
+     * emitted once per channel rather than on every renewal - which, by the nature of the
+     * condition, would be every few seconds.
+     */
+    private boolean shortLifetimeWarned;
 
     public SecureChannel(Conversation conversation, OpcuaDriverContext driverContext, OpcuaConfiguration configuration, PlcAuthentication authentication) {
         this.conversation = conversation;
@@ -230,7 +238,7 @@ public class SecureChannel {
                 conversation.setRemoteNonce(openSecureChannelResponse.getServerNonce().getStringValue());
                 conversation.setLocalNonce(localNonce);
                 conversation.setSecurityHeader(new SecurityHeader(securityToken.getChannelId(), securityToken.getTokenId()));
-                revisedLifetime = securityToken.getRevisedLifetime();
+                revisedLifetime = adoptChannelLifetime(securityToken.getRevisedLifetime());
                 return openSecureChannelResponse;
             });
     }
@@ -324,7 +332,22 @@ public class SecureChannel {
 
     private CompletableFuture<ActivateSessionResponse> onConnectActivateSessionRequest(CreateSessionResponse sessionResponse) {
         LOGGER.debug("Sending activate session request to {}", this.driverContext.getEndpoint());
-        conversation.setRemoteCertificate(getX509Certificate(sessionResponse.getServerCertificate().getStringValue()));
+        // Adopted whatever the channel policy says, because a user token can be encrypted to this
+        // even when the channel itself is not - the token carries a security policy of its own.
+        List<X509Certificate> serverChain =
+            getX509CertificateChain(sessionResponse.getServerCertificate().getStringValue());
+        if (conversation.getSecurityPolicy() != SecurityPolicy.NONE) {
+            // Judged before it is adopted, since this becomes what we encrypt to and check
+            // signatures against. The issuers the server sent with it go into the check too:
+            // without them a chain reaching the anchor through intermediates cannot be validated.
+            try {
+                driverContext.getCertificateVerifier().checkCertificateChainTrusted(serverChain);
+            } catch (CertificateException e) {
+                throw new PlcRuntimeException(
+                    "The certificate in the create-session response is not trusted", e);
+            }
+        }
+        conversation.setRemoteCertificate(serverChain.get(0));
         conversation.setRemoteNonce(sessionResponse.getServerNonce().getStringValue());
 
         Entry<EndpointDescription, UserTokenPolicy> selectedEndpoint = selectEndpoint(sessionResponse.getServerEndpoints(),
@@ -466,12 +489,73 @@ public class SecureChannel {
         }
     }
 
+    /**
+     * Apply {@link #effectiveChannelLifetime(long, long, long)} to a server-supplied lifetime and
+     * tell the operator when their configured minimum overruled the server - including what to
+     * change if they would rather honour it.
+     */
+    private long adoptChannelLifetime(long revisedLifetime) {
+        long requested = configuration.getChannelLifetime();
+        long minimum = configuration.getMinChannelLifetime();
+        long effective = effectiveChannelLifetime(revisedLifetime, requested, minimum);
+
+        if (revisedLifetime > 0 && revisedLifetime < effective && !shortLifetimeWarned) {
+            shortLifetimeWarned = true;
+            LOGGER.warn("Server asked for a secure channel lifetime of {} ms; using {} ms instead, "
+                    + "because min-channel-lifetime-ms is {} ms. Renewals share one executor with every "
+                    + "OPC UA connection in this JVM, which is what that minimum protects. The server "
+                    + "may treat the channel as expired before the first renewal - if this server "
+                    + "genuinely needs renewal that often, lower min-channel-lifetime-ms to {} or less.",
+                revisedLifetime, effective, minimum, revisedLifetime);
+        }
+        return effective;
+    }
+
+    /**
+     * Reconcile the lifetime the server came back with against the one we asked for.
+     *
+     * <p>Two different situations, deliberately handled differently:</p>
+     * <ul>
+     *   <li><strong>Not a lifetime at all</strong> - zero, negative, or longer than we offered.
+     *       OPC UA lets a server revise the requested lifetime <em>downwards</em>; none of these
+     *       is a revision, so what we requested stands. Nothing is lost by ignoring them.</li>
+     *   <li><strong>A lifetime shorter than {@code minimumLifetime}</strong> - a real answer, but
+     *       one that would put the renewal schedule on a treadmill. It is raised to the minimum
+     *       and the caller warns. Note the consequence: the server considers the channel expired
+     *       before our first renewal is due, so the connection may fail at that point. That is the
+     *       trade being made - the renewals run on an executor shared by every OPC UA connection
+     *       in the JVM, so one peer does not get to set the pace for all of them. An operator who
+     *       needs such a server lowers {@code min-channel-lifetime-ms} and accepts the cost
+     *       knowingly.</li>
+     * </ul>
+     *
+     * <p>The minimum is bounded by the requested lifetime, so a deliberately short
+     * {@code channel-lifetime-ms} is still honoured: this only ever declines to go <em>below</em>
+     * what the operator asked for, never above it.</p>
+     */
+    static long effectiveChannelLifetime(long revisedLifetime, long requestedLifetime, long minimumLifetime) {
+        if (revisedLifetime <= 0 || revisedLifetime > requestedLifetime) {
+            return requestedLifetime;
+        }
+        return Math.max(revisedLifetime, Math.min(minimumLifetime, requestedLifetime));
+    }
+
+    /**
+     * Renewal interval for a channel lifetime: three quarters of it, leaving a quarter of the
+     * lifetime as margin for the renewal exchange itself. Never returns a non-positive period -
+     * {@code scheduleAtFixedRate} rejects those, and it would do so from inside a completion stage
+     * where the failure is easy to lose.
+     */
+    static long keepAliveInterval(long channelLifetime) {
+        return Math.max(1L, (long) Math.ceil(channelLifetime * 0.75f));
+    }
+
     private void renewToken() {
         if (keepAlive != null) {
             // cancel earlier renew feature
             keepAlive.cancel(true);
         }
-        long keepAliveTime = (long) Math.ceil(revisedLifetime * 0.75f);
+        long keepAliveTime = keepAliveInterval(revisedLifetime);
         LOGGER.debug("Scheduling session keep alive to happen within {}s", TimeUnit.MILLISECONDS.toSeconds(keepAliveTime));
         keepAlive = KEEP_ALIVE_EXECUTOR.scheduleAtFixedRate(() -> {
             int securityChannelId = this.conversation.getSecurityChannelId();
@@ -484,7 +568,7 @@ public class SecureChannel {
                     }
                     // Honor any new lifetime the server gave us — if it differs
                     // from what's currently scheduled, reschedule the next renew.
-                    long newKeepAliveTime = (long) Math.ceil(revisedLifetime * 0.75f);
+                    long newKeepAliveTime = keepAliveInterval(revisedLifetime);
                     if (newKeepAliveTime != keepAliveTime) {
                         renewToken();
                     }
@@ -519,7 +603,11 @@ public class SecureChannel {
                 boolean policyMatch = endpointDescription.getSecurityPolicyUri().getStringValue().equals(securityPolicy.getSecurityPolicyUri());
                 boolean msgSecurityMatch = endpointDescription.getSecurityMode().equals(effectiveMessageSecurity);
 
-                if (!policyMatch && !msgSecurityMatch) {
+                // Both, not either. Skipping only when both failed meant an endpoint offering the
+                // right message security under a weaker policy - or the right policy without the
+                // message security asked for - was treated as a match, and the connection came up
+                // with less protection than the configuration asked for.
+                if (!policyMatch || !msgSecurityMatch) {
                     continue;
                 }
 
@@ -535,8 +623,51 @@ public class SecureChannel {
             return null;
         }
 
-        serverEndpoints.sort(Comparator.comparing(e -> e.getKey().getSecurityLevel()));
-        return serverEndpoints.getFirst();
+        // The strongest of the endpoints that match, not the weakest. Sorting ascending and taking
+        // the first picked the lowest security level a server offered - and a server that offers a
+        // level 0 endpoint alongside a good one is the normal case, not an unusual one.
+        //
+        // Among the token policies of an equally strong endpoint, prefer one that protects the
+        // token: matching on token type alone would bind a password to a policy of None and send it
+        // in the clear.
+        return strongestOf(serverEndpoints);
+    }
+
+    /**
+     * Picks the endpoint that protects the connection best out of those that matched.
+     *
+     * <p>Sorting by security level and taking the first picked the <em>lowest</em> level the server
+     * offered, and a server offering a level 0 endpoint alongside a good one is the ordinary case.
+     * Where two are equally strong, the one that also protects the user token wins.</p>
+     */
+    static Entry<EndpointDescription, UserTokenPolicy> strongestOf(
+        List<Entry<EndpointDescription, UserTokenPolicy>> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        List<Entry<EndpointDescription, UserTokenPolicy>> ranked = new ArrayList<>(candidates);
+        ranked.sort(Comparator
+            .comparingInt((Entry<EndpointDescription, UserTokenPolicy> e) -> e.getKey().getSecurityLevel())
+            .thenComparingInt(e -> protectsUserToken(e) ? 1 : 0));
+        return ranked.getLast();
+    }
+
+    /**
+     * Whether the user token policy of this endpoint protects the token it carries.
+     *
+     * <p>A token policy names its own security policy, separately from the channel's. One naming
+     * None leaves the token unprotected by the channel's own encryption - which matters most for a
+     * password.</p>
+     */
+    static boolean protectsUserToken(Entry<EndpointDescription, UserTokenPolicy> candidate) {
+        PascalString tokenPolicyUri = candidate.getValue().getSecurityPolicyUri();
+        if (tokenPolicyUri == null || tokenPolicyUri.getStringValue() == null
+            || tokenPolicyUri.getStringValue().isEmpty()) {
+            // Nothing said, so the channel's policy governs the token as well.
+            return !SecurityPolicy.NONE.getSecurityPolicyUri()
+                .equals(candidate.getKey().getSecurityPolicyUri().getStringValue());
+        }
+        return !SecurityPolicy.NONE.getSecurityPolicyUri().equals(tokenPolicyUri.getStringValue());
     }
 
     private boolean isMatchingEndpointDescription(EndpointDescription endpointDescription) {
@@ -609,6 +740,18 @@ public class SecureChannel {
         PascalString policyId = selectedEndpoint.getValue().getPolicyId();
         UserTokenType tokenType = selectedEndpoint.getValue().getTokenType();
         SecurityPolicy tokenSecurityPolicy = userTokenSecurityPolicy(selectedEndpoint);
+        if (tokenType == UserTokenType.userTokenTypeUserName
+            && tokenSecurityPolicy == SecurityPolicy.NONE) {
+            // Nothing signs or encrypts this, so the password goes out in the clear where anything
+            // on the path can read it - and unlike data, a password read once is useful forever.
+            if (!configuration.isAllowInsecureCredentials()) {
+                throw new PlcRuntimeException("Refusing to send the username and password over a "
+                    + "channel that neither signs nor encrypts. Configure a security-policy that "
+                    + "does, or set allow-insecure-credentials=true to send them anyway.");
+            }
+            LOGGER.warn("allow-insecure-credentials is set: sending the username and password over "
+                + "a channel that neither signs nor encrypts");
+        }
         ExtensionObject userIdentityToken = getIdentityToken(tokenType, policyId.getStringValue(), tokenSecurityPolicy);
         RequestHeader requestHeader = conversation.createRequestHeader();
 
@@ -770,12 +913,35 @@ public class SecureChannel {
     }
 
     public static X509Certificate getX509Certificate(byte[] certificate) {
+        return getX509CertificateChain(certificate).get(0);
+    }
+
+    /**
+     * Reads every certificate out of an OPC UA certificate blob: the peer's own first, then the
+     * issuers it sent with it. Only the first used to be read, so a chain reaching an anchor
+     * through intermediates could not be validated even when it was entirely trustworthy.
+     *
+     * <p>An unreadable blob fails here rather than coming back as null. What this is used for is
+     * deciding whether to trust the peer and encrypting to its key, and neither has a sensible
+     * answer for "no certificate".</p>
+     */
+    public static List<X509Certificate> getX509CertificateChain(byte[] certificate) {
+        if (certificate == null || certificate.length == 0) {
+            throw new PlcRuntimeException("The peer sent no certificate where one was required");
+        }
         try {
             CertificateFactory factory = CertificateFactory.getInstance("X.509");
-            return (X509Certificate) factory.generateCertificate(new ByteArrayInputStream(certificate));
-        } catch (Exception e) {
-            LOGGER.error("Unable to get certificate from String {}", certificate);
-            return null;
+            List<X509Certificate> chain = factory
+                .generateCertificates(new ByteArrayInputStream(certificate)).stream()
+                .filter(X509Certificate.class::isInstance)
+                .map(X509Certificate.class::cast)
+                .collect(Collectors.toList());
+            if (chain.isEmpty()) {
+                throw new PlcRuntimeException("The peer's certificate blob held no X.509 certificate");
+            }
+            return chain;
+        } catch (GeneralSecurityException e) {
+            throw new PlcRuntimeException("Could not read the certificate the peer sent", e);
         }
     }
 
