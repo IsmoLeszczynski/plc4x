@@ -73,21 +73,17 @@ class ModbusRtuConnectionTest {
     }
 
     @Test
-    void testByteSwap() throws Exception {
-        Method method = ModbusRtuConnection.class.getDeclaredMethod("byteSwap", byte[].class);
-        method.setAccessible(true);
+    void testByteSwap() {
+        // Byte swapping moved from a private helper here into ModbusByteOrder.
         byte[] input = new byte[]{0x01, 0x02, 0x03, 0x04};
-        byte[] result = (byte[]) method.invoke(null, (Object) input);
-        assertArrayEquals(new byte[]{0x02, 0x01, 0x04, 0x03}, result);
+        assertArrayEquals(new byte[]{0x02, 0x01, 0x04, 0x03}, ModbusByteOrder.BIG_ENDIAN_BYTE_SWAP.swap(input));
     }
 
     @Test
-    void testByteSwap_oddLength() throws Exception {
-        Method method = ModbusRtuConnection.class.getDeclaredMethod("byteSwap", byte[].class);
-        method.setAccessible(true);
+    void testByteSwap_oddLength() {
+        // Byte swapping moved from a private helper here into ModbusByteOrder.
         byte[] input = new byte[]{0x01, 0x02, 0x03};
-        byte[] result = (byte[]) method.invoke(null, (Object) input);
-        assertArrayEquals(new byte[]{0x02, 0x01, 0x03}, result);
+        assertArrayEquals(new byte[]{0x02, 0x01, 0x03}, ModbusByteOrder.BIG_ENDIAN_BYTE_SWAP.swap(input));
     }
 
     @Test

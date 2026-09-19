@@ -260,8 +260,13 @@ public abstract class ModbusTag implements PlcTag, Serializable {
         return stringLength;
     }
 
+    /** The number of bytes one value of this tag occupies. */
+    public int getElementLengthBytes() {
+        return stringLength * dataType.getDataTypeSize();
+    }
+
     public int getLengthBytes() {
-        return quantity * stringLength * dataType.getDataTypeSize();
+        return quantity * getElementLengthBytes();
     }
 
     public int getLengthWords() {
