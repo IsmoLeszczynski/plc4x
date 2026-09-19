@@ -194,6 +194,7 @@ public class ModbusReadOptimizer {
 
                     ModbusByteOrder byteOrder = originalTag.getByteOrder() != null ? originalTag.getByteOrder() : defaultByteOrder;
 
+                    tagData = byteOrder.swap(tagData, originalTag.getElementLengthBytes());
                     boolean bigEndian = byteOrder.isBigEndian();
 
                     ReadBufferByteBased readBuffer;

@@ -495,8 +495,11 @@ public class ModbusTcpConnection extends PollingSubscriptionConnectionBase<Modbu
             return null;
         }
 
-        // Apply byte-swap if needed (before parsing)
-        responseData = byteOrder.swap(responseData);
+        // Apply byte-swap if needed (before parsing). Coils and discrete inputs carry bits rather
+        // than registers, so a byte or word order does not apply to them.
+        if (!(request instanceof ModbusPDUReadCoilsRequest) && !(request instanceof ModbusPDUReadDiscreteInputsRequest)) {
+            responseData = byteOrder.swap(responseData, stringLength * dataType.getDataTypeSize());
+        }
 
         boolean bigEndian = byteOrder.isBigEndian();
         ReadBufferByteBased readBuffer = new ReadBufferByteBased(responseData);
@@ -531,7 +534,7 @@ public class ModbusTcpConnection extends PollingSubscriptionConnectionBase<Modbu
             WriteBufferByteBased writeBuffer = createWriteBuffer(size, byteOrder);
             ModbusRegisterCodec.serialize(writeBuffer, plcValue, tagDataType, plcValue.getLength(), bigEndian, tagStringLength);
             byte[] data = writeBuffer.getBytes();
-            data = byteOrder.swap(data);
+            data = byteOrder.swap(data, ((ModbusTag) tag).getElementLengthBytes());
             // Note: bit reversal for coil BOOL arrays is handled in fromPlcValueCoil, not here.
             // Holding register BOOLs use DataItem serialization which handles them correctly.
             return data;
@@ -559,7 +562,6 @@ public class ModbusTcpConnection extends PollingSubscriptionConnectionBase<Modbu
                 wb.writeBit(((PlcBOOL) value).getBoolean());
             }
             byte[] bytes = wb.getBytes();
-            bytes = byteOrder.swap(bytes);
             ArrayUtils.reverse(bytes);
             return bytes;
         }

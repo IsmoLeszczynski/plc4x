@@ -584,7 +584,7 @@ public class ModbusAsciiConnection extends PollingSubscriptionConnectionBase<Mod
             WriteBufferByteBased writeBuffer = createWriteBuffer(size, byteOrder);
             ModbusRegisterCodec.serialize(writeBuffer, plcValue, tagDataType, plcValue.getLength(), bigEndian, tagStringLength);
             byte[] data = writeBuffer.getBytes();
-            data = byteOrder.swap(data);
+            data = byteOrder.swap(data, ((ModbusTag) tag).getElementLengthBytes());
             if (((ModbusTag) tag).getDataType() == ModbusDataType.BOOL) {
                 // Reverse bits in each byte for coil-style BOOL arrays
                 byte[] bytes = new byte[data.length];
@@ -618,7 +618,6 @@ public class ModbusAsciiConnection extends PollingSubscriptionConnectionBase<Mod
                 wb.writeBit(((PlcBOOL) value).getBoolean());
             }
             byte[] bytes = wb.getBytes();
-            bytes = byteOrder.swap(bytes);
             ArrayUtils.reverse(bytes);
             return bytes;
         }
