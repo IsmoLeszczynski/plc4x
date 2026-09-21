@@ -58,6 +58,8 @@ class EipHandshakeProbeTest {
     enum RrDataBehaviour {
         /** A Get_Attribute_All answer listing no classes; anything else is a CIP error. */
         EMPTY_CLASS_LIST,
+        /** A successful Get_Attribute_All answer whose body is not an object list at all, as cpppo sends once tags hold values. */
+        TAG_MEMORY_AS_CLASS_LIST,
         /** Every CIP service is answered with status 0x08, Service not supported. */
         CIP_SERVICE_NOT_SUPPORTED,
         /** An encapsulation-level error with an empty body, and the session is ended. */
@@ -91,6 +93,18 @@ class EipHandshakeProbeTest {
         }
 
         // The class list answers everything, so no class is asked about on its own.
+        assertEquals(List.of(LIST_SERVICES, REGISTER_SESSION, SEND_RR_DATA, UNREGISTER_SESSION), receivedCommands);
+    }
+
+    @Test
+    void aDeviceWhoseClassListIsNotOneIsStillNotAskedAboutClassSix() throws Exception {
+        startDevice(RrDataBehaviour.TAG_MEMORY_AS_CLASS_LIST);
+
+        try (PlcConnection connection = new DefaultPlcDriverManager().getConnection(url())) {
+            assertTrue(connection.isConnected());
+        }
+
+        // Answered, so no fallback to the per-class probes that would have ended the session.
         assertEquals(List.of(LIST_SERVICES, REGISTER_SESSION, SEND_RR_DATA, UNREGISTER_SESSION), receivedCommands);
     }
 
@@ -162,6 +176,8 @@ class EipHandshakeProbeTest {
                         }
                         case EMPTY_CLASS_LIST -> out.write(encapsulation(command, SESSION_HANDLE, 0, senderContext,
                             rrData(hex("81000000" + "0000" + "0000"))));  // Get_Attribute_All: 0 classes, 0 available
+                        case TAG_MEMORY_AS_CLASS_LIST -> out.write(encapsulation(command, SESSION_HANDLE, 0, senderContext,
+                            rrData(hex("81000000" + "FFF47B0055F8060000E68EE7FDFFFFFF000060400000000000000440"))));  // as captured from cpppo
                         case CIP_SERVICE_NOT_SUPPORTED -> {
                             int service = body[16] & 0x7F;  // interface handle 4, timeout 2, count 2, null item 4, item id 2, size 2
                             out.write(encapsulation(command, SESSION_HANDLE, 0, senderContext,

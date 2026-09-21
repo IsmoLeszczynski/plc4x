@@ -241,8 +241,13 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
     }
 
     /**
-     * The classes the Message Router lists, or null when the device does not answer a
+     * The classes the Message Router lists, or null when the device does not support a
      * Get_Attribute_All on it.
+     *
+     * <p>A device that answers with success but with something that is not an object list - cpppo
+     * returns its tag memory here - has answered the question all the same: it has no Connection
+     * Manager to list, and asking it about class 6 directly ends the session. So a successful reply
+     * that does not parse as a class list is an empty list, not a null.</p>
      */
     private CompletableFuture<List<Integer>> probeMessageRouterClassList() {
         UnConnectedDataItem exchange = new UnConnectedDataItem(new GetAttributeAllRequest(
@@ -254,9 +259,8 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
 
         return sendRequest(eipWrapper).thenApply(response -> {
             if (extractCipService(response) instanceof GetAttributeAllResponse gar
-                && gar.getStatus() == CIPStatus.Success.getValue()
-                && gar.getAttributes() != null) {
-                return gar.getAttributes().getClassId();
+                && gar.getStatus() == CIPStatus.Success.getValue()) {
+                return gar.getAttributes() != null ? gar.getAttributes().getClassId() : List.of();
             }
             return null;
         });
@@ -288,7 +292,8 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             }
             // No Get_Attribute_All here, so ask about each class on its own. The Message Router
             // first: a device without a Connection Manager may end the session rather than answer
-            // for it, and then there is nothing left to ask.
+            // for it, and then there is nothing left to ask. This is why a device that does answer
+            // the Get_Attribute_All, however oddly, is never asked about class 6.
             return checkClassObjectSupport(CIPClassID.MessageRouter).thenCompose(hasSupport -> {
                 useMessageRouter = hasSupport;
                 return checkClassObjectSupport(CIPClassID.ConnectionManager);
