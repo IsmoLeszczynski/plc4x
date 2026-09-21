@@ -193,6 +193,11 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             throw new PlcConnectionException("Error during EIP connect handshake", e);
         }
 
+        // The probe swallows its failures so that a device lacking a class it was asked about still
+        // connects, but a device that dropped the connection over the question has not connected.
+        if (!messageCodec.isOpen()) {
+            throw new PlcConnectionException("Connection closed by the device during the EIP connect handshake");
+        }
         LOGGER.info("EIP TCP connection established");
         if (auditLog.isEnabled()) {
             auditLog.write(AuditLogEventType.CONNECT, "EIP TCP connection established");
@@ -244,23 +249,25 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
         });
     }
 
-    // Using this method to continue having the GetAttributeAll that can be useful in the future
-    private CompletableFuture<Void> checkClassObjectAttributes(CIPClassID classId) {
-        PathSegment classSegment = new LogicalSegment(new ClassID((byte) 0, (short) classId.getValue()));
-        PathSegment instanceSegment = new LogicalSegment(new InstanceID((byte) 0, (short) 1));
-        UnConnectedDataItem exchange = new UnConnectedDataItem(
-            new GetAttributeAllRequest(classSegment, instanceSegment));
+    /**
+     * The classes the Message Router lists, or null when the device does not answer a
+     * Get_Attribute_All on it.
+     */
+    private CompletableFuture<List<Integer>> probeMessageRouterClassList() {
+        UnConnectedDataItem exchange = new UnConnectedDataItem(new GetAttributeAllRequest(
+            new LogicalSegment(new ClassID((byte) 0, (short) CIPClassID.MessageRouter.getValue())),
+            new LogicalSegment(new InstanceID((byte) 0, (short) 1))));
         List<TypeId> typeIds = Arrays.asList(nullAddressItem, exchange);
         CipRRData eipWrapper = new CipRRData(sessionHandle, CIPStatus.Success.getValue(),
             DEFAULT_SENDER_CONTEXT, 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
 
-        return sendRequest(eipWrapper).thenAccept(response -> {
-
-            if (extractCipService(response) instanceof GetAttributeAllResponse gar &&
-                gar.getStatus() == CIPStatus.Success.getValue() &&
-                gar.getAttributes() != null) {
-                LOGGER.debug("Identity getNumberActive {}", gar.getAttributes().getNumberActive());
+        return sendRequest(eipWrapper).thenApply(response -> {
+            if (extractCipService(response) instanceof GetAttributeAllResponse gar
+                && gar.getStatus() == CIPStatus.Success.getValue()
+                && gar.getAttributes() != null) {
+                return gar.getAttributes().getClassId();
             }
+            return null;
         });
     }
 
@@ -275,13 +282,26 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
     }
 
     private CompletableFuture<Void> probeClassObjectSupport() {
-
-        return checkClassObjectSupport(CIPClassID.ConnectionManager).thenCompose(hasSupport -> {
-            useConnectionManager = hasSupport;
-            return checkClassObjectSupport(CIPClassID.MessageRouter);
-        }).thenCompose(hasSupport -> {
-            useMessageRouter = hasSupport;
-            return checkClassObjectAttributes(CIPClassID.Identity);
+        return probeMessageRouterClassList().thenCompose(classList -> {
+            if (classList != null) {
+                // One answer names every class the device has, so nothing more has to be asked.
+                for (Integer classId : classList) {
+                    CIPClassID cipClass = CIPClassID.enumForValue(classId);
+                    if (cipClass == CIPClassID.MessageRouter) {
+                        useMessageRouter = true;
+                    } else if (cipClass == CIPClassID.ConnectionManager) {
+                        useConnectionManager = true;
+                    }
+                }
+                return CompletableFuture.completedFuture(null);
+            }
+            // No Get_Attribute_All here, so ask about each class on its own. The Message Router
+            // first: a device without a Connection Manager may end the session rather than answer
+            // for it, and then there is nothing left to ask.
+            return checkClassObjectSupport(CIPClassID.MessageRouter).thenCompose(hasSupport -> {
+                useMessageRouter = hasSupport;
+                return checkClassObjectSupport(CIPClassID.ConnectionManager);
+            }).thenAccept(hasSupport -> useConnectionManager = hasSupport);
         }).exceptionally(e -> {
             // Treat any probe failure (timeout, parse error, malformed response,
             // ServiceNotSupported) as the state that was achieved. This keeps

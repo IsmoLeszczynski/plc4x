@@ -64,6 +64,8 @@
         ]
         ['0x0066' EipDisconnectRequest
         ]
+        ['0x006F','true','0' NullCipRRData
+        ]
         ['0x006F' CipRRData
             [simple   uint    32   interfaceHandle                                                                     ]
             [simple   uint    16   timeout                                                                             ]
