@@ -52,7 +52,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * EtherNet/IP (CIP encapsulation) TCP connection — direct port of the legacy
@@ -63,7 +63,6 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EipTcpConnection.class);
 
-    protected static final byte[] DEFAULT_SENDER_CONTEXT = "PLC4X   ".getBytes(StandardCharsets.US_ASCII);
     protected static final long EMPTY_SESSION_HANDLE = 0L;
     protected static final long EMPTY_INTERFACE_OPTIONS = 0L;
     protected static final long EMPTY_INTERFACE_HANDLE = 0L;
@@ -71,15 +70,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
     protected final boolean bigEndian;
 
     private EipTcpMessageCodec messageCodec;
-    // EIP has no transaction-id field. The original protocol logic relied on a
-    // RequestTransactionManager(1) — at most one request in flight, responses
-    // arrive in send order. With getMaxConcurrentRequests() == 1 we can use the
-    // same FIFO scheme: enqueue the response future on send, complete the head
-    // on receive. (Earlier this class encoded a counter into the 8-byte
-    // senderContext for correlation, but that mutated the shared static
-    // DEFAULT_SENDER_CONTEXT and made every outgoing packet's senderContext
-    // unpredictable — which breaks scripted DriverTestsuite tests that expect
-    // the literal "PLC4X   " bytes.)
+    // Every request carries a sender context of its own and its response is matched on it.
     private final Correlator correlator = new Correlator();
 
     protected long sessionHandle = EMPTY_SESSION_HANDLE;
@@ -208,7 +199,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
     private CompletableFuture<Void> doConnectHandshake() {
         // 1) ListServices to confirm CIP encapsulation
         ListServicesRequest listServicesRequest = new ListServicesRequest(
-            EMPTY_SESSION_HANDLE, CIPStatus.Success.getValue(), DEFAULT_SENDER_CONTEXT, 0L);
+            EMPTY_SESSION_HANDLE, CIPStatus.Success.getValue(), nextSenderContext(), 0L);
         return sendRequest(listServicesRequest).thenCompose(listResponse -> {
             if (listResponse.getStatus() == CIPStatus.Success.getValue() && listResponse instanceof ListServicesResponse lsr) {
                 if (!lsr.getTypeIds().isEmpty() && lsr.getTypeIds().getFirst() instanceof ServicesResponse sr) {
@@ -217,7 +208,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             }
             // 2) RegisterSession
             EipConnectionRequest connectionRequest = new EipConnectionRequest(
-                EMPTY_SESSION_HANDLE, CIPStatus.Success.getValue(), DEFAULT_SENDER_CONTEXT, 0L);
+                EMPTY_SESSION_HANDLE, CIPStatus.Success.getValue(), nextSenderContext(), 0L);
             return sendRequest(connectionRequest);
         }).thenCompose(sessionResponse -> {
             if (!(sessionResponse instanceof EipConnectionResponse)) {
@@ -259,7 +250,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             new LogicalSegment(new InstanceID((byte) 0, (short) 1))));
         List<TypeId> typeIds = Arrays.asList(nullAddressItem, exchange);
         CipRRData eipWrapper = new CipRRData(sessionHandle, CIPStatus.Success.getValue(),
-            DEFAULT_SENDER_CONTEXT, 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
+            nextSenderContext(), 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
 
         return sendRequest(eipWrapper).thenApply(response -> {
             if (extractCipService(response) instanceof GetAttributeAllResponse gar
@@ -319,7 +310,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
         );
         List<TypeId> typeIds = Arrays.asList(nullAddressItem, exchange);
         CipRRData eipWrapper = new CipRRData(sessionHandle, CIPStatus.Success.getValue(),
-            DEFAULT_SENDER_CONTEXT, 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
+            nextSenderContext(), 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
 
         return sendRequest(eipWrapper).thenCompose(response -> {
 
@@ -350,7 +341,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
                 this.connectionPathSize, this.routingAddress));
         List<TypeId> typeIds = Arrays.asList(nullAddressItem, exchange);
         CipRRData eipWrapper = new CipRRData(sessionHandle, CIPStatus.Success.getValue(),
-            DEFAULT_SENDER_CONTEXT, 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
+            nextSenderContext(), 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
 
         return sendRequest(eipWrapper).thenAccept(response -> {
             if (!(response instanceof CipRRData rr) || rr.getStatus() != 0L) {
@@ -402,7 +393,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
                     this.connectionSerialNumber, 4919, 42L,
                     this.connectionPathSize, this.routingAddress));
             List<TypeId> typeIds = Arrays.asList(nullAddressItem, exchange);
-            CipRRData closePkt = new CipRRData(sessionHandle, 0L, DEFAULT_SENDER_CONTEXT,
+            CipRRData closePkt = new CipRRData(sessionHandle, 0L, nextSenderContext(),
                 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
             try {
                 sendRequest(closePkt).get(1, TimeUnit.SECONDS);
@@ -410,7 +401,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             }
         }
         EipDisconnectRequest disconnectRequest = new EipDisconnectRequest(
-            sessionHandle, 0L, DEFAULT_SENDER_CONTEXT, 0L);
+            sessionHandle, 0L, nextSenderContext(), 0L);
         try {
             // Many devices close the socket immediately after the disconnect — ignore
             sendRequest(disconnectRequest).get(50, TimeUnit.MILLISECONDS);
@@ -429,84 +420,97 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
     }
 
     /**
-     * Decides which pending request a response belongs to.
+     * Matches responses to the requests they answer.
      *
-     * <p>EIP has no transaction id, so this is send order: the response in front answers the
-     * request in front. That holds while every request is answered - and stops holding the moment
-     * one is not. A request that timed out can still be answered afterwards, and its answer would
-     * go to whoever is at the head by then: a caller handed values from a read it never made,
-     * reported as a success, with every response after it off by one for the life of the
-     * connection.</p>
+     * <p>EIP has no transaction id, but every encapsulation header carries an eight-byte sender
+     * context that the device returns unchanged. Each request gets a context of its own - a
+     * counter, so a response can be told apart from a late answer to a request that has already
+     * given up: that one names a context nothing is waiting for any more and is dropped, and the
+     * requests still waiting are untouched.</p>
      *
-     * <p>So a response that might answer a request which gave up is discarded. When it really was
-     * that request's, nothing is lost. When it was the next request's, that request times out -
-     * which is a failure someone is told about, rather than a number they trust.</p>
+     * <p>Matching by send order instead, as this class used to, has no such recourse. A response
+     * that might belong to a request that timed out had to be discarded on suspicion, which cost the
+     * next request its answer, which then timed out and cost the request after it - one lost
+     * response was enough to time every later request out for as long as the connection lived.</p>
      *
-     * <p>Telling the two apart needs a value that comes back with the response, and there are two
-     * candidates, both of which this driver sends and then ignores. Connected sends carry a
-     * sequence count in their ConnectedDataItem, incremented per request; the response's count is
-     * never looked at. Unconnected sends have only the eight-byte senderContext, which is the same
-     * bytes on every request - and whether a device returns it unmodified is not something anything
-     * here has ever relied on, so it would want confirming before correlation is keyed on it.</p>
-     *
-     * <p>Both would be needed to cover this: reads and writes run unconnected in two of their three
-     * modes, so the connected sequence count alone would leave the other two as they are. Either
-     * way it changes what goes on the wire, and the scripted driver testsuites assert those bytes
-     * with no way to exempt a single field.</p>
+     * <p>A device that does not echo the context, against the specification, still works while it
+     * has one request outstanding: a response whose context is not one of ours is handed to that
+     * request.</p>
      */
     static final class Correlator {
+        private final AtomicLong lastContext = new AtomicLong();
+        private final ConcurrentMap<Long, CompletableFuture<EipPacket>> pending = new ConcurrentHashMap<>();
+        private boolean warnedAboutUnechoedContext;
 
-        private final BlockingQueue<CompletableFuture<EipPacket>> pending = new LinkedBlockingDeque<>();
-        private final AtomicInteger possiblyStale = new AtomicInteger();
+        /** The sender context for the next request. */
+        byte[] nextContext() {
+            return ByteBuffer.allocate(8).putLong(lastContext.incrementAndGet()).array();
+        }
 
-        void register(CompletableFuture<EipPacket> responseFuture) {
-            pending.offer(responseFuture);
+        void register(byte[] senderContext, CompletableFuture<EipPacket> responseFuture) {
+            pending.put(contextId(senderContext), responseFuture);
         }
 
         /** Drops a request that was never sent; nothing will answer it. */
         void forget(CompletableFuture<EipPacket> responseFuture) {
-            pending.remove(responseFuture);
+            pending.values().remove(responseFuture);
         }
 
-        /** Drops a request that gave up waiting, remembering that it may still be answered. */
+        /** Drops a request that gave up waiting. Its answer, should it still come, is recognised and dropped. */
         void timedOut(CompletableFuture<EipPacket> responseFuture) {
-            if (pending.remove(responseFuture)) {
-                possiblyStale.incrementAndGet();
-            }
+            pending.values().remove(responseFuture);
         }
 
         void deliver(EipPacket packet) {
-            if (possiblyStale.get() > 0 && possiblyStale.decrementAndGet() >= 0) {
-                LOGGER.warn("Discarding an EIP response that may answer a request which already "
-                    + "timed out; it cannot be told apart from a response to a later request");
-                return;
-            }
-            CompletableFuture<EipPacket> future = pending.poll();
+            long id = contextId(packet.getSenderContext());
+            CompletableFuture<EipPacket> future = pending.remove(id);
             if (future != null) {
                 future.complete(packet);
-            } else {
-                LOGGER.warn("Received EIP response with no pending request");
+                return;
             }
+            if (id >= 1 && id <= lastContext.get()) {
+                LOGGER.warn("Discarding a late EIP response to a request that already timed out");
+                return;
+            }
+            if (pending.size() == 1) {
+                if (!warnedAboutUnechoedContext) {
+                    warnedAboutUnechoedContext = true;
+                    LOGGER.warn("The device does not return the sender context; matching responses by send order instead");
+                }
+                CompletableFuture<EipPacket> only = pending.values().iterator().next();
+                if (pending.values().remove(only)) {
+                    only.complete(packet);
+                    return;
+                }
+            }
+            LOGGER.warn("Received EIP response with no pending request");
         }
 
         void failAll(Throwable cause) {
-            pending.forEach(future -> future.completeExceptionally(cause));
+            pending.values().forEach(future -> future.completeExceptionally(cause));
             pending.clear();
-            possiblyStale.set(0);
         }
 
         int pendingCount() {
             return pending.size();
         }
+
+        private static long contextId(byte[] senderContext) {
+            return senderContext == null || senderContext.length != 8 ? 0 : ByteBuffer.wrap(senderContext).getLong();
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Request/response correlation (FIFO, max-concurrent == 1)
+    // Request/response correlation (by sender context)
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private byte[] nextSenderContext() {
+        return correlator.nextContext();
+    }
 
     private CompletableFuture<EipPacket> sendRequest(EipPacket request) {
         CompletableFuture<EipPacket> responseFuture = new CompletableFuture<>();
-        correlator.register(responseFuture);
+        correlator.register(request.getSenderContext(), responseFuture);
 
         try {
             if (auditLog.isEnabled()) {
@@ -581,7 +585,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
                     List<TypeId> typeIds = Arrays.asList(nullAddressItem,
                         new UnConnectedDataItem(requestItem));
                     CipRRData rrdata = new CipRRData(sessionHandle, CIPStatus.Success.getValue(),
-                        DEFAULT_SENDER_CONTEXT, 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
+                        nextSenderContext(), 0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
                     return sendRequest(rrdata).thenApply(response -> {
                         if (!(response instanceof CipRRData rr)) {
                             values.put(tagName, new DefaultPlcResponseItem<>(PlcResponseCode.INTERNAL_ERROR, null));
@@ -650,7 +654,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             (byte) getConfiguration().getSlot())));
 
         CipRRData pkt = new CipRRData(sessionHandle, CIPStatus.Success.getValue(),
-            DEFAULT_SENDER_CONTEXT, 0L, 0L, 0, typeIds);
+            nextSenderContext(), 0L, 0L, 0, typeIds);
 
         return executeThrottled(() -> sendRequest(pkt).thenApply(response -> {
             if (!(response instanceof CipRRData rr)) {
@@ -689,7 +693,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
                 new MultipleServiceRequest(new Services(offsets, requests))));
         }
         SendUnitData pkt = new SendUnitData(sessionHandle, CIPStatus.Success.getValue(),
-            DEFAULT_SENDER_CONTEXT, 0L, 0, typeIds);
+            nextSenderContext(), 0L, 0, typeIds);
         this.sequenceCount += 1;
 
         return executeThrottled(() -> sendRequest(pkt).thenApply(response -> {
@@ -788,7 +792,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
                     List<TypeId> typeIds = Arrays.asList(nullAddressItem,
                         new UnConnectedDataItem(requestItem));
                     CipRRData rrdata = new CipRRData(sessionHandle, 0L,
-                        DEFAULT_SENDER_CONTEXT, EMPTY_INTERFACE_OPTIONS, EMPTY_INTERFACE_HANDLE, 0, typeIds);
+                        nextSenderContext(), EMPTY_INTERFACE_OPTIONS, EMPTY_INTERFACE_HANDLE, 0, typeIds);
                     return sendRequest(rrdata).thenApply(response -> {
                         if (response instanceof CipRRData rr) {
                             UnConnectedDataItem di = (UnConnectedDataItem) rr.getTypeIds().get(1);
@@ -856,7 +860,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             (byte) getConfiguration().getBackplane(),
             (byte) getConfiguration().getSlot()));
         List<TypeId> typeIds = Arrays.asList(nullAddressItem, exchange);
-        CipRRData pkt = new CipRRData(sessionHandle, 0L, DEFAULT_SENDER_CONTEXT,
+        CipRRData pkt = new CipRRData(sessionHandle, 0L, nextSenderContext(),
             0L, EMPTY_INTERFACE_HANDLE, 0, typeIds);
 
         return executeThrottled(() -> sendRequest(pkt).thenApply(response -> {
@@ -901,7 +905,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
         this.sequenceCount += 1;
         List<TypeId> typeIds = Arrays.asList(addressItem, exchange);
         SendUnitData pkt = new SendUnitData(sessionHandle, CIPStatus.Success.getValue(),
-            DEFAULT_SENDER_CONTEXT, 0L, 0, typeIds);
+            nextSenderContext(), 0L, 0, typeIds);
 
         return executeThrottled(() -> sendRequest(pkt).thenApply(response -> {
             if (!(response instanceof SendUnitData sud)) {
