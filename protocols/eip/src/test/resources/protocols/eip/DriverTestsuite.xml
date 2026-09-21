@@ -120,17 +120,18 @@
     </incoming-plc-message>
 
     <!--
-      The driver probes each CIP class with Get_Attribute_Single on attribute 1
-      (Revision) at instance 0 (class level). Here the connection-manager class is
-      reported as NOT supported.
+      The driver asks the Message Router which classes the device has, with a Get_Attribute_All.
+      This device does not support Get_Attribute_All, so the driver falls back to probing each
+      class with Get_Attribute_Single on attribute 1 (Revision) at instance 0 (class level):
+      the Message Router first, then the Connection Manager.
     -->
-    <outgoing-plc-message name="Send connection-manager support probe">
+    <outgoing-plc-message name="Send message-router class list request">
       <parser-arguments>
         <response>false</response>
       </parser-arguments>
       <EipPacket>
         <command dataType="uint" bitLength="16">111</command>
-        <packetLength dataType="uint" bitLength="16">24</packetLength>
+        <packetLength dataType="uint" bitLength="16">22</packetLength>
         <sessionHandle dataType="uint" bitLength="32">1074224669</sessionHandle>
         <status dataType="uint" bitLength="32">0</status>
         <senderContext dataType="byte" bitLength="64">0x504c433458202020</senderContext>
@@ -149,63 +150,47 @@
             <TypeId>
               <id dataType="uint" bitLength="16">178</id>
               <UnConnectedDataItem>
-                <packetSize dataType="uint" bitLength="16">8</packetSize>
+                <packetSize dataType="uint" bitLength="16">6</packetSize>
                 <service>
                   <CipService>
                     <response dataType="bit" bitLength="1">false</response>
                     <CipServiceRequest>
-                      <service dataType="uint" bitLength="7">14</service>
-                      <GetAttributeSingleRequest>
-                        <requestPathSize dataType="uint" bitLength="8">3</requestPathSize>
-                      <classSegment>
-                        <PathSegment>
-                          <pathSegment dataType="uint" bitLength="3">1</pathSegment>
-                          <LogicalSegment>
-                            <segmentType>
-                              <LogicalSegmentType>
-                                <logicalSegmentType dataType="uint" bitLength="3">0</logicalSegmentType>
-                                <ClassID>
-                                  <format dataType="uint" bitLength="2">0</format>
-                                  <segmentClass dataType="uint" bitLength="8">6</segmentClass>
-                                </ClassID>
-                              </LogicalSegmentType>
-                            </segmentType>
-                          </LogicalSegment>
-                        </PathSegment>
-                      </classSegment>
-                      <instanceSegment>
-                        <PathSegment>
-                          <pathSegment dataType="uint" bitLength="3">1</pathSegment>
-                          <LogicalSegment>
-                            <segmentType>
-                              <LogicalSegmentType>
-                                <logicalSegmentType dataType="uint" bitLength="3">1</logicalSegmentType>
-                                <InstanceID>
-                                  <format dataType="uint" bitLength="2">0</format>
-                                  <instance dataType="uint" bitLength="8">0</instance>
-                                </InstanceID>
-                              </LogicalSegmentType>
-                            </segmentType>
-                          </LogicalSegment>
-                        </PathSegment>
-                      </instanceSegment>
-                      <attributeSegment>
-                        <PathSegment>
-                          <pathSegment dataType="uint" bitLength="3">1</pathSegment>
-                          <LogicalSegment>
-                            <segmentType>
-                              <LogicalSegmentType>
-                                <logicalSegmentType dataType="uint" bitLength="3">4</logicalSegmentType>
-                                <AttributeID>
-                                  <format dataType="uint" bitLength="2">0</format>
-                                  <attribute dataType="uint" bitLength="8">1</attribute>
-                                </AttributeID>
-                              </LogicalSegmentType>
-                            </segmentType>
-                          </LogicalSegment>
-                        </PathSegment>
-                      </attributeSegment>
-                      </GetAttributeSingleRequest>
+                      <service dataType="uint" bitLength="7">1</service>
+                      <GetAttributeAllRequest>
+                        <requestPathSize dataType="uint" bitLength="8">2</requestPathSize>
+                        <classSegment>
+                          <PathSegment>
+                            <pathSegment dataType="uint" bitLength="3">1</pathSegment>
+                            <LogicalSegment>
+                              <segmentType>
+                                <LogicalSegmentType>
+                                  <logicalSegmentType dataType="uint" bitLength="3">0</logicalSegmentType>
+                                  <ClassID>
+                                    <format dataType="uint" bitLength="2">0</format>
+                                    <segmentClass dataType="uint" bitLength="8">2</segmentClass>
+                                  </ClassID>
+                                </LogicalSegmentType>
+                              </segmentType>
+                            </LogicalSegment>
+                          </PathSegment>
+                        </classSegment>
+                        <instanceSegment>
+                          <PathSegment>
+                            <pathSegment dataType="uint" bitLength="3">1</pathSegment>
+                            <LogicalSegment>
+                              <segmentType>
+                                <LogicalSegmentType>
+                                  <logicalSegmentType dataType="uint" bitLength="3">1</logicalSegmentType>
+                                  <InstanceID>
+                                    <format dataType="uint" bitLength="2">0</format>
+                                    <instance dataType="uint" bitLength="8">1</instance>
+                                  </InstanceID>
+                                </LogicalSegmentType>
+                              </segmentType>
+                            </LogicalSegment>
+                          </PathSegment>
+                        </instanceSegment>
+                      </GetAttributeAllRequest>
                     </CipServiceRequest>
                   </CipService>
                 </service>
@@ -215,7 +200,7 @@
         </CipRRData>
       </EipPacket>
     </outgoing-plc-message>
-    <incoming-plc-message name="Receive connection-manager support probe response">
+    <incoming-plc-message name="Receive message-router class list response">
       <parser-arguments>
         <response>true</response>
       </parser-arguments>
@@ -245,14 +230,12 @@
                   <CipService>
                     <response dataType="bit" bitLength="1">true</response>
                     <CipServiceResponse>
-                      <service dataType="uint" bitLength="7">14</service>
+                      <service dataType="uint" bitLength="7">1</service>
                       <reserved dataType="uint" bitLength="8">0</reserved>
                       <status dataType="uint" bitLength="8">8</status>
                       <extStatusSize dataType="uint" bitLength="8">0</extStatusSize>
                       <extStatus isList="true"/>
-                      <GetAttributeSingleResponse>
-                        <servicesData dataType="byte" bitLength="0">0x</servicesData>
-                      </GetAttributeSingleResponse>
+                      <GetAttributeAllResponse/>
                     </CipServiceResponse>
                   </CipService>
                 </service>
@@ -262,12 +245,7 @@
         </CipRRData>
       </EipPacket>
     </incoming-plc-message>
-
-    <!--
-      The driver probes each CIP class with Get_Attribute_Single on attribute 1
-      (Revision) at instance 0 (class level). Here the message-router class is
-      reported as NOT supported.
-    -->
+    <!-- Here the message-router class is reported as NOT supported. -->
     <outgoing-plc-message name="Send message-router support probe">
       <parser-arguments>
         <response>false</response>
@@ -406,14 +384,14 @@
         </CipRRData>
       </EipPacket>
     </incoming-plc-message>
-
-    <outgoing-plc-message name="Send get attribute all request">
+    <!-- Here the connection-manager class is reported as NOT supported. -->
+    <outgoing-plc-message name="Send connection-manager support probe">
       <parser-arguments>
         <response>false</response>
       </parser-arguments>
       <EipPacket>
         <command dataType="uint" bitLength="16">111</command>
-        <packetLength dataType="uint" bitLength="16">22</packetLength>
+        <packetLength dataType="uint" bitLength="16">24</packetLength>
         <sessionHandle dataType="uint" bitLength="32">1074224669</sessionHandle>
         <status dataType="uint" bitLength="32">0</status>
         <senderContext dataType="byte" bitLength="64">0x504c433458202020</senderContext>
@@ -432,47 +410,63 @@
             <TypeId>
               <id dataType="uint" bitLength="16">178</id>
               <UnConnectedDataItem>
-                <packetSize dataType="uint" bitLength="16">6</packetSize>
+                <packetSize dataType="uint" bitLength="16">8</packetSize>
                 <service>
                   <CipService>
                     <response dataType="bit" bitLength="1">false</response>
                     <CipServiceRequest>
-                      <service dataType="uint" bitLength="7">1</service>
-                      <GetAttributeAllRequest>
-                        <requestPathSize dataType="uint" bitLength="8">2</requestPathSize>
-                        <classSegment>
-                          <PathSegment>
-                            <pathSegment dataType="uint" bitLength="3">1</pathSegment>
-                            <LogicalSegment>
-                              <segmentType>
-                                <LogicalSegmentType>
-                                  <logicalSegmentType dataType="uint" bitLength="3">0</logicalSegmentType>
-                                  <ClassID>
-                                    <format dataType="uint" bitLength="2">0</format>
-                                    <segmentClass dataType="uint" bitLength="8">1</segmentClass>
-                                  </ClassID>
-                                </LogicalSegmentType>
-                              </segmentType>
-                            </LogicalSegment>
-                          </PathSegment>
-                        </classSegment>
-                        <instanceSegment>
-                          <PathSegment>
-                            <pathSegment dataType="uint" bitLength="3">1</pathSegment>
-                            <LogicalSegment>
-                              <segmentType>
-                                <LogicalSegmentType>
-                                  <logicalSegmentType dataType="uint" bitLength="3">1</logicalSegmentType>
-                                  <InstanceID>
-                                    <format dataType="uint" bitLength="2">0</format>
-                                    <instance dataType="uint" bitLength="8">1</instance>
-                                  </InstanceID>
-                                </LogicalSegmentType>
-                              </segmentType>
-                            </LogicalSegment>
-                          </PathSegment>
-                        </instanceSegment>
-                      </GetAttributeAllRequest>
+                      <service dataType="uint" bitLength="7">14</service>
+                      <GetAttributeSingleRequest>
+                        <requestPathSize dataType="uint" bitLength="8">3</requestPathSize>
+                      <classSegment>
+                        <PathSegment>
+                          <pathSegment dataType="uint" bitLength="3">1</pathSegment>
+                          <LogicalSegment>
+                            <segmentType>
+                              <LogicalSegmentType>
+                                <logicalSegmentType dataType="uint" bitLength="3">0</logicalSegmentType>
+                                <ClassID>
+                                  <format dataType="uint" bitLength="2">0</format>
+                                  <segmentClass dataType="uint" bitLength="8">6</segmentClass>
+                                </ClassID>
+                              </LogicalSegmentType>
+                            </segmentType>
+                          </LogicalSegment>
+                        </PathSegment>
+                      </classSegment>
+                      <instanceSegment>
+                        <PathSegment>
+                          <pathSegment dataType="uint" bitLength="3">1</pathSegment>
+                          <LogicalSegment>
+                            <segmentType>
+                              <LogicalSegmentType>
+                                <logicalSegmentType dataType="uint" bitLength="3">1</logicalSegmentType>
+                                <InstanceID>
+                                  <format dataType="uint" bitLength="2">0</format>
+                                  <instance dataType="uint" bitLength="8">0</instance>
+                                </InstanceID>
+                              </LogicalSegmentType>
+                            </segmentType>
+                          </LogicalSegment>
+                        </PathSegment>
+                      </instanceSegment>
+                      <attributeSegment>
+                        <PathSegment>
+                          <pathSegment dataType="uint" bitLength="3">1</pathSegment>
+                          <LogicalSegment>
+                            <segmentType>
+                              <LogicalSegmentType>
+                                <logicalSegmentType dataType="uint" bitLength="3">4</logicalSegmentType>
+                                <AttributeID>
+                                  <format dataType="uint" bitLength="2">0</format>
+                                  <attribute dataType="uint" bitLength="8">1</attribute>
+                                </AttributeID>
+                              </LogicalSegmentType>
+                            </segmentType>
+                          </LogicalSegment>
+                        </PathSegment>
+                      </attributeSegment>
+                      </GetAttributeSingleRequest>
                     </CipServiceRequest>
                   </CipService>
                 </service>
@@ -482,13 +476,13 @@
         </CipRRData>
       </EipPacket>
     </outgoing-plc-message>
-    <incoming-plc-message name="Receive get attribute all response">
+    <incoming-plc-message name="Receive connection-manager support probe response">
       <parser-arguments>
         <response>true</response>
       </parser-arguments>
       <EipPacket>
         <command dataType="uint" bitLength="16">111</command>
-        <packetLength dataType="uint" bitLength="16">22</packetLength>
+        <packetLength dataType="uint" bitLength="16">20</packetLength>
         <sessionHandle dataType="uint" bitLength="32">1074224669</sessionHandle>
         <status dataType="uint" bitLength="32">0</status>
         <senderContext dataType="byte" bitLength="64">0x504c433458202020</senderContext>
@@ -512,13 +506,14 @@
                   <CipService>
                     <response dataType="bit" bitLength="1">true</response>
                     <CipServiceResponse>
-                      <service dataType="uint" bitLength="7">1</service>
+                      <service dataType="uint" bitLength="7">14</service>
                       <reserved dataType="uint" bitLength="8">0</reserved>
-                      <status dataType="uint" bitLength="8">0</status>
+                      <status dataType="uint" bitLength="8">8</status>
                       <extStatusSize dataType="uint" bitLength="8">0</extStatusSize>
                       <extStatus isList="true"/>
-                      <GetAttributeAllResponse>
-                      </GetAttributeAllResponse>
+                      <GetAttributeSingleResponse>
+                        <servicesData dataType="byte" bitLength="0">0x</servicesData>
+                      </GetAttributeSingleResponse>
                     </CipServiceResponse>
                   </CipService>
                 </service>

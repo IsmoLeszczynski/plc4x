@@ -139,6 +139,8 @@ public abstract class EipPacket implements Message {
       builder = EipConnectionResponse.staticParseEipPacketBuilder(readBuffer, response);
     } else if (EvaluationHelper.equals(command, (int) (0x0066))) {
       builder = EipDisconnectRequest.staticParseEipPacketBuilder(readBuffer, response);
+    } else if (EvaluationHelper.equals(command, (int) (0x006F)) && EvaluationHelper.equals(response, (boolean) (true)) && EvaluationHelper.equals(packetLength, (int) (0))) {
+      builder = NullCipRRData.staticParseEipPacketBuilder(readBuffer, response);
     } else if (EvaluationHelper.equals(command, (int) (0x006F))) {
       builder = CipRRData.staticParseEipPacketBuilder(readBuffer, response);
     } else if (EvaluationHelper.equals(command, (int) (0x0070))) {
