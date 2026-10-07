@@ -44,10 +44,18 @@ public class EipTag implements PlcTag, Serializable {
     private static final String IDENTIFIER = "[a-zA-Z_0-9]+";
     /** A member on the way to the addressed one, e.g. {@code Tags[1].}; a bare index only, never a range. */
     private static final String INNER_MEMBER = IDENTIFIER + "(?:\\[[0-9]+])?\\.";
+    /**
+     * A program scope, e.g. {@code Program:Main.}: a Logix program-scoped tag is addressed by the
+     * symbol {@code Program:<name>} followed by the tag's own members.
+     */
+    private static final String PROGRAM_SCOPE = "Program:" + IDENTIFIER;
 
-    /** {@code path[selection][:type]}, where any member of the path may be indexed. */
+    /**
+     * {@code [Program:<name>.]path[selection][:type]}, where any member of the path may be
+     * indexed.
+     */
     private static final Pattern ADDRESS_PATTERN = Pattern.compile(
-        "^(?<tag>%?(?:" + INNER_MEMBER + ")*" + IDENTIFIER + ")"
+        "^(?<tag>%?(?:" + PROGRAM_SCOPE + "\\.)?(?:" + INNER_MEMBER + ")*" + IDENTIFIER + ")"
             + ArrayNotationParser.ARRAY_GROUP
             + "(?::(?<dataType>[A-Z]+))?$");
 
@@ -63,6 +71,9 @@ public class EipTag implements PlcTag, Serializable {
      * again for every request that uses it.
      */
     private static final Pattern PATH_PATTERN = Pattern.compile("([.\\[\\]])*([A-Za-z_0-9]+)");
+
+    /** The program scope an address may start with; it is one symbol, colon included. */
+    private static final Pattern SCOPE_PATTERN = Pattern.compile("%?(" + PROGRAM_SCOPE + ")\\.");
 
     private static final String GROUP_NAME_TAG = "tag";
     private static final String GROUP_NAME_ARRAY = "array";
@@ -172,8 +183,14 @@ public class EipTag implements PlcTag, Serializable {
         if (tag == null) {
             return Collections.emptyList();
         }
-        Matcher matcher = PATH_PATTERN.matcher(ArrayNotationParser.addressPart(tag));
+        String address = ArrayNotationParser.addressPart(tag);
         List<PathElement> elements = new ArrayList<>(2);
+        Matcher matcher = PATH_PATTERN.matcher(address);
+        Matcher scope = SCOPE_PATTERN.matcher(address);
+        if (scope.lookingAt()) {
+            elements.add(new SymbolElement(scope.group(1)));
+            matcher.region(scope.end(), address.length());
+        }
         while (matcher.find()) {
             if ("[".equals(matcher.group(1))) {
                 // An index written inside the path rather than as a trailing selection, as in

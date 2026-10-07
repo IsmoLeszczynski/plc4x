@@ -68,6 +68,11 @@ logix:tcp://127.0.0.1:44818?communication-path=[1,1]
 
 include::partial$logix.adoc[]
 
+NOTE: `communication-path` may be given with or without the surrounding brackets
+(`[1,4,2,192.168.0.1,1,1]` or `1,4,2,192.168.0.1,1,1`); empty brackets mean no path. Without a
+path, the route is port 1 (the backplane) to `slot`. The Java driver does not read `backplane`:
+the route without a path always uses port 1.
+
 == Tag Addresses
 
 Addressing is implemented in Go and Java. See the
@@ -89,7 +94,7 @@ easier, as you do not need to specify the Datatype for reading.
 [cols="2" ,options="header"]
 |===
 |Name |Description
-|Tagname |symbolic name of the data. May optionally be prefixed with `%`.
+|Tagname |symbolic name of the data. May optionally be prefixed with `%`. A program-scoped tag starts with its scope, `Program:<name>.`, e.g. `Program:Main.Counter`.
 |Selection (optional)|which elements of an array to read - a single index or an inclusive range. It follows the tag name, before the data type. See xref:array-notation.adoc[Addressing arrays].
 |DataType (optional)|the data type of the value. Defaults to `DINT` when omitted, so for anything that is not a 32-bit integer it should be given explicitly - also when reading.
 |===
@@ -150,4 +155,5 @@ driver; reading such a tag results in a response code of `INTERNAL_ERROR` rather
 |`myArray[3]:DINT` |element 3 of `myArray`
 |`myArray[0..3]:DINT` |elements 0 to 3 of `myArray`, returned as a list
 |`%myTag:REAL` |a single element of `myTag`, decoded as `REAL` - the `%` prefix is optional
+|`Program:Main.Counter:DINT` |the tag `Counter` scoped to the program `Main`
 |===

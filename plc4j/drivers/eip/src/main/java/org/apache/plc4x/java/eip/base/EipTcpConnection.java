@@ -53,6 +53,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntFunction;
 
 /**
  * EtherNet/IP (CIP encapsulation) TCP connection — direct port of the legacy
@@ -110,35 +111,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
     }
 
     private void initRoutingAddress() {
-        if (configuration.getCommunicationPath() != null) {
-            String[] splitConnectionPath = configuration.getCommunicationPath().split(",");
-            if (splitConnectionPath.length % 2 == 0) {
-                for (int i = 0; (i + 1) < splitConnectionPath.length; i += 2) {
-                    switch (splitConnectionPath[i]) {
-                        case "1":
-                            int backplanePortId = Integer.parseInt(splitConnectionPath[i]);
-                            int slot = Integer.parseInt(splitConnectionPath[i + 1]);
-                            routingAddress.add(new PortSegment(new PortSegmentNormal((byte) backplanePortId, (short) slot)));
-                            break;
-                        case "2":
-                            int ethernetPortId = Integer.parseInt(splitConnectionPath[i]);
-                            String ipAddress = splitConnectionPath[i + 1];
-                            int lengthString = ipAddress.length();
-                            if ((ipAddress.length() % 2) != 0) {
-                                ipAddress += "\0";
-                            }
-                            routingAddress.add(new PortSegment(new PortSegmentExtended((byte) ethernetPortId, (short) lengthString, ipAddress)));
-                            break;
-                        default:
-                            LOGGER.error("Only backplane or Ethernet module routing is supported");
-                    }
-                }
-            }
-        } else {
-            routingAddress.add(new PortSegment(new PortSegmentNormal((byte) 1, (short) configuration.getSlot())));
-        }
-        routingAddress.add(new LogicalSegment(new ClassID((byte) 0, (short) 2)));
-        routingAddress.add(new LogicalSegment(new InstanceID((byte) 0, (short) 1)));
+        routingAddress.addAll(routingPath(configuration.getCommunicationPath(), configuration.getSlot()));
 
         int totalBytes = 0;
         for (PathSegment segment : routingAddress) {
@@ -148,6 +121,55 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             totalBytes += 1;
         }
         this.connectionPathSize = (short) (totalBytes / 2);
+    }
+
+    /**
+     * The route to the Connection Manager: a port segment per hop of {@code communicationPath},
+     * or port 1 / {@code slot} when there is no path, then class 2 / instance 1.
+     *
+     * <p>The path is documented with brackets ({@code [1,4,2,192.168.0.1,1,1]}) and reaches here
+     * as written, so one surrounding pair is stripped; the bare form ({@code 1,0}) is accepted too.
+     * A path that is empty once stripped means no path.
+     */
+    static List<PathSegment> routingPath(String communicationPath, int slot) {
+        List<PathSegment> segments = new ArrayList<>();
+        String path = communicationPath == null ? "" : communicationPath.trim();
+        if (path.length() >= 2 && path.charAt(0) == '[' && path.charAt(path.length() - 1) == ']') {
+            path = path.substring(1, path.length() - 1).trim();
+        }
+        if (!path.isEmpty()) {
+            String[] splitConnectionPath = path.split(",");
+            for (int i = 0; i < splitConnectionPath.length; i++) {
+                splitConnectionPath[i] = splitConnectionPath[i].trim();
+            }
+            if (splitConnectionPath.length % 2 == 0) {
+                for (int i = 0; (i + 1) < splitConnectionPath.length; i += 2) {
+                    switch (splitConnectionPath[i]) {
+                        case "1":
+                            int backplanePortId = Integer.parseInt(splitConnectionPath[i]);
+                            int pathSlot = Integer.parseInt(splitConnectionPath[i + 1]);
+                            segments.add(new PortSegment(new PortSegmentNormal((byte) backplanePortId, (short) pathSlot)));
+                            break;
+                        case "2":
+                            int ethernetPortId = Integer.parseInt(splitConnectionPath[i]);
+                            String ipAddress = splitConnectionPath[i + 1];
+                            int lengthString = ipAddress.length();
+                            if ((ipAddress.length() % 2) != 0) {
+                                ipAddress += "\0";
+                            }
+                            segments.add(new PortSegment(new PortSegmentExtended((byte) ethernetPortId, (short) lengthString, ipAddress)));
+                            break;
+                        default:
+                            LOGGER.error("Only backplane or Ethernet module routing is supported");
+                    }
+                }
+            }
+        } else {
+            segments.add(new PortSegment(new PortSegmentNormal((byte) 1, (short) slot)));
+        }
+        segments.add(new LogicalSegment(new ClassID((byte) 0, (short) 2)));
+        segments.add(new LogicalSegment(new InstanceID((byte) 0, (short) 1)));
+        return segments;
     }
 
     @Override
@@ -909,6 +931,10 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
      * them. The address was decomposed when the tag was built, so this does no parsing.
      */
     private byte[] toAnsi(EipTag tag) throws BufferException {
+        return toAnsi(tag, messageCodec::createWriteBuffer);
+    }
+
+    static byte[] toAnsi(EipTag tag, IntFunction<WriteBufferByteBased> bufferFactory) throws BufferException {
         List<EipTag.PathElement> elements = tag.getPathElements();
         List<PathSegment> segments = new ArrayList<>(elements.size());
         int lengthBytes = 0;
@@ -924,7 +950,7 @@ public class EipTcpConnection extends PollingSubscriptionConnectionBase<EIPConfi
             segments.add(segment);
             lengthBytes += segment.getLengthInBytes();
         }
-        WriteBufferByteBased buffer = messageCodec.createWriteBuffer(lengthBytes);
+        WriteBufferByteBased buffer = bufferFactory.apply(lengthBytes);
         for (PathSegment segment : segments) {
             segment.serialize(buffer);
         }
